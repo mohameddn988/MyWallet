@@ -13,18 +13,24 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 const THEME_STORAGE_KEY = "@expotemplate_theme";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [themeType, setThemeType] = useState<ThemeType>("male"); // Default to male
+  const [themeType, setThemeType] = useState<ThemeType>("default");
 
   // Load theme from storage on mount
   useEffect(() => {
     const loadTheme = async () => {
       try {
         const storedTheme = await AsyncStorage.getItem(THEME_STORAGE_KEY);
-        if (
-          storedTheme &&
-          (storedTheme === "male" || storedTheme === "female")
-        ) {
-          setThemeType(storedTheme);
+        if (!storedTheme) return;
+
+        if (storedTheme === "default") {
+          setThemeType("default");
+          return;
+        }
+
+        // Migrate old values (male/female) to default
+        if (storedTheme === "male" || storedTheme === "female") {
+          setThemeType("default");
+          await AsyncStorage.setItem(THEME_STORAGE_KEY, "default");
         }
       } catch (error) {
         console.error("Error loading theme:", error);
@@ -59,8 +65,8 @@ export function useTheme() {
   if (context === undefined) {
     // Return default theme if context is not available
     return {
-      theme: themes.male,
-      themeType: "male" as ThemeType,
+      theme: themes.default,
+      themeType: "default" as ThemeType,
       setTheme: () => {},
     };
   }
