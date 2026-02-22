@@ -12,7 +12,6 @@
 
 ## 2. ONBOARDING
 
-- [ ] Getting started screens (welcome, app intro)
 - [ ] Onboarding flow (set currency, create first account, add sample data)
 - [ ] Skip onboarding option
 

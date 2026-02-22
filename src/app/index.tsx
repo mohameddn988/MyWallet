@@ -1,55 +1,27 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { useTheme } from "../contexts/ThemeContext";
+import SplashScreen from "../components/ui/SplashScreen";
 
 export default function Index() {
-  const { theme } = useTheme();
-  const { authMode, user, signOut } = useAuth();
+  const { authMode, isLoading } = useAuth();
+  const router = useRouter();
+  const [showSplash, setShowSplash] = useState(true);
 
-  return (
-    <View style={[styles.root, { backgroundColor: theme.background.dark }]}>
-      <Text style={[styles.title, { color: theme.foreground.white }]}>
-        Dashboard
-      </Text>
-      <Text style={[styles.sub, { color: theme.foreground.gray }]}>
-        {authMode === "offline"
-          ? "Offline mode"
-          : `Welcome, ${user?.name ?? user?.email}`}
-      </Text>
+  // Once splash is done AND auth has loaded, navigate
+  useEffect(() => {
+    if (showSplash || isLoading) return;
 
-      {/* Temporary sign out for testing */}
-      <Pressable
-        style={[styles.signOutBtn, { borderColor: theme.primary.main }]}
-        onPress={signOut}
-      >
-        <Text style={{ color: theme.primary.main, fontWeight: "600" }}>
-          Sign Out
-        </Text>
-      </Pressable>
-    </View>
-  );
+    if (authMode === null) {
+      router.navigate("/auth");
+    } else {
+      router.navigate("/home");
+    }
+  }, [showSplash, isLoading, authMode, router]);
+
+  if (showSplash) {
+    return <SplashScreen onAnimationComplete={() => setShowSplash(false)} />;
+  }
+
+  return null;
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    marginBottom: 8,
-  },
-  sub: {
-    fontSize: 15,
-    marginBottom: 40,
-  },
-  signOutBtn: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-  },
-});
