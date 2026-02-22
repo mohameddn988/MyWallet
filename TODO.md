@@ -1,21 +1,24 @@
 # TODO
 
-## 1. AUTHENTICATION & ONBOARDING
+## 1. AUTHENTICATION
 
-- [ ] Login screen with email/password local auth
-- [ ] Google OAuth integration for login
-- [ ] Sign up screen for new users
-- [ ] Password reset/forgot password flow
-- [ ] User session management (login state persistence)
-- [ ] Logout functionality
-- [ ] Getting started screens (welcome, app intro)
-- [ ] Onboarding flow (set currency, create first account, add sample data)
-- [ ] Skip onboarding option
-- [ ] Auth state guards for protected screens
+- [x] Auth screen with Google and Local options
+- [ ] Google OAuth integration for login (placeholder console.log)
+- [x] User session management (login state persistence)
+- [x] Logout functionality
+- [x] Auth state guards for protected screens
 
 ---
 
-## 2. DASHBOARD
+## 2. ONBOARDING
+
+- [ ] Getting started screens (welcome, app intro)
+- [ ] Onboarding flow (set currency, create first account, add sample data)
+- [ ] Skip onboarding option
+
+---
+
+## 3. DASHBOARD
 
 - [ ] Show current month summary (income, expenses, net)
 - [ ] Show today/week/month spending quick stats
@@ -27,7 +30,7 @@
 
 ---
 
-## 3. TRANSACTIONS
+## 4. TRANSACTIONS
 
 - [ ] Transactions list grouped by date
 - [ ] Infinite/virtualized list for large histories
@@ -46,7 +49,7 @@
 
 ---
 
-## 4. ADD / EDIT TRANSACTION FORM
+## 5. ADD / EDIT TRANSACTION FORM
 
 - [ ] Money input with proper currency formatting
 - [ ] Store money safely (minor units strategy)
@@ -61,7 +64,7 @@
 
 ---
 
-## 5. CATEGORIES
+## 6. CATEGORIES
 
 - [ ] Display categories (expense + income tabs)
 - [ ] Create category (name + icon)
@@ -73,7 +76,7 @@
 
 ---
 
-## 6. ACCOUNTS / WALLETS
+## 7. ACCOUNTS / WALLETS
 
 - [ ] Display accounts list
 - [ ] Create account (name, initial balance)
@@ -85,7 +88,7 @@
 
 ---
 
-## 7. BUDGETS
+## 8. BUDGETS
 
 - [ ] Create monthly budget per category
 - [ ] Create overall monthly budget (optional)
@@ -97,7 +100,7 @@
 
 ---
 
-## 8. REPORTS / ANALYTICS
+## 9. REPORTS / ANALYTICS
 
 - [ ] Spending by category (pie/bar)
 - [ ] Income vs expenses chart
@@ -109,7 +112,7 @@
 
 ---
 
-## 9. SEARCH / FILTER / SORT
+## 10. SEARCH / FILTER / SORT
 
 - [ ] Search transactions by note/merchant
 - [ ] Filter by date range
@@ -122,7 +125,7 @@
 
 ---
 
-## 10. RECURRING TRANSACTIONS
+## 11. RECURRING TRANSACTIONS
 
 - [ ] Create recurring transaction (expense/income)
 - [ ] Frequencies: daily / weekly / monthly / yearly
@@ -135,7 +138,7 @@
 
 ---
 
-## 11. DATA STORAGE & MIGRATIONS
+## 12. DATA STORAGE & MIGRATIONS
 
 - [ ] Persist data locally (transactions, categories, accounts, budgets, settings)
 - [ ] Data versioning and migrations
@@ -144,7 +147,7 @@
 
 ---
 
-## 12. EXPORT / IMPORT / BACKUP
+## 13. EXPORT / IMPORT / BACKUP
 
 - [ ] Export full backup to JSON
 - [ ] Import backup from JSON
@@ -156,7 +159,7 @@
 
 ---
 
-## 13. SECURITY & PRIVACY
+## 14. SECURITY & PRIVACY
 
 - [ ] App lock with PIN/biometric (optional)
 - [ ] Hide sensitive screen in app switcher (privacy blur) (optional)
@@ -165,7 +168,7 @@
 
 ---
 
-## 14. NOTIFICATIONS
+## 15. NOTIFICATIONS
 
 - [ ] Budget alerts (near limit / over limit)
 - [ ] Recurring transaction reminders
@@ -173,7 +176,7 @@
 
 ---
 
-## 15. SETTINGS
+## 16. SETTINGS
 
 - [ ] Theme: light/dark/system (wired to existing ThemeContext)
 - [ ] Default currency
@@ -186,7 +189,7 @@
 
 ---
 
-## 16. ACCESSIBILITY & LOCALIZATION
+## 17. ACCESSIBILITY & LOCALIZATION
 
 - [ ] Accessible labels for all interactive elements
 - [ ] Dynamic type / font scaling support
@@ -196,7 +199,7 @@
 
 ---
 
-## 17. PERFORMANCE & RELIABILITY
+## 18. PERFORMANCE & RELIABILITY
 
 - [ ] Fast list rendering for transactions (virtualization)
 - [ ] Memoize derived totals and charts
@@ -206,7 +209,7 @@
 
 ---
 
-## 18. TESTING
+## 19. TESTING
 
 - [ ] Unit tests for money math (minor units), totals, budgets
 - [ ] Tests for transfer logic and balance calculations
@@ -215,7 +218,7 @@
 
 ---
 
-## 19. POLISH
+## 20. POLISH
 
 - [ ] First-launch setup (pick currency, create first account)
 - [ ] Sample/demo data toggle (optional)
