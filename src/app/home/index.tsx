@@ -22,7 +22,6 @@ export default function HomeScreen() {
     baseCurrency,
     exchangeRates,
     accounts,
-    perCurrencySubtotals,
     netWorth,
     monthSummary,
     quickStats,
@@ -34,11 +33,6 @@ export default function HomeScreen() {
   const styles = makeStyles(theme);
   const now = new Date();
   const monthLabel = formatMonthYear(now);
-
-  // Build rate note for the NetWorthCard
-  const rateNote = exchangeRates
-    .map((r) => `${r.from}/${r.to} · ${r.rate.toFixed(2)} · Manual`)
-    .join("  ·  ");
 
   const comingSoon = (label: string) =>
     Alert.alert("Coming Soon", `${label} is not yet implemented.`);
@@ -72,7 +66,6 @@ export default function HomeScreen() {
           netWorth={netWorth}
           monthNet={monthSummary.net}
           baseCurrency={baseCurrency}
-          rateNote={rateNote}
           onPress={() => comingSoon("Net Worth detail")}
         />
 
@@ -80,7 +73,6 @@ export default function HomeScreen() {
         <MonthSummaryRow
           summary={monthSummary}
           baseCurrency={baseCurrency}
-          monthLabel={monthLabel}
           onIncomePress={() => comingSoon("Filtered income transactions")}
           onExpensePress={() => comingSoon("Filtered expense transactions")}
           onNetPress={() => comingSoon("Net detail")}
@@ -96,7 +88,6 @@ export default function HomeScreen() {
         {/* ── Account balances ── */}
         <AccountsList
           accounts={accounts}
-          perCurrencySubtotals={perCurrencySubtotals}
           netWorth={netWorth}
           baseCurrency={baseCurrency}
           exchangeRates={exchangeRates}
@@ -155,7 +146,7 @@ function makeStyles(theme: ReturnType<typeof useTheme>["theme"]) {
       color: theme.foreground.white,
     },
     bottomPad: {
-      height: 100,
+      height: 32,
     },
   });
 }
