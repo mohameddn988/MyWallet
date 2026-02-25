@@ -10,22 +10,30 @@
 
 ---
 
-## 2. ONBOARDING
+## 2. GET STARTED (POST-AUTH)
 
-- [ ] Onboarding flow (set currency, create first account, add sample data)
-- [ ] Skip onboarding option
+- [ ] Get Started screen shown after user authenticates (Google or Local)
+- [ ] Step: set default currency
+- [ ] Step: create first account (name + initial balance)
+- [ ] Option: add sample/demo data
+- [ ] Option: skip and go to dashboard/home
+- [ ] Persist completion state so it doesn’t show again
 
 ---
 
-## 3. DASHBOARD
+## 3. Home
 
-- [ ] Show current month summary (income, expenses, net)
-- [ ] Show today/week/month spending quick stats
-- [ ] Show account balances (per account + total)
-- [ ] Show recent transactions list
-- [ ] Quick add buttons (expense / income / transfer)
-- [ ] Tap summary cards to open filtered transaction list
-- [ ] Pull to refresh (recompute totals)
+- [x] Show current month summary (income, expenses, net)
+- [x] Show today/week/month spending quick stats
+- [x] Show account balances (per account + total)
+- [x] Show overall net worth across all accounts (converted to base currency)
+- [x] Show per-currency subtotals (optional)
+- [x] Clearly label conversion rate used + last updated time (if rates are user-defined)
+- [x] Show recent transactions list
+- [x] Quick add buttons (expense / income / transfer)
+- [x] Tap summary cards to open filtered transaction list (placeholder handlers)
+- [x] Pull to refresh (recompute totals)
+- [x] New flat vertical dashboard layout implemented
 
 ---
 
@@ -79,11 +87,18 @@
 
 - [ ] Display accounts list
 - [ ] Create account (name, initial balance)
+- [ ] Account type/category (e.g., Cash, Bank, Savings, Charity, Loan, Other)
+- [ ] Account currency selection (e.g., USD/EUR/etc)
+- [ ] Base currency concept for the app (chosen once, editable later)
+- [ ] Conversion rate per currency → base currency (manual entry to start)
+- [ ] Display balances in both native currency and converted base currency
 - [ ] Edit account
 - [ ] Archive/unarchive account
 - [ ] Prevent deleting accounts with transactions (or provide migration flow)
 - [ ] Show account detail (balance trend + transactions filtered to account)
-- [ ] Support multiple currencies per account (optional)
+- [ ] Multi-currency support (required): overall totals computed in base currency
+- [ ] Loans: support liability accounts (negative balances) and include in overall net worth
+- [ ] Charity: support earmarked/goal accounts (tracked separately but included in overall)
 
 ---
 
@@ -143,6 +158,8 @@
 - [ ] Data versioning and migrations
 - [ ] Full recalculation utilities (rebuild balances/totals from transactions)
 - [ ] Safe delete rules + referential integrity (category/account references)
+- [ ] Store base currency + currency conversion rates (with updatedAt)
+- [ ] Recompute derived totals using conversion rates (deterministic rules)
 
 ---
 
@@ -178,7 +195,8 @@
 ## 16. SETTINGS
 
 - [ ] Theme: light/dark/system (wired to existing ThemeContext)
-- [ ] Default currency
+- [ ] Base currency (default currency) used for totals
+- [ ] Manage currencies + conversion rates (manual entry MVP)
 - [ ] Locale and number/date formatting
 - [ ] First day of week
 - [ ] Manage categories shortcut
@@ -221,6 +239,6 @@
 
 - [ ] First-launch setup (pick currency, create first account)
 - [ ] Sample/demo data toggle (optional)
-- [ ] Empty-state onboarding (CTA to add first transaction)
+- [ ] Empty-state get started (CTA to add first transaction)
 - [ ] Haptics for key actions (optional)
 - [ ] App icon/splash polish

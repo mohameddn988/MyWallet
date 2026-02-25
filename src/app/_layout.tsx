@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { AuthProvider } from "../contexts/AuthContext";
+import { FinanceProvider } from "../contexts/FinanceContext";
 import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
 
 export default function RootLayout() {
@@ -9,9 +10,11 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
         <AuthProvider>
-          <SafeAreaProvider>
-            <RootLayoutWithTheme />
-          </SafeAreaProvider>
+          <FinanceProvider>
+            <SafeAreaProvider>
+              <RootLayoutWithTheme />
+            </SafeAreaProvider>
+          </FinanceProvider>
         </AuthProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
