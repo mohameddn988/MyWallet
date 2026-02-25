@@ -182,12 +182,224 @@ export const INITIAL_ACCOUNTS: Account[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Transactions
+// Transactions — February 2026 mock data
 // ─────────────────────────────────────────────────────────────────────────────
-// No transaction history provided yet.
-// Will be populated once the user sends historical data.
+// All amounts in minor units (×100). e.g. 2,500,000 = 25,000 DZD
+//
+// Monthly totals (Feb 2026):
+//   Income  : 25,000 + 12,000 = 37,000 DZD
+//   Expenses: ~23,600 DZD
+//   Net     : ~+13,400 DZD
 
-export const INITIAL_TRANSACTIONS: Transaction[] = [];
+export const INITIAL_TRANSACTIONS: Transaction[] = [
+  // ── Income ────────────────────────────────────────────────────────────────
+
+  {
+    id: "tx_income_salary",
+    type: "income",
+    amount: 2_500_000,        // 25,000 DZD — monthly salary
+    currency: "DZD",
+    accountId: "acc_1000",
+    categoryId: "cat_salary",
+    categoryName: "Salary",
+    categoryIcon: "briefcase-outline",
+    categoryColor: "#C8F14A",
+    date: "2026-02-01",
+    merchant: "Employer",
+  },
+  {
+    id: "tx_income_freelance",
+    type: "income",
+    amount: 1_200_000,        // 12,000 DZD — freelance payment
+    currency: "DZD",
+    accountId: "acc_2000",
+    categoryId: "cat_freelance",
+    categoryName: "Freelance",
+    categoryIcon: "laptop",
+    categoryColor: "#C8F14A",
+    date: "2026-02-15",
+    merchant: "Client",
+    note: "Web project payment",
+  },
+
+  // ── Expenses ──────────────────────────────────────────────────────────────
+
+  {
+    id: "tx_exp_supermarket_1",
+    type: "expense",
+    amount: 320_000,          // 3,200 DZD
+    currency: "DZD",
+    accountId: "acc_2000",
+    categoryId: "cat_groceries",
+    categoryName: "Groceries",
+    categoryIcon: "cart-outline",
+    categoryColor: "#FF9500",
+    date: "2026-02-01",
+    merchant: "Marché Centrale",
+  },
+  {
+    id: "tx_exp_transport_1",
+    type: "expense",
+    amount: 50_000,           // 500 DZD
+    currency: "DZD",
+    accountId: "acc_2000",
+    categoryId: "cat_transport",
+    categoryName: "Transport",
+    categoryIcon: "bus",
+    categoryColor: "#4A9FF1",
+    date: "2026-02-03",
+    merchant: "ETUSA",
+  },
+  {
+    id: "tx_exp_restaurant_1",
+    type: "expense",
+    amount: 180_000,          // 1,800 DZD
+    currency: "DZD",
+    accountId: "acc_2000",
+    categoryId: "cat_food",
+    categoryName: "Restaurant",
+    categoryIcon: "silverware-fork-knife",
+    categoryColor: "#F14A6E",
+    date: "2026-02-05",
+    merchant: "Le Boulanger",
+  },
+  {
+    id: "tx_exp_phone",
+    type: "expense",
+    amount: 150_000,          // 1,500 DZD
+    currency: "DZD",
+    accountId: "acc_ccp",
+    categoryId: "cat_bills",
+    categoryName: "Phone Bill",
+    categoryIcon: "cellphone",
+    categoryColor: "#A44AF1",
+    date: "2026-02-07",
+    merchant: "Djezzy",
+  },
+  {
+    id: "tx_exp_internet",
+    type: "expense",
+    amount: 300_000,          // 3,000 DZD
+    currency: "DZD",
+    accountId: "acc_ccp",
+    categoryId: "cat_bills",
+    categoryName: "Internet",
+    categoryIcon: "wifi",
+    categoryColor: "#A44AF1",
+    date: "2026-02-09",
+    merchant: "Algérie Télécom",
+  },
+  {
+    id: "tx_exp_pharmacy",
+    type: "expense",
+    amount: 85_000,           // 850 DZD
+    currency: "DZD",
+    accountId: "acc_2000",
+    categoryId: "cat_health",
+    categoryName: "Health",
+    categoryIcon: "medical-bag",
+    categoryColor: "#FF6B6B",
+    date: "2026-02-11",
+    merchant: "Pharmacie Centrale",
+  },
+  {
+    id: "tx_exp_clothes",
+    type: "expense",
+    amount: 450_000,          // 4,500 DZD
+    currency: "DZD",
+    accountId: "acc_2000",
+    categoryId: "cat_shopping",
+    categoryName: "Shopping",
+    categoryIcon: "shopping-outline",
+    categoryColor: "#F1C44A",
+    date: "2026-02-13",
+    merchant: "Zara Algiers",
+  },
+  {
+    id: "tx_exp_supermarket_2",
+    type: "expense",
+    amount: 270_000,          // 2,700 DZD
+    currency: "DZD",
+    accountId: "acc_2000",
+    categoryId: "cat_groceries",
+    categoryName: "Groceries",
+    categoryIcon: "cart-outline",
+    categoryColor: "#FF9500",
+    date: "2026-02-16",
+    merchant: "BIM Market",
+  },
+  {
+    id: "tx_exp_cafe",
+    type: "expense",
+    amount: 45_000,           // 450 DZD
+    currency: "DZD",
+    accountId: "acc_2000",
+    categoryId: "cat_food",
+    categoryName: "Café",
+    categoryIcon: "coffee",
+    categoryColor: "#F14A6E",
+    date: "2026-02-18",
+    merchant: "Café de la Paix",
+  },
+
+  // ── This week (Feb 20–26) ─────────────────────────────────────────────────
+
+  {
+    id: "tx_exp_transport_2",
+    type: "expense",
+    amount: 60_000,           // 600 DZD
+    currency: "DZD",
+    accountId: "acc_2000",
+    categoryId: "cat_transport",
+    categoryName: "Transport",
+    categoryIcon: "bus",
+    categoryColor: "#4A9FF1",
+    date: "2026-02-20",
+    merchant: "Taxi",
+  },
+  {
+    id: "tx_exp_haircut",
+    type: "expense",
+    amount: 50_000,           // 500 DZD
+    currency: "DZD",
+    accountId: "acc_2000",
+    categoryId: "cat_personal",
+    categoryName: "Personal Care",
+    categoryIcon: "scissors-cutting",
+    categoryColor: "#26A17B",
+    date: "2026-02-22",
+    merchant: "Salon Coiffeur",
+  },
+  {
+    id: "tx_exp_restaurant_2",
+    type: "expense",
+    amount: 220_000,          // 2,200 DZD
+    currency: "DZD",
+    accountId: "acc_2000",
+    categoryId: "cat_food",
+    categoryName: "Restaurant",
+    categoryIcon: "silverware-fork-knife",
+    categoryColor: "#F14A6E",
+    date: "2026-02-24",
+    merchant: "Pizza Roma",
+  },
+
+  // ── Today (Feb 26) ────────────────────────────────────────────────────────
+
+  {
+    id: "tx_exp_groceries_today",
+    type: "expense",
+    amount: 180_000,          // 1,800 DZD
+    currency: "DZD",
+    accountId: "acc_2000",
+    categoryId: "cat_groceries",
+    categoryName: "Groceries",
+    categoryIcon: "cart-outline",
+    categoryColor: "#FF9500",
+    date: "2026-02-26",
+    merchant: "Casino Supermarché",
+  },
+];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Quick reference — stated net worth breakdown (from Obsidian note)

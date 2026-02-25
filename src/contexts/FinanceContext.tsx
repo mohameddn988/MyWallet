@@ -17,6 +17,7 @@ import {
   CurrencySubtotal,
   ExchangeRate,
   MonthSummary,
+  PeriodSummary,
   QuickStats,
   Transaction,
 } from "../types/finance";
@@ -122,6 +123,10 @@ function computeMonthSummary(
   return { income, expense, net: income - expense };
 }
 
+function makePeriod(): PeriodSummary {
+  return { income: 0, expense: 0, net: 0 };
+}
+
 function computeQuickStats(
   transactions: Transaction[],
   rateMap: Record<string, number>,
@@ -135,19 +140,30 @@ function computeQuickStats(
   const month = now.getMonth();
   const year = now.getFullYear();
 
-  let today = 0;
-  let week = 0;
-  let month_ = 0;
+  const today = makePeriod();
+  const week = makePeriod();
+  const month_ = makePeriod();
 
   for (const tx of transactions) {
-    if (tx.type !== "expense") continue;
+    if (tx.type === "transfer") continue;
     const d = getStartOfDay(tx.date);
     const inBase = convertToBase(tx.amount, tx.currency, base, rateMap);
+    const isIncome = tx.type === "income";
 
-    if (tx.date === todayStr) today += inBase;
-    if (d >= weekAgo && d <= now) week += inBase;
-    if (d.getFullYear() === year && d.getMonth() === month) month_ += inBase;
+    const addTo = (p: PeriodSummary) => {
+      if (isIncome) p.income += inBase;
+      else p.expense += inBase;
+    };
+
+    if (tx.date === todayStr) addTo(today);
+    if (d >= weekAgo && d <= now) addTo(week);
+    if (d.getFullYear() === year && d.getMonth() === month) addTo(month_);
   }
+
+  today.net = today.income - today.expense;
+  week.net = week.income - week.expense;
+  month_.net = month_.income - month_.expense;
+
   return { today, week, month: month_ };
 }
 

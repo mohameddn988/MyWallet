@@ -12,12 +12,15 @@
 
 ## 2. GET STARTED (POST-AUTH)
 
-- [ ] Get Started screen shown after user authenticates (Google or Local)
-- [ ] Step: set default currency
-- [ ] Step: create first account (name + initial balance)
-- [ ] Option: add sample/demo data
-- [ ] Option: skip and go to dashboard/home
-- [ ] Persist completion state so it doesn’t show again
+- [ ] Show Get Started flow after user authenticates (Google or Local)
+- [ ] Step 1 — Welcome: choose Online (Google) vs Offline (local-only)
+- [ ] Step 2 — Base currency: set default currency (default: DZD)
+- [ ] Step 3 — Create first accounts: add at least 1 account (name, type, currency, initial balance)
+- [ ] Step 4 — Exchange rates (conditional): only show if any non-base currency accounts exist
+- [ ] Step 5 — Add first transaction (optional): Expense / Income / Transfer (skip allowed)
+- [ ] Step 6 — Done: go to dashboard/home
+- [ ] Option: add sample/demo data (one-tap fill) during onboarding
+- [ ] Persist completion state so onboarding doesn’t show again
 
 ---
 

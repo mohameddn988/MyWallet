@@ -78,10 +78,19 @@ export interface MonthSummary {
   net: number;
 }
 
+export interface PeriodSummary {
+  /** Total income in base currency minor units */
+  income: number;
+  /** Total expenses in base currency minor units */
+  expense: number;
+  /** income - expense */
+  net: number;
+}
+
 export interface QuickStats {
-  today: number;
-  week: number;
-  month: number;
+  today: PeriodSummary;
+  week: PeriodSummary;
+  month: PeriodSummary;
 }
 
 export interface AccountWithBalance {

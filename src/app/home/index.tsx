@@ -1,3 +1,5 @@
+import { router } from "expo-router";
+import { useState } from "react";
 import {
   Alert,
   RefreshControl,
@@ -10,7 +12,7 @@ import AccountsList from "../../components/home/AccountsList";
 import MonthSummaryRow from "../../components/home/MonthSummaryRow";
 import NetWorthCard from "../../components/home/NetWorthCard";
 import QuickAddBar from "../../components/home/QuickAddBar";
-import QuickStatsBar from "../../components/home/QuickStatsBar";
+import QuickStatsBar, { Period } from "../../components/home/QuickStatsBar";
 import RecentTransactionsList from "../../components/home/RecentTransactionsList";
 import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -23,16 +25,17 @@ export default function HomeScreen() {
     exchangeRates,
     accounts,
     netWorth,
-    monthSummary,
     quickStats,
     recentTransactions,
     isRefreshing,
     refresh,
   } = useFinance();
 
+  const [activePeriod, setActivePeriod] = useState<Period>("month");
+  const displayedSummary = quickStats[activePeriod];
+  const monthLabel = formatMonthYear(new Date());
+
   const styles = makeStyles(theme);
-  const now = new Date();
-  const monthLabel = formatMonthYear(now);
 
   const comingSoon = (label: string) =>
     Alert.alert("Coming Soon", `${label} is not yet implemented.`);
@@ -64,25 +67,32 @@ export default function HomeScreen() {
         {/* ── Net Worth hero card ── */}
         <NetWorthCard
           netWorth={netWorth}
-          monthNet={monthSummary.net}
+          monthNet={quickStats.month.net}
           baseCurrency={baseCurrency}
           onPress={() => comingSoon("Net Worth detail")}
         />
 
-        {/* ── Month summary: Income / Expenses / Net ── */}
+        {/* ── Period summary: Income / Expenses / Net ── */}
         <MonthSummaryRow
-          summary={monthSummary}
+          summary={displayedSummary}
           baseCurrency={baseCurrency}
-          onIncomePress={() => comingSoon("Filtered income transactions")}
-          onExpensePress={() => comingSoon("Filtered expense transactions")}
-          onNetPress={() => comingSoon("Net detail")}
+          onIncomePress={() =>
+            router.push("/home/filtered-transactions?filter=income" as any)
+          }
+          onExpensePress={() =>
+            router.push("/home/filtered-transactions?filter=expense" as any)
+          }
+          onNetPress={() =>
+            router.push("/home/filtered-transactions?filter=all" as any)
+          }
         />
 
-        {/* ── Quick stats: Today / Week / Month ── */}
+        {/* ── Quick stats chips: Today / Week / Month ── */}
         <QuickStatsBar
           stats={quickStats}
           baseCurrency={baseCurrency}
-          onPress={(period) => comingSoon(`${period} transactions`)}
+          activePeriod={activePeriod}
+          onPeriodChange={setActivePeriod}
         />
 
         {/* ── Account balances ── */}

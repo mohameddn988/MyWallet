@@ -1,49 +1,40 @@
-import React, { useState } from "react";
+import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { QuickStats } from "../../types/finance";
 import { formatAmount } from "../../utils/currency";
 
-type Period = "today" | "week" | "month";
+export type Period = "today" | "week" | "month";
 
 interface QuickStatsBarProps {
   stats: QuickStats;
   baseCurrency: string;
-  onPress?: (period: Period) => void;
+  activePeriod: Period;
+  onPeriodChange: (p: Period) => void;
 }
 
 const PERIODS: { key: Period; label: string }[] = [
   { key: "today", label: "Today" },
-  { key: "week", label: "Week" },
-  { key: "month", label: "Month" },
+  { key: "week", label: "This Week" },
+  { key: "month", label: "This Month" },
 ];
 
 export default function QuickStatsBar({
   stats,
   baseCurrency,
-  onPress,
+  activePeriod,
+  onPeriodChange,
 }: QuickStatsBarProps) {
   const { theme } = useTheme();
-  const [active, setActive] = useState<Period>("today");
   const styles = makeStyles(theme);
-
-  const valueMap: Record<Period, number> = {
-    today: stats.today,
-    week: stats.week,
-    month: stats.month,
-  };
-
-  const handlePress = (p: Period) => {
-    setActive(p);
-    onPress?.(p);
-  };
 
   return (
     <View style={styles.row}>
       {PERIODS.map((p) => {
-        const isActive = active === p.key;
-        const amount = valueMap[p.key];
-        const hasSpend = amount > 0;
+        const isActive = activePeriod === p.key;
+        const net = stats[p.key].net;
+        const hasActivity = stats[p.key].income > 0 || stats[p.key].expense > 0;
+        const netColor = net >= 0 ? theme.primary.main : "#F14A6E";
 
         return (
           <Pressable
@@ -53,7 +44,7 @@ export default function QuickStatsBar({
               isActive && styles.chipActive,
               pressed && styles.chipPressed,
             ]}
-            onPress={() => handlePress(p.key)}
+            onPress={() => onPeriodChange(p.key)}
           >
             <Text
               style={[
@@ -73,14 +64,17 @@ export default function QuickStatsBar({
                 {
                   color: isActive
                     ? theme.background.dark
-                    : hasSpend
-                      ? "#F14A6E"
+                    : hasActivity
+                      ? netColor
                       : theme.foreground.gray,
                 },
               ]}
             >
-              {hasSpend
-                ? formatAmount(amount, baseCurrency, { compact: true })
+              {hasActivity
+                ? formatAmount(net, baseCurrency, {
+                    compact: true,
+                    showSign: true,
+                  })
                 : "—"}
             </Text>
           </Pressable>

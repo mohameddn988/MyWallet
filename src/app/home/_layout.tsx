@@ -54,6 +54,11 @@ export default function HomeTabsLayout() {
           ),
         }}
       />
+      {/* Hidden from tab bar — navigated to programmatically */}
+      <Tabs.Screen
+        name="filtered-transactions"
+        options={{ href: null }}
+      />
     </Tabs>
   );
 }
