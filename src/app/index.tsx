@@ -2,22 +2,26 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import SplashScreen from "../components/ui/SplashScreen";
+import { useOnboarding } from "../contexts/OnboardingContext";
 
 export default function Index() {
-  const { authMode, isLoading } = useAuth();
+  const { authMode, isLoading: authLoading } = useAuth();
+  const { hasCompleted, isLoading: onboardingLoading } = useOnboarding();
   const router = useRouter();
   const [showSplash, setShowSplash] = useState(true);
 
-  // Once splash is done AND auth has loaded, navigate
+  // Once splash is done AND both auth + onboarding have loaded, navigate
   useEffect(() => {
-    if (showSplash || isLoading) return;
+    if (showSplash || authLoading || onboardingLoading) return;
 
     if (authMode === null) {
       router.navigate("/auth");
+    } else if (!hasCompleted) {
+      router.navigate("/get-started" as any);
     } else {
       router.navigate("/home");
     }
-  }, [showSplash, isLoading, authMode, router]);
+  }, [showSplash, authLoading, onboardingLoading, authMode, hasCompleted, router]);
 
   if (showSplash) {
     return <SplashScreen onAnimationComplete={() => setShowSplash(false)} />;
