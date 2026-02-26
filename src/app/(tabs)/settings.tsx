@@ -2,13 +2,13 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
-import { useOnboarding } from "../../contexts/OnboardingContext";
+import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
 
 export default function SettingsTabScreen() {
   const { theme } = useTheme();
   const { signOut } = useAuth();
-  const { resetOnboarding } = useOnboarding();
+  const { resetOnboarding } = useFinance();
   const router = useRouter();
   const styles = makeStyles(theme);
 

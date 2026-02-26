@@ -3,7 +3,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { AuthProvider } from "../contexts/AuthContext";
 import { FinanceProvider } from "../contexts/FinanceContext";
-import { OnboardingProvider } from "../contexts/OnboardingContext";
+import { GetStartedProvider } from "../contexts/GetStartedContext";
 import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
 
 export default function RootLayout() {
@@ -11,13 +11,13 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
         <AuthProvider>
-          <OnboardingProvider>
-            <FinanceProvider>
+          <FinanceProvider>
+            <GetStartedProvider>
               <SafeAreaProvider>
                 <RootLayoutWithTheme />
               </SafeAreaProvider>
-            </FinanceProvider>
-          </OnboardingProvider>
+            </GetStartedProvider>
+          </FinanceProvider>
         </AuthProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
@@ -37,7 +37,26 @@ function RootLayoutWithTheme() {
       >
         <Stack.Screen name="index" />
         <Stack.Screen name="auth/index" />
-        <Stack.Screen name="get-started/index" />
+        <Stack.Screen
+          name="get-started/currency"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="get-started/accounts"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="get-started/exchange-rates"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="get-started/first-transaction"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="get-started/done"
+          options={{ animation: "slide_from_right" }}
+        />
         <Stack.Screen name="(tabs)" />
       </Stack>
     </SafeAreaView>

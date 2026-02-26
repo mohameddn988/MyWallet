@@ -2,11 +2,11 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import SplashScreen from "../components/ui/SplashScreen";
-import { useOnboarding } from "../contexts/OnboardingContext";
+import { useFinance } from "../contexts/FinanceContext";
 
 export default function Index() {
   const { authMode, isLoading: authLoading } = useAuth();
-  const { hasCompleted, isLoading: onboardingLoading } = useOnboarding();
+  const { hasCompleted, isLoading: onboardingLoading } = useFinance();
   const router = useRouter();
   const [showSplash, setShowSplash] = useState(true);
 

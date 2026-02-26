@@ -2,13 +2,13 @@ import { AntDesign, Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
-import { useOnboarding } from "../../contexts/OnboardingContext";
+import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
 
 export default function AuthScreen() {
   const { theme } = useTheme();
   const { signInWithGoogle, continueOffline } = useAuth();
-  const { hasCompleted } = useOnboarding();
+  const { hasCompleted } = useFinance();
   const router = useRouter();
   const styles = makeStyles(theme);
 
@@ -16,7 +16,7 @@ export default function AuthScreen() {
     if (hasCompleted) {
       router.replace("/(tabs)/home" as any);
     } else {
-      router.replace("/get-started" as any);
+      router.replace("/get-started/currency" as any);
     }
   };
 
