@@ -14,12 +14,10 @@ export default function Index() {
   useEffect(() => {
     if (showSplash || authLoading || onboardingLoading) return;
 
-    if (authMode === null) {
+    if (authMode === null || !hasCompleted) {
       router.navigate("/auth");
-    } else if (!hasCompleted) {
-      router.navigate("/get-started" as any);
     } else {
-      router.navigate("/home");
+      router.navigate("/(tabs)/home" as any);
     }
   }, [showSplash, authLoading, onboardingLoading, authMode, hasCompleted, router]);
 

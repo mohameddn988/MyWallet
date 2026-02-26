@@ -14,7 +14,7 @@ export default function AuthScreen() {
 
   const afterAuth = () => {
     if (hasCompleted) {
-      router.replace("/home");
+      router.replace("/(tabs)/home" as any);
     } else {
       router.replace("/get-started" as any);
     }

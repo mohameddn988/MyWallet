@@ -218,7 +218,9 @@ export default function GetStartedScreen() {
 
       const transactions: Transaction[] = [];
       if (txDraft.amount) {
-        const accountIdx = accountDrafts.findIndex((a) => a.key === txDraft.accountKey);
+        const accountIdx = accountDrafts.findIndex(
+          (a) => a.key === txDraft.accountKey,
+        );
         const acc = accounts[accountIdx >= 0 ? accountIdx : 0];
         if (acc) {
           const raw = parseFloat(txDraft.amount.replace(/,/g, "") || "0");
@@ -242,7 +244,7 @@ export default function GetStartedScreen() {
         useSampleData: false,
       });
     }
-    router.replace("/home" as any);
+    router.replace("/(tabs)/home" as any);
   };
 
   // ── Sample-data shortcut ────────────────────────────────────────────────
@@ -255,7 +257,7 @@ export default function GetStartedScreen() {
       transactions: INITIAL_TRANSACTIONS,
       useSampleData: true,
     });
-    router.replace("/home" as any);
+    router.replace("/(tabs)/home" as any);
   };
 
   // ── Account draft helpers ────────────────────────────────────────────────

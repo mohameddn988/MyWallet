@@ -28,13 +28,7 @@ function RootLayoutWithTheme() {
   const { theme } = useTheme();
 
   return (
-    // edges={['top','left','right']} — handles top status bar globally.
-    // 'bottom' is intentionally excluded so the Tabs navigator manages it,
-    // preventing a double bottom inset on the home tab bar.
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: theme.background.dark }}
-      edges={["top", "left", "right"]}
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background.dark }}>
       <Stack
         screenOptions={{
           headerShown: false,
@@ -44,7 +38,7 @@ function RootLayoutWithTheme() {
         <Stack.Screen name="index" />
         <Stack.Screen name="auth/index" />
         <Stack.Screen name="get-started/index" />
-        <Stack.Screen name="home" />
+        <Stack.Screen name="(tabs)" />
       </Stack>
     </SafeAreaView>
   );
