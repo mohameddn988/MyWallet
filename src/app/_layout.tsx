@@ -38,6 +38,10 @@ function RootLayoutWithTheme() {
         <Stack.Screen name="index" />
         <Stack.Screen name="auth/index" />
         <Stack.Screen
+          name="get-started/welcome"
+          options={{ animation: "fade" }}
+        />
+        <Stack.Screen
           name="get-started/currency"
           options={{ animation: "slide_from_right" }}
         />

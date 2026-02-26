@@ -27,7 +27,8 @@ export default function AuthScreen() {
 
   const handleOffline = async () => {
     await continueOffline();
-    afterAuth();
+    // Always show welcome screen for local mode
+    router.replace("/get-started/welcome" as any);
   };
 
   return (
