@@ -1,28 +1,36 @@
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { useAuth } from "../contexts/AuthContext";
+import { useState } from "react";
 import SplashScreen from "../components/ui/SplashScreen";
-import { useFinance } from "../contexts/FinanceContext";
+import { auth } from "../utils/auth";
 
 export default function Index() {
-  const { authMode, isLoading: authLoading } = useAuth();
-  const { hasCompleted, isLoading: onboardingLoading } = useFinance();
   const router = useRouter();
   const [showSplash, setShowSplash] = useState(true);
 
-  // Once splash is done AND both auth + onboarding have loaded, navigate
-  useEffect(() => {
-    if (showSplash || authLoading || onboardingLoading) return;
+  const handleSplashComplete = async () => {
+    setShowSplash(false);
 
-    if (authMode === null || !hasCompleted) {
+    try {
+      const session = await auth.loadSession();
+      const hasCompleted = await auth.hasCompletedSetup();
+
+      // Navigation logic (runs once — never re-triggers on state changes):
+      // 1. Setup not done → always go to auth (user must explicitly sign in each time)
+      // 2. Setup done but no valid session → go to auth
+      // 3. Setup done + valid session → go to home
+      if (!hasCompleted || !session || session.mode === null) {
+        router.navigate("/auth");
+      } else {
+        router.navigate("/(tabs)/home" as any);
+      }
+    } catch (error) {
+      console.error("[Index] Error checking app state:", error);
       router.navigate("/auth");
-    } else {
-      router.navigate("/(tabs)/home" as any);
     }
-  }, [showSplash, authLoading, onboardingLoading, authMode, hasCompleted, router]);
+  };
 
   if (showSplash) {
-    return <SplashScreen onAnimationComplete={() => setShowSplash(false)} />;
+    return <SplashScreen onAnimationComplete={handleSplashComplete} />;
   }
 
   return null;

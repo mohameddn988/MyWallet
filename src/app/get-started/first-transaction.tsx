@@ -118,13 +118,13 @@ export default function FirstTransactionScreen() {
       <View style={styles.buttonsRow}>
         <Pressable
           style={({ pressed }) => [styles.skipButton, pressed && { opacity: 0.7 }]}
-          onPress={() => router.push("/get-started/done")}
+          onPress={() => router.navigate("/get-started/done" as any)}
         >
           <Text style={styles.skipButtonText}>Skip</Text>
         </Pressable>
         <Pressable
           style={({ pressed }) => [styles.continueButton, pressed && { opacity: 0.8 }]}
-          onPress={() => router.push("/get-started/done")}
+          onPress={() => router.navigate("/get-started/done" as any)}
         >
           <Text style={styles.continueButtonText}>Done</Text>
         </Pressable>

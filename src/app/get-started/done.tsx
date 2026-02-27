@@ -58,7 +58,7 @@ export default function DoneScreen() {
       useSampleData: false,
     });
 
-    router.replace("/(tabs)/home" as any);
+    router.navigate("/(tabs)/home" as any);
   };
 
   return (

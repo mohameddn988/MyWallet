@@ -50,6 +50,10 @@ function RootLayoutWithTheme() {
           options={{ animation: "none" }}
         />
         <Stack.Screen
+          name="get-started/exchange-rates"
+          options={{ animation: "none" }}
+        />
+        <Stack.Screen
           name="get-started/first-transaction"
           options={{ animation: "none" }}
         />

@@ -12,24 +12,22 @@ export default function AuthScreen() {
   const router = useRouter();
   const styles = makeStyles(theme);
 
-  const afterAuth = () => {
+  const handleGoogle = () => {
+    signInWithGoogle();
     if (hasCompleted) {
       router.replace("/(tabs)/home" as any);
     } else {
-      router.replace("/get-started/currency" as any);
+      router.replace("/get-started/welcome" as any);
     }
-  };
-
-  const handleGoogle = () => {
-    signInWithGoogle();
-    // Navigate to welcome screen for Google sign-in
-    router.replace("/get-started/welcome" as any);
   };
 
   const handleOffline = async () => {
     await continueOffline();
-    // Always show welcome screen for local mode
-    router.replace("/get-started/welcome" as any);
+    if (hasCompleted) {
+      router.replace("/(tabs)/home" as any);
+    } else {
+      router.replace("/get-started/welcome" as any);
+    }
   };
 
   return (

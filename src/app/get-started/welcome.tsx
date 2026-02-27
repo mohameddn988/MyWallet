@@ -2,7 +2,6 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import {
   Animated,
-  BackHandler,
   Image,
   Pressable,
   SafeAreaView,
@@ -17,12 +16,10 @@ export default function WelcomeScreen() {
   const router = useRouter();
   const styles = makeStyles(theme);
 
-  // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
-    // Entrance animation
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -37,26 +34,12 @@ export default function WelcomeScreen() {
     ]).start();
   }, []);
 
-  // Handle Android back button
-  useEffect(() => {
-    const backHandler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      () => {
-        // Navigate back to auth screen
-        router.back();
-        return true; // Prevent default behavior
-      }
-    );
-
-    return () => backHandler.remove();
-  }, [router]);
-
   const handleGetStarted = () => {
-    router.push("/get-started/currency" as any);
+    router.navigate("/get-started/currency" as any);
   };
 
   const handleSkip = () => {
-    router.replace("/(tabs)/home" as any);
+    router.navigate("/(tabs)/home" as any);
   };
 
   return (
