@@ -57,7 +57,7 @@ export default function ExchangeRatesScreen() {
 
       <Pressable
         style={({ pressed }) => [styles.continueButton, pressed && { opacity: 0.8 }]}
-        onPress={() => router.navigate("/get-started/first-transaction" as any)}
+        onPress={() => router.push("/get-started/first-transaction")}
       >
         <Text style={styles.continueButtonText}>Continue</Text>
       </Pressable>
@@ -74,7 +74,7 @@ function makeStyles(theme: Theme) {
       paddingBottom: 20,
     },
     stepRow: {
-      marginBottom: 12,
+      marginBottom: 20,
       marginTop: 8,
     },
     stepText: {
@@ -101,7 +101,7 @@ function makeStyles(theme: Theme) {
       fontSize: 32,
       fontWeight: "bold",
       color: theme.foreground.white,
-      marginBottom: 8,
+      marginVertical: 8,
     },
     subtitle: {
       fontSize: 16,
@@ -139,12 +139,6 @@ function makeStyles(theme: Theme) {
       borderRadius: 12,
       alignItems: "center",
       justifyContent: "center",
-      marginTop: 24,
-      shadowColor: theme.primary.main,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.25,
-      shadowRadius: 8,
-      elevation: 6,
     },
     continueButtonText: {
       color: theme.background.dark,
