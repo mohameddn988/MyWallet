@@ -22,7 +22,8 @@ export default function AuthScreen() {
 
   const handleGoogle = () => {
     signInWithGoogle();
-    afterAuth();
+    // Navigate to welcome screen for Google sign-in
+    router.replace("/get-started/welcome" as any);
   };
 
   const handleOffline = async () => {

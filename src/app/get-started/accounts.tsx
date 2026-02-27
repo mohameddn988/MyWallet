@@ -16,7 +16,6 @@ export default function AccountsScreen() {
     addAccount,
     removeAccount,
     updateAccount,
-    hasRatesStep,
     totalSteps,
   } = useGetStarted();
   const styles = makeStyles(theme);
@@ -27,11 +26,7 @@ export default function AccountsScreen() {
       Alert.alert("Missing name", "Please give each account a name.");
       return;
     }
-    if (hasRatesStep) {
-      router.push("/get-started/exchange-rates");
-    } else {
-      router.push("/get-started/first-transaction");
-    }
+    router.push("/get-started/first-transaction");
   };
 
   return (
@@ -191,7 +186,7 @@ function makeStyles(theme: Theme) {
       paddingBottom: 20,
     },
     stepRow: {
-      marginBottom: 20,
+      marginBottom: 12,
       marginTop: 8,
     },
     stepText: {
@@ -213,7 +208,7 @@ function makeStyles(theme: Theme) {
       fontSize: 32,
       fontWeight: "bold",
       color: theme.foreground.white,
-      marginVertical: 8,
+      marginBottom: 8,
     },
     subtitle: {
       fontSize: 16,
@@ -316,6 +311,12 @@ function makeStyles(theme: Theme) {
       borderRadius: 12,
       alignItems: "center",
       justifyContent: "center",
+      marginTop: 5,
+      shadowColor: theme.primary.main,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 6,
     },
     continueButtonText: {
       color: theme.background.dark,

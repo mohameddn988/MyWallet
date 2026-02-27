@@ -39,27 +39,23 @@ function RootLayoutWithTheme() {
         <Stack.Screen name="auth/index" />
         <Stack.Screen
           name="get-started/welcome"
-          options={{ animation: "fade" }}
+          options={{ animation: "none" }}
         />
         <Stack.Screen
           name="get-started/currency"
-          options={{ animation: "slide_from_right" }}
+          options={{ animation: "none" }}
         />
         <Stack.Screen
           name="get-started/accounts"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="get-started/exchange-rates"
-          options={{ animation: "slide_from_right" }}
+          options={{ animation: "none" }}
         />
         <Stack.Screen
           name="get-started/first-transaction"
-          options={{ animation: "slide_from_right" }}
+          options={{ animation: "none" }}
         />
         <Stack.Screen
           name="get-started/done"
-          options={{ animation: "slide_from_right" }}
+          options={{ animation: "none" }}
         />
         <Stack.Screen name="(tabs)" />
       </Stack>

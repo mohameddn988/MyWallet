@@ -124,6 +124,12 @@ function makeStyles(theme: Theme) {
       paddingVertical: 15,
       alignItems: "center",
       justifyContent: "center",
+      marginTop: 24,
+      shadowColor: theme.primary.main,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 6,
     },
     primaryButtonText: {
       color: theme.background.dark,

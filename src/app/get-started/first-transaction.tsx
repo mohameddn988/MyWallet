@@ -30,67 +30,91 @@ export default function FirstTransactionScreen() {
       </View>
 
       <Text style={styles.title}>First Transaction</Text>
-      <Text style={styles.subtitle}>Record your first entry — or skip this step.</Text>
+      <Text style={styles.subtitle}>
+        Add your first transaction or skip to complete setup.
+      </Text>
 
-      <View style={styles.txTypeRow}>
-        {(["expense", "income"] as TransactionType[]).map((t) => (
-          <Pressable
-            key={t}
-            style={[styles.txTypeBtn, txDraft.type === t && styles.txTypeBtnActive]}
-            onPress={() => updateTxDraft({ type: t })}
-          >
-            <Text
-              style={[styles.txTypeBtnText, txDraft.type === t && styles.txTypeBtnTextActive]}
-            >
-              {t.charAt(0).toUpperCase() + t.slice(1)}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      <Text style={styles.fieldLabel}>Amount</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="0.00"
-        placeholderTextColor={theme.foreground.gray}
-        keyboardType="decimal-pad"
-        value={txDraft.amount}
-        onChangeText={(v) => updateTxDraft({ amount: v })}
-      />
-
-      <Text style={styles.fieldLabel}>Account</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.chipScroll}
+      <ScrollView 
+        style={styles.scrollContent} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContentContainer}
       >
-        {accountDrafts.map((draft) => {
-          const sel =
-            txDraft.accountKey === draft.key ||
-            (!txDraft.accountKey && accountDrafts[0].key === draft.key);
-          return (
-            <Pressable
-              key={draft.key}
-              style={[styles.chip, sel && styles.chipSelected]}
-              onPress={() => updateTxDraft({ accountKey: draft.key })}
-            >
-              <Text style={[styles.chipText, sel && styles.chipTextSelected]}>
-                {draft.name || "Account"}
-              </Text>
-            </Pressable>
-          );
-        })}
+        {/* Transaction Type */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Type</Text>
+          <View style={styles.txTypeRow}>
+            {(["expense", "income"] as TransactionType[]).map((t) => (
+              <Pressable
+                key={t}
+                style={[styles.txTypeBtn, txDraft.type === t && styles.txTypeBtnActive]}
+                onPress={() => updateTxDraft({ type: t })}
+              >
+                <Text
+                  style={[styles.txTypeBtnText, txDraft.type === t && styles.txTypeBtnTextActive]}
+                >
+                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        {/* Amount */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Amount</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="0.00"
+            placeholderTextColor={theme.foreground.gray}
+            keyboardType="decimal-pad"
+            value={txDraft.amount}
+            onChangeText={(v) => updateTxDraft({ amount: v })}
+          />
+        </View>
+
+        {/* Account Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Account</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.accountChipsContainer}
+          >
+            {accountDrafts.map((draft) => {
+              const sel =
+                txDraft.accountKey === draft.key ||
+                (!txDraft.accountKey && accountDrafts[0].key === draft.key);
+              return (
+                <Pressable
+                  key={draft.key}
+                  style={[styles.chip, sel && styles.chipSelected]}
+                  onPress={() => updateTxDraft({ accountKey: draft.key })}
+                >
+                  <Text style={[styles.chipText, sel && styles.chipTextSelected]}>
+                    {draft.name || "Account"}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {/* Note */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Note (Optional)</Text>
+          <TextInput
+            style={[styles.input, styles.noteInput]}
+            placeholder="What was this for?"
+            placeholderTextColor={theme.foreground.gray}
+            value={txDraft.note}
+            onChangeText={(v) => updateTxDraft({ note: v })}
+            multiline
+            numberOfLines={3}
+          />
+        </View>
       </ScrollView>
 
-      <Text style={styles.fieldLabel}>Note (optional)</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="What was this for?"
-        placeholderTextColor={theme.foreground.gray}
-        value={txDraft.note}
-        onChangeText={(v) => updateTxDraft({ note: v })}
-      />
-
+      {/* Action Buttons */}
       <View style={styles.buttonsRow}>
         <Pressable
           style={({ pressed }) => [styles.skipButton, pressed && { opacity: 0.7 }]}
@@ -118,7 +142,7 @@ function makeStyles(theme: Theme) {
       paddingBottom: 20,
     },
     stepRow: {
-      marginBottom: 20,
+      marginBottom: 12,
       marginTop: 8,
     },
     stepText: {
@@ -140,22 +164,36 @@ function makeStyles(theme: Theme) {
       fontSize: 32,
       fontWeight: "bold",
       color: theme.foreground.white,
-      marginVertical: 8,
+      marginBottom: 8,
     },
     subtitle: {
       fontSize: 16,
       color: theme.foreground.gray,
-      marginBottom: 20,
+      marginBottom: 24,
+    },
+    scrollContent: {
+      flex: 1,
+    },
+    scrollContentContainer: {
+      paddingBottom: 16,
+    },
+    section: {
+      marginBottom: 24,
+    },
+    sectionLabel: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: theme.foreground.white,
+      marginBottom: 10,
     },
     txTypeRow: {
       flexDirection: "row",
-      gap: 10,
-      marginBottom: 16,
+      gap: 12,
     },
     txTypeBtn: {
       flex: 1,
-      paddingVertical: 10,
-      borderRadius: 10,
+      paddingVertical: 14,
+      borderRadius: 12,
       borderWidth: 1,
       borderColor: "#2C3139",
       alignItems: "center",
@@ -168,50 +206,44 @@ function makeStyles(theme: Theme) {
     txTypeBtnText: {
       color: theme.foreground.gray,
       fontWeight: "600",
-      fontSize: 14,
+      fontSize: 15,
     },
     txTypeBtnTextActive: {
       color: theme.background.dark,
     },
-    fieldLabel: {
-      fontSize: 12,
-      color: theme.foreground.gray,
-      marginBottom: 6,
-      marginTop: 2,
-      textTransform: "uppercase",
-      letterSpacing: 0.4,
-    },
     input: {
-      backgroundColor: theme.background.darker,
+      backgroundColor: theme.background.accent,
       borderWidth: 1,
       borderColor: "#2C3139",
-      borderRadius: 10,
-      paddingHorizontal: 14,
-      paddingVertical: 11,
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
       color: theme.foreground.white,
-      fontSize: 15,
-      marginBottom: 10,
+      fontSize: 16,
     },
-    chipScroll: {
-      marginBottom: 10,
+    noteInput: {
+      minHeight: 80,
+      textAlignVertical: "top",
+      paddingTop: 14,
+    },
+    accountChipsContainer: {
+      gap: 8,
     },
     chip: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: 12,
-      paddingVertical: 7,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
       borderRadius: 20,
-      backgroundColor: theme.background.darker,
+      backgroundColor: theme.background.accent,
       borderWidth: 1,
       borderColor: "#2C3139",
-      marginRight: 8,
     },
     chipSelected: {
       backgroundColor: theme.primary.main,
       borderColor: theme.primary.main,
     },
     chipText: {
-      fontSize: 13,
+      fontSize: 14,
+      fontWeight: "500",
       color: theme.foreground.gray,
     },
     chipTextSelected: {
@@ -221,15 +253,17 @@ function makeStyles(theme: Theme) {
     buttonsRow: {
       flexDirection: "row",
       gap: 12,
+      marginTop: 20,
     },
     skipButton: {
       flex: 1,
-      paddingVertical: 18,
+      paddingVertical: 16,
       borderRadius: 12,
       alignItems: "center",
       justifyContent: "center",
+      backgroundColor: theme.background.accent,
       borderWidth: 1,
-      borderColor: theme.foreground.gray,
+      borderColor: "#2C3139",
     },
     skipButtonText: {
       color: theme.foreground.white,
@@ -239,10 +273,15 @@ function makeStyles(theme: Theme) {
     continueButton: {
       flex: 2,
       backgroundColor: theme.primary.main,
-      paddingVertical: 18,
+      paddingVertical: 16,
       borderRadius: 12,
       alignItems: "center",
       justifyContent: "center",
+      shadowColor: theme.primary.main,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 6,
     },
     continueButtonText: {
       color: theme.background.dark,
