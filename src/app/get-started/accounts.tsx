@@ -28,9 +28,9 @@ export default function AccountsScreen() {
       return;
     }
     if (hasRatesStep) {
-      router.push("/get-started/exchange-rates");
+      router.navigate("/get-started/exchange-rates" as any);
     } else {
-      router.push("/get-started/first-transaction");
+      router.navigate("/get-started/first-transaction" as any);
     }
   };
 

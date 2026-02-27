@@ -77,13 +77,13 @@ export default function HomeScreen() {
           summary={displayedSummary}
           baseCurrency={baseCurrency}
           onIncomePress={() =>
-            router.push("/(tabs)/filtered-transactions?filter=income" as any)
+            router.navigate("/(tabs)/filtered-transactions?filter=income" as any)
           }
           onExpensePress={() =>
-            router.push("/(tabs)/filtered-transactions?filter=expense" as any)
+            router.navigate("/(tabs)/filtered-transactions?filter=expense" as any)
           }
           onNetPress={() =>
-            router.push("/(tabs)/filtered-transactions?filter=all" as any)
+            router.navigate("/(tabs)/filtered-transactions?filter=all" as any)
           }
         />
 

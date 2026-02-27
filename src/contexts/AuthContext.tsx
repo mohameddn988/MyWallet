@@ -1,5 +1,5 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { auth } from "../utils/auth";
 
 export type AuthMode = "online" | "offline" | null;
 
@@ -21,8 +21,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const AUTH_KEY = "@mywallet_auth";
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [authMode, setAuthMode] = useState<AuthMode>(null);
@@ -31,24 +29,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const load = async () => {
       try {
-        const stored = await AsyncStorage.getItem(AUTH_KEY);
-        if (stored) {
-          const { mode, user: u } = JSON.parse(stored);
-          setAuthMode(mode ?? null);
-          setUser(u ?? null);
+        const session = await auth.loadSession();
+        if (session) {
+          setAuthMode(session.mode);
+          setUser(session.user);
         }
-      } catch (e) {
-        console.error("[Auth] Failed to load session:", e);
       } finally {
         setIsLoading(false);
       }
     };
     load();
   }, []);
-
-  const persist = async (mode: AuthMode, u: AuthUser | null) => {
-    await AsyncStorage.setItem(AUTH_KEY, JSON.stringify({ mode, user: u }));
-  };
 
   const signInWithGoogle = () => {
     // TODO: integrate Google OAuth (expo-auth-session + Google provider)
@@ -61,19 +52,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const u: AuthUser = { id: "local-1", email, name: email.split("@")[0] };
     setUser(u);
     setAuthMode("online");
-    await persist("online", u);
+    await auth.saveSession("online", u);
   };
 
   const continueOffline = async () => {
     setUser(null);
     setAuthMode("offline");
-    await persist("offline", null);
+    await auth.saveSession("offline", null);
   };
 
   const signOut = async () => {
     setUser(null);
     setAuthMode(null);
-    await AsyncStorage.removeItem(AUTH_KEY);
+    await auth.clearSession();
   };
 
   return (

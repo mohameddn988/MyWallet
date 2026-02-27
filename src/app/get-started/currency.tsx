@@ -69,7 +69,7 @@ export default function CurrencyScreen() {
 
       <Pressable
         style={({ pressed }) => [styles.continueButton, pressed && { opacity: 0.8 }]}
-        onPress={() => router.push("/get-started/accounts")}
+        onPress={() => router.navigate("/get-started/accounts" as any)}
       >
         <Text style={styles.continueButtonText}>Continue</Text>
       </Pressable>

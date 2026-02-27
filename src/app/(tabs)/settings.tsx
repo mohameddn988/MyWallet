@@ -14,13 +14,13 @@ export default function SettingsTabScreen() {
 
   const handleRedoSetup = async () => {
     await resetOnboarding();
-    router.replace("/get-started" as any);
+    router.navigate("/get-started" as any);
   };
 
   const handleSignOut = async () => {
     await resetOnboarding();
     await signOut();
-    router.replace("/auth");
+    router.navigate("/auth" as any);
   };
 
   return (
