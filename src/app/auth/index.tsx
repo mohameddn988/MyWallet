@@ -1,12 +1,34 @@
 import { AntDesign, Feather } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
+import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
 
 export default function AuthScreen() {
   const { theme } = useTheme();
   const { signInWithGoogle, continueOffline } = useAuth();
+  const { hasCompleted } = useFinance();
+  const router = useRouter();
   const styles = makeStyles(theme);
+
+  const handleGoogle = () => {
+    signInWithGoogle();
+    if (hasCompleted) {
+      router.navigate("/(tabs)/home" as any);
+    } else {
+      router.navigate("/get-started/theme" as any);
+    }
+  };
+
+  const handleOffline = async () => {
+    await continueOffline();
+    if (hasCompleted) {
+      router.navigate("/(tabs)/home" as any);
+    } else {
+      router.navigate("/get-started/theme" as any);
+    }
+  };
 
   return (
     <View style={styles.root}>
@@ -21,7 +43,7 @@ export default function AuthScreen() {
       <View style={styles.buttonsSection}>
         <Pressable
           style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
-          onPress={signInWithGoogle}
+          onPress={handleGoogle}
         >
           <AntDesign name="google" size={18} color={theme.background.dark} style={styles.icon} />
           <Text style={styles.primaryButtonText}>Continue with Google</Text>
@@ -29,7 +51,7 @@ export default function AuthScreen() {
 
         <Pressable
           style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
-          onPress={continueOffline}
+          onPress={handleOffline}
         >
           <Feather name="smartphone" size={18} color={theme.foreground.white} style={styles.icon} />
           <Text style={styles.secondaryButtonText}>Continue Local</Text>

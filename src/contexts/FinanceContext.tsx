@@ -1,7 +1,9 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -23,6 +25,21 @@ import {
 } from "../types/finance";
 import { convertToBase, toDateStr } from "../utils/currency";
 
+const FINANCE_SETUP_KEY = "@mywallet_finance_setup";
+const ONBOARDING_KEY = "@mywallet_onboarding_complete";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Setup type
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface FinanceSetup {
+  baseCurrency: string;
+  accounts: Account[];
+  exchangeRates: ExchangeRate[];
+  transactions: Transaction[];
+  useSampleData: boolean;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Context types
 // ─────────────────────────────────────────────────────────────────────────────
@@ -39,6 +56,12 @@ interface FinanceContextType {
   recentTransactions: Transaction[];
   isRefreshing: boolean;
   refresh: () => void;
+  /** True while the initial AsyncStorage read is in progress */
+  isLoading: boolean;
+  /** True once the user has completed onboarding */
+  hasCompleted: boolean;
+  completeOnboarding: (setup: FinanceSetup) => Promise<void>;
+  resetOnboarding: () => Promise<void>;
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -174,6 +197,66 @@ function computeQuickStats(
 export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasCompleted, setHasCompleted] = useState(false);
+
+  // Raw data — loaded from AsyncStorage (onboarding setup) or falls back to seed data
+  const [rawBase, setRawBase] = useState<string>(BASE_CURRENCY);
+  const [rawAccounts, setRawAccounts] = useState<Account[]>(INITIAL_ACCOUNTS);
+  const [rawRates, setRawRates] = useState<ExchangeRate[]>(
+    INITIAL_EXCHANGE_RATES,
+  );
+  const [rawTransactions, setRawTransactions] =
+    useState<Transaction[]>(INITIAL_TRANSACTIONS);
+
+  // Load persisted finance setup + onboarding flag on mount
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [stored, flag] = await Promise.all([
+          AsyncStorage.getItem(FINANCE_SETUP_KEY),
+          AsyncStorage.getItem(ONBOARDING_KEY),
+        ]);
+        if (stored) {
+          const setup: FinanceSetup = JSON.parse(stored);
+          if (setup.baseCurrency) setRawBase(setup.baseCurrency);
+          if (Array.isArray(setup.accounts) && setup.accounts.length > 0)
+            setRawAccounts(setup.accounts);
+          if (Array.isArray(setup.exchangeRates))
+            setRawRates(setup.exchangeRates);
+          if (Array.isArray(setup.transactions))
+            setRawTransactions(setup.transactions);
+        }
+        setHasCompleted(flag === "true");
+      } catch {
+        // ignore storage errors
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const completeOnboarding = useCallback(async (setup: FinanceSetup) => {
+    await AsyncStorage.setItem(FINANCE_SETUP_KEY, JSON.stringify(setup));
+    await AsyncStorage.setItem(ONBOARDING_KEY, "true");
+    if (setup.baseCurrency) setRawBase(setup.baseCurrency);
+    if (Array.isArray(setup.accounts) && setup.accounts.length > 0)
+      setRawAccounts(setup.accounts);
+    if (Array.isArray(setup.exchangeRates)) setRawRates(setup.exchangeRates);
+    if (Array.isArray(setup.transactions))
+      setRawTransactions(setup.transactions);
+    setHasCompleted(true);
+  }, []);
+
+  const resetOnboarding = useCallback(async () => {
+    await AsyncStorage.multiRemove([ONBOARDING_KEY, FINANCE_SETUP_KEY]);
+    setHasCompleted(false);
+    setRawBase(BASE_CURRENCY);
+    setRawAccounts(INITIAL_ACCOUNTS);
+    setRawRates(INITIAL_EXCHANGE_RATES);
+    setRawTransactions(INITIAL_TRANSACTIONS);
+  }, []);
 
   const refresh = useCallback(() => {
     setIsRefreshing(true);
@@ -184,12 +267,11 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo(() => {
-    // Suppress unused variable warning for refreshKey
     void refreshKey;
 
-    const base = BASE_CURRENCY;
-    const rateMap = buildRateMap(INITIAL_EXCHANGE_RATES);
-    const accounts = computeAccounts(INITIAL_ACCOUNTS, rateMap, base);
+    const base = rawBase;
+    const rateMap = buildRateMap(rawRates);
+    const accounts = computeAccounts(rawAccounts, rateMap, base);
     const netWorth = computeNetWorth(accounts);
     const perCurrencySubtotals = computePerCurrencySubtotals(
       accounts,
@@ -198,24 +280,19 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     );
     const now = new Date();
     const monthSummary = computeMonthSummary(
-      INITIAL_TRANSACTIONS,
+      rawTransactions,
       rateMap,
       base,
       now,
     );
-    const quickStats = computeQuickStats(
-      INITIAL_TRANSACTIONS,
-      rateMap,
-      base,
-      now,
-    );
-    const recentTransactions = [...INITIAL_TRANSACTIONS]
+    const quickStats = computeQuickStats(rawTransactions, rateMap, base, now);
+    const recentTransactions = [...rawTransactions]
       .sort((a, b) => b.date.localeCompare(a.date))
       .slice(0, 12);
 
     return {
       baseCurrency: base,
-      exchangeRates: INITIAL_EXCHANGE_RATES,
+      exchangeRates: rawRates,
       accounts,
       perCurrencySubtotals,
       netWorth,
@@ -225,10 +302,28 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       isRefreshing,
       refresh,
     };
-  }, [refreshKey, isRefreshing, refresh]);
+  }, [
+    refreshKey,
+    isRefreshing,
+    refresh,
+    rawBase,
+    rawAccounts,
+    rawRates,
+    rawTransactions,
+  ]);
 
   return (
-    <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>
+    <FinanceContext.Provider
+      value={{
+        ...value,
+        isLoading,
+        hasCompleted,
+        completeOnboarding,
+        resetOnboarding,
+      }}
+    >
+      {children}
+    </FinanceContext.Provider>
   );
 }
 
