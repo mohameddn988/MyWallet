@@ -17,7 +17,7 @@ export default function AuthScreen() {
     if (hasCompleted) {
       router.replace("/(tabs)/home" as any);
     } else {
-      router.replace("/get-started/welcome" as any);
+      router.replace("/get-started/theme" as any);
     }
   };
 
@@ -26,7 +26,7 @@ export default function AuthScreen() {
     if (hasCompleted) {
       router.replace("/(tabs)/home" as any);
     } else {
-      router.replace("/get-started/welcome" as any);
+      router.replace("/get-started/theme" as any);
     }
   };
 

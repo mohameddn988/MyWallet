@@ -1,60 +1,97 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Theme, themes, ThemeType } from "../constants/themes";
+import { Appearance, ColorSchemeName } from "react-native";
+import { Theme, ThemeMode, getThemeByVariantAndMode, themeVariants } from "../constants/themes";
 
 interface ThemeContextType {
   theme: Theme;
-  themeType: ThemeType;
-  setTheme: (themeType: ThemeType) => void;
+  themeMode: ThemeMode;
+  variantId: string;
+  setThemeMode: (mode: ThemeMode) => void;
+  setVariantId: (id: string) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const THEME_STORAGE_KEY = "@expotemplate_theme";
+const THEME_MODE_STORAGE_KEY = "@mywallet_theme_mode";
+const THEME_VARIANT_STORAGE_KEY = "@mywallet_theme_variant";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [themeType, setThemeType] = useState<ThemeType>("default");
+  const [themeMode, setThemeModeState] = useState<ThemeMode>("system");
+  const [variantId, setVariantIdState] = useState<string>("default");
+  const [systemColorScheme, setSystemColorScheme] = useState<ColorSchemeName>(
+    Appearance.getColorScheme()
+  );
 
-  // Load theme from storage on mount
+  // Listen to system theme changes
   useEffect(() => {
-    const loadTheme = async () => {
-      try {
-        const storedTheme = await AsyncStorage.getItem(THEME_STORAGE_KEY);
-        if (!storedTheme) return;
+    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
+      setSystemColorScheme(colorScheme);
+    });
 
-        if (storedTheme === "default") {
-          setThemeType("default");
-          return;
+    return () => subscription.remove();
+  }, []);
+
+  // Load theme preferences from storage on mount
+  useEffect(() => {
+    const loadThemePreferences = async () => {
+      try {
+        const [storedMode, storedVariant] = await Promise.all([
+          AsyncStorage.getItem(THEME_MODE_STORAGE_KEY),
+          AsyncStorage.getItem(THEME_VARIANT_STORAGE_KEY),
+        ]);
+
+        if (storedMode === "system" || storedMode === "light" || storedMode === "dark") {
+          setThemeModeState(storedMode);
         }
 
-        // Migrate old values (male/female) to default
-        if (storedTheme === "male" || storedTheme === "female") {
-          setThemeType("default");
-          await AsyncStorage.setItem(THEME_STORAGE_KEY, "default");
+        if (storedVariant && themeVariants.find((v) => v.id === storedVariant)) {
+          setVariantIdState(storedVariant);
         }
       } catch (error) {
-        console.error("Error loading theme:", error);
+        console.error("Error loading theme preferences:", error);
       }
     };
 
-    loadTheme();
+    loadThemePreferences();
   }, []);
 
-  // Save theme to storage when it changes
-  const setTheme = async (newThemeType: ThemeType) => {
+  // Save theme mode to storage when it changes
+  const setThemeMode = async (newMode: ThemeMode) => {
     try {
-      setThemeType(newThemeType);
-      await AsyncStorage.setItem(THEME_STORAGE_KEY, newThemeType);
+      setThemeModeState(newMode);
+      await AsyncStorage.setItem(THEME_MODE_STORAGE_KEY, newMode);
     } catch (error) {
-      console.error("Error saving theme:", error);
+      console.error("Error saving theme mode:", error);
     }
   };
 
-  const theme = themes[themeType];
+  // Save theme variant to storage when it changes
+  const setVariantId = async (newVariantId: string) => {
+    try {
+      setVariantIdState(newVariantId);
+      await AsyncStorage.setItem(THEME_VARIANT_STORAGE_KEY, newVariantId);
+    } catch (error) {
+      console.error("Error saving theme variant:", error);
+    }
+  };
 
-  // Always provide theme, even before loading is complete
+  // Determine the actual theme to use
+  const getActiveTheme = (): Theme => {
+    const effectiveMode =
+      themeMode === "system"
+        ? systemColorScheme === "light"
+          ? "light"
+          : "dark"
+        : themeMode;
+
+    return getThemeByVariantAndMode(variantId, effectiveMode);
+  };
+
+  const theme = getActiveTheme();
+
   return (
-    <ThemeContext.Provider value={{ theme, themeType, setTheme }}>
+    <ThemeContext.Provider value={{ theme, themeMode, variantId, setThemeMode, setVariantId }}>
       {children}
     </ThemeContext.Provider>
   );
@@ -65,9 +102,11 @@ export function useTheme() {
   if (context === undefined) {
     // Return default theme if context is not available
     return {
-      theme: themes.default,
-      themeType: "default" as ThemeType,
-      setTheme: () => {},
+      theme: getThemeByVariantAndMode("default", "dark"),
+      themeMode: "system" as ThemeMode,
+      variantId: "default",
+      setThemeMode: () => {},
+      setVariantId: () => {},
     };
   }
   return context;
