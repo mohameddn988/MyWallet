@@ -26,7 +26,7 @@ export default function AccountsScreen() {
       Alert.alert("Missing name", "Please give each account a name.");
       return;
     }
-    router.push("/get-started/first-transaction" as any);
+    router.navigate("/get-started/first-transaction" as any);
   };
 
   return (

@@ -57,7 +57,7 @@ export default function ExchangeRatesScreen() {
 
       <Pressable
         style={({ pressed }) => [styles.continueButton, pressed && { opacity: 0.8 }]}
-        onPress={() => router.push("/get-started/first-transaction")}
+        onPress={() => router.navigate("/get-started/first-transaction")}
       >
         <Text style={styles.continueButtonText}>Continue</Text>
       </Pressable>

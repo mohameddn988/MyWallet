@@ -1,10 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 import {
   Appearance,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,12 +17,7 @@ export default function ThemeSelectionScreen() {
   const router = useRouter();
   const styles = makeStyles(theme);
 
-  const [selectedMode, setSelectedMode] = useState<ThemeMode>(themeMode);
-  const [selectedVariant, setSelectedVariant] = useState<string>(variantId);
-
   const handleNext = () => {
-    setThemeMode(selectedMode);
-    setVariantId(selectedVariant);
     router.navigate("/get-started/welcome" as any);
   };
 
@@ -35,81 +29,77 @@ export default function ThemeSelectionScreen() {
 
   // Get the effective mode for previews (resolve "system" to actual light/dark)
   const getEffectiveMode = (): "light" | "dark" => {
-    if (selectedMode === "system") {
+    if (themeMode === "system") {
       const systemScheme = Appearance.getColorScheme();
       return systemScheme === "light" ? "light" : "dark";
     }
-    return selectedMode;
+    return themeMode;
   };
 
   const effectiveMode = getEffectiveMode();
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header Section */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Choose Your Theme</Text>
-          <Text style={styles.subtitle}>
-            Select how you want the app to look. You can change this later in
-            settings.
-          </Text>
-        </View>
+    <View style={styles.container}>
+      {/* Header Section */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Choose Your Theme</Text>
+        <Text style={styles.subtitle}>
+          Select how you want the app to look. You can change this later in
+          settings.
+        </Text>
+      </View>
 
-        {/* Theme Mode Selector */}
-        <View style={styles.selectorSection}>
-          <View style={styles.segmentedControl}>
-            {themeOptions.map((option) => (
-              <Pressable
-                key={option.mode}
-                style={({ pressed }) => [
-                  styles.segmentButton,
-                  selectedMode === option.mode && styles.segmentButtonActive,
-                  pressed && styles.segmentButtonPressed,
+      {/* Theme Mode Selector */}
+      <View style={styles.selectorSection}>
+        <View style={styles.segmentedControl}>
+          {themeOptions.map((option) => (
+            <Pressable
+              key={option.mode}
+              style={({ pressed }) => [
+                styles.segmentButton,
+                themeMode === option.mode && styles.segmentButtonActive,
+                pressed && styles.segmentButtonPressed,
+              ]}
+              onPress={() => setThemeMode(option.mode)}
+            >
+              <Ionicons
+                name={option.icon as any}
+                size={18}
+                color={
+                  themeMode === option.mode
+                    ? theme.background.dark
+                    : theme.foreground.gray
+                }
+              />
+              <Text
+                style={[
+                  styles.segmentText,
+                  themeMode === option.mode && styles.segmentTextActive,
                 ]}
-                onPress={() => setSelectedMode(option.mode)}
               >
-                <Ionicons
-                  name={option.icon as any}
-                  size={20}
-                  color={
-                    selectedMode === option.mode
-                      ? theme.background.dark
-                      : theme.foreground.gray
-                  }
-                />
-                <Text
-                  style={[
-                    styles.segmentText,
-                    selectedMode === option.mode && styles.segmentTextActive,
-                  ]}
-                >
-                  {option.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+                {option.label}
+              </Text>
+            </Pressable>
+          ))}
         </View>
+      </View>
 
-        {/* Theme Preview Section */}
-        <View style={styles.previewSection}>
-          <Text style={styles.previewLabel}>Preview</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.previewScrollContent}
-          >
+      {/* Theme Preview Section */}
+      <View style={styles.previewSection}>
+        <Text style={styles.previewLabel}>Preview</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.previewScrollContent}
+        >
             {themeVariants.map((variant) => {
               const variantTheme = getThemeByVariantAndMode(variant.id, effectiveMode);
-              const isSelected = selectedVariant === variant.id;
+              const isSelected = variantId === variant.id;
 
               return (
                 <Pressable
                   key={variant.id}
-                  onPress={() => setSelectedVariant(variant.id)}
+                  onPress={() => setVariantId(variant.id)}
                   style={styles.previewItem}
                 >
                   {/* Phone Mockup */}
@@ -274,23 +264,22 @@ export default function ThemeSelectionScreen() {
                 </Pressable>
               );
             })}
-          </ScrollView>
-        </View>
+        </ScrollView>
+      </View>
 
-        {/* Bottom Button */}
-        <View style={styles.buttonSection}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.nextButton,
-              pressed && styles.nextButtonPressed,
-            ]}
-            onPress={handleNext}
-          >
-            <Text style={styles.nextButtonText}>Next</Text>
-          </Pressable>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      {/* Bottom Button */}
+      <View style={styles.buttonSection}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.nextButton,
+            pressed && styles.nextButtonPressed,
+          ]}
+          onPress={handleNext}
+        >
+          <Text style={styles.nextButtonText}>Next</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -299,41 +288,38 @@ function makeStyles(theme: ReturnType<typeof useTheme>["theme"]) {
     container: {
       flex: 1,
       backgroundColor: theme.background.dark,
-    },
-    scrollContent: {
-      flexGrow: 1,
-      paddingTop: 60,
-      paddingBottom: 40,
+      paddingTop: 24,
+      paddingBottom: 24,
     },
 
     // Header
     header: {
-      marginBottom: 36,
+      marginBottom: 24,
       paddingHorizontal: 24,
     },
     title: {
-      fontSize: 32,
+      fontSize: 28,
       fontWeight: "700",
       color: theme.foreground.white,
-      marginBottom: 8,
+      marginBottom: 6,
       letterSpacing: -0.5,
     },
     subtitle: {
-      fontSize: 15,
+      fontSize: 14,
       color: theme.foreground.gray,
-      lineHeight: 22,
-      marginTop: 8,
+      lineHeight: 20,
+      marginTop: 4,
     },
 
     // Segmented Control
     selectorSection: {
-      marginBottom: 32,
+      marginBottom: 24,
       paddingHorizontal: 24,
     },
     segmentedControl: {
       flexDirection: "row",
       backgroundColor: theme.background.accent,
-      borderRadius: 16,
+      borderRadius: 14,
       padding: 4,
       gap: 4,
     },
@@ -342,9 +328,9 @@ function makeStyles(theme: ReturnType<typeof useTheme>["theme"]) {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      paddingVertical: 14,
-      paddingHorizontal: 12,
-      borderRadius: 12,
+      paddingVertical: 12,
+      paddingHorizontal: 10,
+      borderRadius: 10,
       gap: 6,
     },
     segmentButtonActive: {
@@ -359,7 +345,7 @@ function makeStyles(theme: ReturnType<typeof useTheme>["theme"]) {
       opacity: 0.7,
     },
     segmentText: {
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: "600",
       color: theme.foreground.gray,
     },
@@ -371,29 +357,32 @@ function makeStyles(theme: ReturnType<typeof useTheme>["theme"]) {
     // Preview Section
     previewSection: {
       flex: 1,
-      marginBottom: 32,
+      marginBottom: 16,
     },
     previewLabel: {
-      fontSize: 16,
+      fontSize: 15,
       fontWeight: "600",
       color: theme.foreground.white,
-      marginBottom: 16,
+      marginBottom: 12,
       paddingHorizontal: 24,
     },
     previewScrollContent: {
       paddingHorizontal: 24,
+      paddingVertical: 8,
       gap: 16,
+      alignItems: "center",
     },
     previewItem: {
       alignItems: "center",
+      flex: 1,
     },
 
     // Phone Mockup
     phoneMockup: {
-      width: 140,
-      height: 280,
-      borderRadius: 24,
-      padding: 12,
+      width: 130,
+      aspectRatio: 0.5,
+      borderRadius: 20,
+      padding: 10,
       shadowColor: "#000",
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.15,
@@ -411,11 +400,11 @@ function makeStyles(theme: ReturnType<typeof useTheme>["theme"]) {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: 12,
+      marginBottom: 8,
     },
     phoneStatusBarLeft: {},
     phoneStatusBarTime: {
-      fontSize: 9,
+      fontSize: 8,
       fontWeight: "600",
     },
     phoneStatusBarRight: {
@@ -423,54 +412,54 @@ function makeStyles(theme: ReturnType<typeof useTheme>["theme"]) {
       gap: 3,
     },
     phoneStatusBarIcon: {
-      width: 10,
-      height: 6,
+      width: 8,
+      height: 5,
       borderRadius: 2,
       opacity: 0.6,
     },
     phoneContent: {
       flex: 1,
-      gap: 12,
+      gap: 8,
     },
     phoneCard: {
-      borderRadius: 12,
-      padding: 12,
+      borderRadius: 10,
+      padding: 10,
     },
     phoneCardLine: {
-      height: 6,
+      height: 5,
       borderRadius: 3,
       opacity: 0.4,
     },
     phoneList: {
-      gap: 10,
+      gap: 8,
     },
     phoneListItem: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 8,
+      gap: 6,
     },
     phoneListIcon: {
-      width: 24,
-      height: 24,
-      borderRadius: 12,
+      width: 20,
+      height: 20,
+      borderRadius: 10,
     },
     phoneBottomBar: {
       alignItems: "center",
-      paddingTop: 8,
+      paddingTop: 6,
     },
     phoneBottomBarIndicator: {
-      width: 40,
-      height: 4,
+      width: 32,
+      height: 3,
       borderRadius: 2,
       opacity: 0.5,
     },
     checkmarkContainer: {
       position: "absolute",
-      top: 8,
-      right: 8,
-      width: 28,
-      height: 28,
-      borderRadius: 14,
+      top: 6,
+      right: 6,
+      width: 24,
+      height: 24,
+      borderRadius: 12,
       alignItems: "center",
       justifyContent: "center",
       shadowColor: "#000",
@@ -480,8 +469,8 @@ function makeStyles(theme: ReturnType<typeof useTheme>["theme"]) {
       elevation: 3,
     },
     themeName: {
-      marginTop: 12,
-      fontSize: 13,
+      marginTop: 10,
+      fontSize: 12,
       fontWeight: "600",
       color: theme.foreground.white,
       textAlign: "center",
@@ -489,8 +478,6 @@ function makeStyles(theme: ReturnType<typeof useTheme>["theme"]) {
 
     // Button
     buttonSection: {
-      marginTop: "auto",
-      paddingTop: 24,
       paddingHorizontal: 24,
     },
     nextButton: {

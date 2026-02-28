@@ -10,3 +10,6 @@ Rules:
 - use the same naming conventions as the existing codebase
 - use the themes.ts file for colors, fonts, and other design tokens
 - use the components folder for reusable components
+- use a consistant ui design and patterns and layout across the app
+- we are using safe area views in the layout so no need to worry about that in other screens
+- always use router.navigate for navigation between screens

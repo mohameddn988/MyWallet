@@ -4,7 +4,6 @@ import {
   Animated,
   Image,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
@@ -43,7 +42,7 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.content}>
         {/* Top Section - Logo */}
         <Animated.View
@@ -104,7 +103,7 @@ export default function WelcomeScreen() {
           </Pressable>
         </Animated.View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

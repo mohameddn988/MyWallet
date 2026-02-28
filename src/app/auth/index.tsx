@@ -15,18 +15,18 @@ export default function AuthScreen() {
   const handleGoogle = () => {
     signInWithGoogle();
     if (hasCompleted) {
-      router.replace("/(tabs)/home" as any);
+      router.navigate("/(tabs)/home" as any);
     } else {
-      router.replace("/get-started/theme" as any);
+      router.navigate("/get-started/theme" as any);
     }
   };
 
   const handleOffline = async () => {
     await continueOffline();
     if (hasCompleted) {
-      router.replace("/(tabs)/home" as any);
+      router.navigate("/(tabs)/home" as any);
     } else {
-      router.replace("/get-started/theme" as any);
+      router.navigate("/get-started/theme" as any);
     }
   };
 
