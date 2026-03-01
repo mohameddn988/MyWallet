@@ -28,6 +28,8 @@ export interface Transaction {
   date: string;
   note?: string;
   merchant?: string;
+  tags?: string[];
+  paymentMethod?: string;
 }
 
 export interface Account {

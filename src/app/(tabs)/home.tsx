@@ -107,8 +107,8 @@ export default function HomeScreen() {
         {/* ── Recent transactions ── */}
         <RecentTransactionsList
           transactions={recentTransactions}
-          onTransactionPress={(_id) => comingSoon("Transaction detail")}
-          onViewAllPress={() => comingSoon("All transactions")}
+          onTransactionPress={(id) => router.navigate(`/transaction/${id}` as any)}
+          onViewAllPress={() => router.navigate("/(tabs)/transactions" as any)}
         />
 
         {/* Bottom padding so content clears the QuickAddBar */}
@@ -117,9 +117,9 @@ export default function HomeScreen() {
 
       {/* ── Quick add bar (fixed bottom) ── */}
       <QuickAddBar
-        onAddExpense={() => comingSoon("Add Expense")}
-        onAddIncome={() => comingSoon("Add Income")}
-        onAddTransfer={() => comingSoon("Add Transfer")}
+        onAddExpense={() => router.navigate("/transaction/add?type=expense" as any)}
+        onAddIncome={() => router.navigate("/transaction/add?type=income" as any)}
+        onAddTransfer={() => router.navigate("/transaction/add?type=transfer" as any)}
       />
     </View>
   );

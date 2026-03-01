@@ -53,7 +53,7 @@ function groupByDate(
 export default function FilteredTransactionsScreen() {
   const { theme } = useTheme();
   const styles = makeStyles(theme);
-  const { recentTransactions, baseCurrency } = useFinance();
+  const { allTransactions, baseCurrency } = useFinance();
 
   const { filter } = useLocalSearchParams<{ filter: string }>();
   const filterType: FilterType =
@@ -64,9 +64,9 @@ export default function FilteredTransactionsScreen() {
   const config = FILTER_CONFIG[filterType];
 
   const filtered = useMemo(() => {
-    if (filterType === "all") return recentTransactions;
-    return recentTransactions.filter((tx) => tx.type === filterType);
-  }, [recentTransactions, filterType]);
+    if (filterType === "all") return allTransactions;
+    return allTransactions.filter((tx) => tx.type === filterType);
+  }, [allTransactions, filterType]);
 
   const groups = groupByDate(filtered);
 
@@ -157,12 +157,16 @@ export default function FilteredTransactionsScreen() {
                       formatAmount(tx.amount, tx.currency);
 
                   return (
-                    <View
+                    <Pressable
                       key={tx.id}
-                      style={[
+                      style={({ pressed }) => [
                         styles.txRow,
                         idx < group.items.length - 1 && styles.txRowBorder,
+                        pressed && { opacity: 0.7 },
                       ]}
+                      onPress={() =>
+                        router.push(`/transaction/${tx.id}` as any)
+                      }
                     >
                       <View
                         style={[
@@ -195,7 +199,7 @@ export default function FilteredTransactionsScreen() {
                       <Text style={[styles.txAmount, { color }]}>
                         {amountStr}
                       </Text>
-                    </View>
+                    </Pressable>
                   );
                 })}
               </View>

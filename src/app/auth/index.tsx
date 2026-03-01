@@ -4,11 +4,17 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
 import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
+import {
+  BASE_CURRENCY,
+  INITIAL_ACCOUNTS,
+  INITIAL_EXCHANGE_RATES,
+  INITIAL_TRANSACTIONS,
+} from "../../data/financeData";
 
 export default function AuthScreen() {
   const { theme } = useTheme();
   const { signInWithGoogle, continueOffline } = useAuth();
-  const { hasCompleted } = useFinance();
+  const { hasCompleted, completeOnboarding } = useFinance();
   const router = useRouter();
   const styles = makeStyles(theme);
 
@@ -23,11 +29,17 @@ export default function AuthScreen() {
 
   const handleOffline = async () => {
     await continueOffline();
-    if (hasCompleted) {
-      router.navigate("/(tabs)/home" as any);
-    } else {
-      router.navigate("/get-started/theme" as any);
+    // For local/offline mode, skip get-started and initialize with default data
+    if (!hasCompleted) {
+      await completeOnboarding({
+        baseCurrency: BASE_CURRENCY,
+        accounts: INITIAL_ACCOUNTS,
+        exchangeRates: INITIAL_EXCHANGE_RATES,
+        transactions: INITIAL_TRANSACTIONS,
+        useSampleData: true,
+      });
     }
+    router.navigate("/(tabs)/home" as any);
   };
 
   return (

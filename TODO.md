@@ -42,19 +42,19 @@
 
 ## 4. TRANSACTIONS
 
-- [ ] Transactions list grouped by date
-- [ ] Infinite/virtualized list for large histories
-- [ ] Transaction detail screen
-- [ ] Add transaction (expense)
-- [ ] Add transaction (income)
-- [ ] Add transaction (transfer between accounts)
-- [ ] Edit transaction
-- [ ] Delete transaction with confirmation
-- [ ] Duplicate transaction (quick copy)
-- [ ] Attach optional note to a transaction
-- [ ] Optional tags on transactions
-- [ ] Optional payment method field
-- [ ] Optional merchant field
+- [x] Transactions list grouped by date
+- [x] Infinite/virtualized list for large histories
+- [x] Transaction detail screen
+- [x] Add transaction (expense)
+- [x] Add transaction (income)
+- [x] Add transaction (transfer between accounts)
+- [x] Edit transaction
+- [x] Delete transaction with confirmation
+- [x] Duplicate transaction (quick copy)
+- [x] Attach optional note to a transaction
+- [x] Optional tags on transactions
+- [x] Optional payment method field
+- [x] Optional merchant field
 - [ ] Support negative/adjustment entries (define rule)
 
 ---

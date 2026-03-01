@@ -62,6 +62,14 @@ function RootLayoutWithTheme() {
           options={{ animation: "none" }}
         />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="transaction/add"
+          options={{ presentation: "modal", animation: "slide_from_bottom" }}
+        />
+        <Stack.Screen
+          name="transaction/[id]"
+          options={{ animation: "slide_from_right" }}
+        />
       </Stack>
     </SafeAreaView>
   );

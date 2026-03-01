@@ -54,6 +54,8 @@ interface FinanceContextType {
   monthSummary: MonthSummary;
   quickStats: QuickStats;
   recentTransactions: Transaction[];
+  /** All transactions sorted newest-first */
+  allTransactions: Transaction[];
   isRefreshing: boolean;
   refresh: () => void;
   /** True while the initial AsyncStorage read is in progress */
@@ -62,6 +64,10 @@ interface FinanceContextType {
   hasCompleted: boolean;
   completeOnboarding: (setup: FinanceSetup) => Promise<void>;
   resetOnboarding: () => Promise<void>;
+  addTransaction: (tx: Omit<Transaction, "id">) => Promise<Transaction>;
+  updateTransaction: (tx: Transaction) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
+  duplicateTransaction: (id: string) => Promise<Transaction>;
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -249,6 +255,112 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     setHasCompleted(true);
   }, []);
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Persistence helper
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const persist = useCallback(
+    async (accounts: Account[], transactions: Transaction[]) => {
+      const setup: FinanceSetup = {
+        baseCurrency: rawBase,
+        accounts,
+        exchangeRates: rawRates,
+        transactions,
+        useSampleData: false,
+      };
+      await AsyncStorage.setItem(FINANCE_SETUP_KEY, JSON.stringify(setup));
+    },
+    [rawBase, rawRates],
+  );
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Balance helpers
+  // ─────────────────────────────────────────────────────────────────────────
+
+  function applyTx(
+    accs: Account[],
+    tx: Transaction,
+    dir: 1 | -1,
+  ): Account[] {
+    return accs.map((acc) => {
+      if (tx.type === "expense" && acc.id === tx.accountId)
+        return { ...acc, balance: acc.balance - dir * tx.amount };
+      if (tx.type === "income" && acc.id === tx.accountId)
+        return { ...acc, balance: acc.balance + dir * tx.amount };
+      if (tx.type === "transfer") {
+        if (acc.id === tx.accountId)
+          return { ...acc, balance: acc.balance - dir * tx.amount };
+        if (acc.id === tx.toAccountId)
+          return { ...acc, balance: acc.balance + dir * tx.amount };
+      }
+      return acc;
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // CRUD
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const addTransaction = useCallback(
+    async (txData: Omit<Transaction, "id">): Promise<Transaction> => {
+      const tx: Transaction = { ...txData, id: `tx_${Date.now()}` };
+      const newAccounts = applyTx(rawAccounts, tx, 1);
+      const newTransactions = [...rawTransactions, tx];
+      setRawAccounts(newAccounts);
+      setRawTransactions(newTransactions);
+      await persist(newAccounts, newTransactions);
+      return tx;
+    },
+    [rawAccounts, rawTransactions, persist],
+  );
+
+  const updateTransaction = useCallback(
+    async (tx: Transaction): Promise<void> => {
+      const old = rawTransactions.find((t) => t.id === tx.id);
+      let newAccounts = rawAccounts;
+      if (old) newAccounts = applyTx(newAccounts, old, -1); // undo old
+      newAccounts = applyTx(newAccounts, tx, 1); // apply new
+      const newTransactions = rawTransactions.map((t) =>
+        t.id === tx.id ? tx : t,
+      );
+      setRawAccounts(newAccounts);
+      setRawTransactions(newTransactions);
+      await persist(newAccounts, newTransactions);
+    },
+    [rawAccounts, rawTransactions, persist],
+  );
+
+  const deleteTransaction = useCallback(
+    async (id: string): Promise<void> => {
+      const tx = rawTransactions.find((t) => t.id === id);
+      let newAccounts = rawAccounts;
+      if (tx) newAccounts = applyTx(newAccounts, tx, -1); // undo
+      const newTransactions = rawTransactions.filter((t) => t.id !== id);
+      setRawAccounts(newAccounts);
+      setRawTransactions(newTransactions);
+      await persist(newAccounts, newTransactions);
+    },
+    [rawAccounts, rawTransactions, persist],
+  );
+
+  const duplicateTransaction = useCallback(
+    async (id: string): Promise<Transaction> => {
+      const src = rawTransactions.find((t) => t.id === id);
+      if (!src) throw new Error("Transaction not found");
+      const today = new Date();
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+      const dup: Transaction = { ...src, id: `tx_${Date.now()}`, date: todayStr };
+      const newAccounts = applyTx(rawAccounts, dup, 1);
+      const newTransactions = [...rawTransactions, dup];
+      setRawAccounts(newAccounts);
+      setRawTransactions(newTransactions);
+      await persist(newAccounts, newTransactions);
+      return dup;
+    },
+    [rawAccounts, rawTransactions, persist],
+  );
+
   const resetOnboarding = useCallback(async () => {
     await AsyncStorage.multiRemove([ONBOARDING_KEY, FINANCE_SETUP_KEY]);
     setHasCompleted(false);
@@ -286,9 +398,11 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       now,
     );
     const quickStats = computeQuickStats(rawTransactions, rateMap, base, now);
-    const recentTransactions = [...rawTransactions]
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, 12);
+    const sorted = [...rawTransactions].sort((a, b) =>
+      b.date.localeCompare(a.date),
+    );
+    const recentTransactions = sorted.slice(0, 12);
+    const allTransactions = sorted;
 
     return {
       baseCurrency: base,
@@ -299,6 +413,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       monthSummary,
       quickStats,
       recentTransactions,
+      allTransactions,
       isRefreshing,
       refresh,
     };
@@ -320,6 +435,10 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         hasCompleted,
         completeOnboarding,
         resetOnboarding,
+        addTransaction,
+        updateTransaction,
+        deleteTransaction,
+        duplicateTransaction,
       }}
     >
       {children}
