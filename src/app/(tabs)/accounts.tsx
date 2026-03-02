@@ -1,8 +1,15 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Alert,
+  Animated,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -16,14 +23,10 @@ import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getAccountTypeMeta } from "../../data/accounts";
 import { Account, AccountType, ExchangeRate } from "../../types/finance";
-import {
-  convertToBase,
-  formatAmount,
-  getCurrencySymbol,
-} from "../../utils/currency";
+import { convertToBase, formatAmount } from "../../utils/currency";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Account card
+// Account card (redesigned)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function AccountCard({
@@ -39,50 +42,50 @@ function AccountCard({
   showBase: boolean;
   theme: Theme;
 }) {
-  const meta = getAccountTypeMeta(account.type);
   const s = makeStyles(theme);
 
   return (
     <Pressable
-      style={({ pressed }) => [
-        s.accountCard,
-        { borderLeftColor: account.color },
-        pressed && { opacity: 0.85 },
-      ]}
+      style={({ pressed }) => [s.accountCard, pressed && { opacity: 0.78 }]}
       onPress={() => router.navigate(`/account/${account.id}` as any)}
     >
-      <View
-        style={[s.accountCardIcon, { backgroundColor: `${account.color}22` }]}
-      >
+      {/* Colored accent strip */}
+      <View style={[s.accountAccent, { backgroundColor: account.color }]} />
+
+      {/* Icon */}
+      <View style={[s.accountIcon, { backgroundColor: `${account.color}18` }]}>
         <MaterialCommunityIcons
           name={account.icon as any}
-          size={22}
+          size={20}
           color={account.color}
         />
       </View>
-      <View style={s.accountCardInfo}>
-        <View style={s.accountCardNameRow}>
-          <Text style={s.accountCardName} numberOfLines={1}>
+
+      {/* Info */}
+      <View style={s.accountInfo}>
+        <View style={s.accountNameRow}>
+          <Text style={s.accountName} numberOfLines={1}>
             {account.name}
           </Text>
           {account.isLiability && (
-            <View style={s.liabilityTag}>
-              <Text style={s.liabilityTagText}>Liability</Text>
+            <View style={s.liabilityBadge}>
+              <Text style={s.liabilityBadgeText}>Liability</Text>
             </View>
           )}
         </View>
-        <View style={s.accountCardMeta}>
-          <Text style={s.accountTypePill}>{meta.label}</Text>
-          {account.accountRef ? (
-            <Text style={s.accountRef}> · {account.accountRef}</Text>
-          ) : null}
-        </View>
+        {account.accountRef ? (
+          <Text style={s.accountRef} numberOfLines={1}>
+            {account.accountRef}
+          </Text>
+        ) : null}
       </View>
-      <View style={s.accountCardBalance}>
+
+      {/* Balance */}
+      <View style={s.accountBalanceCol}>
         <Text
           style={[
             s.balanceNative,
-            { color: account.balance < 0 ? "#F14A6E" : account.color },
+            { color: account.balance < 0 ? "#F14A6E" : theme.foreground.white },
           ]}
         >
           {formatAmount(account.balance, account.currency)}
@@ -92,17 +95,133 @@ function AccountCard({
             ≈ {formatAmount(balanceInBase, baseCurrency, { compact: true })}
           </Text>
         )}
-        <MaterialCommunityIcons
-          name="chevron-right"
-          size={16}
-          color={theme.foreground.gray}
-          style={{ marginTop: 2 }}
-        />
       </View>
+
+      <MaterialCommunityIcons
+        name="chevron-right"
+        size={16}
+        color={theme.foreground.gray}
+        style={{ opacity: 0.5 }}
+      />
     </Pressable>
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Collapsible group section per account type
+// ─────────────────────────────────────────────────────────────────────────────
+
+function GroupSection({
+  type,
+  accounts,
+  groupTotal,
+  baseCurrency,
+  rateMap,
+  showBase,
+  theme,
+}: {
+  type: AccountType;
+  accounts: Account[];
+  groupTotal: number;
+  baseCurrency: string;
+  rateMap: Record<string, number>;
+  showBase: boolean;
+  theme: Theme;
+}) {
+  const meta = getAccountTypeMeta(type);
+  const [expanded, setExpanded] = useState(true);
+  const rotateAnim = useRef(new Animated.Value(1)).current;
+  const s = makeStyles(theme);
+
+  const toggle = () => {
+    const toValue = expanded ? 0 : 1;
+    Animated.spring(rotateAnim, {
+      toValue,
+      useNativeDriver: true,
+      tension: 120,
+      friction: 10,
+    }).start();
+    setExpanded((v) => !v);
+  };
+
+  const rotation = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "90deg"],
+  });
+
+  return (
+    <View style={s.groupSection}>
+      {/* Group header */}
+      <Pressable
+        style={({ pressed }) => [s.groupHeader, pressed && { opacity: 0.8 }]}
+        onPress={toggle}
+      >
+        <View
+          style={[
+            s.groupIconWrap,
+            { backgroundColor: `${meta.defaultColor}22` },
+          ]}
+        >
+          <MaterialCommunityIcons
+            name={meta.icon as any}
+            size={16}
+            color={meta.defaultColor}
+          />
+        </View>
+        <Text style={s.groupLabel}>{meta.label}</Text>
+        <View style={s.groupCountBadge}>
+          <Text style={s.groupCountText}>{accounts.length}</Text>
+        </View>
+
+        <View style={s.groupHeaderSpacer} />
+
+        <Text
+          style={[
+            s.groupTotal,
+            { color: groupTotal < 0 ? "#F14A6E" : theme.primary.main },
+          ]}
+        >
+          {formatAmount(groupTotal, baseCurrency, { compact: true })}
+        </Text>
+
+        <Animated.View style={{ transform: [{ rotate: rotation }] }}>
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={18}
+            color={theme.foreground.gray}
+          />
+        </Animated.View>
+      </Pressable>
+
+      {/* Account cards */}
+      {expanded && (
+        <View style={s.groupCards}>
+          {accounts.map((acc) => {
+            const inBase = convertToBase(
+              acc.balance,
+              acc.currency,
+              baseCurrency,
+              rateMap,
+            );
+            return (
+              <AccountCard
+                key={acc.id}
+                account={acc}
+                balanceInBase={inBase}
+                baseCurrency={baseCurrency}
+                showBase={showBase}
+                theme={theme}
+              />
+            );
+          })}
+        </View>
+      )}
+    </View>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Net worth hero card with distribution bar
 // ─────────────────────────────────────────────────────────────────────────────
 // Exchange rate row (inline edit)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -137,45 +256,68 @@ function ExchangeRateRow({
   };
 
   return (
-    <View style={s.rateRow}>
-      <View style={s.rateSymbols}>
-        <Text style={s.rateFrom}>{getCurrencySymbol(rate.from)}</Text>
+    <View style={s.rateCard}>
+      {/* Currency pair badges */}
+      <View style={s.ratePairCol}>
+        <View style={s.rateCurrencyBadge}>
+          <Text style={s.rateCurrencyCode}>{rate.from}</Text>
+        </View>
         <MaterialCommunityIcons
-          name="arrow-right"
-          size={14}
+          name="arrow-down"
+          size={12}
           color={theme.foreground.gray}
+          style={{ opacity: 0.5 }}
         />
-        <Text style={s.rateTo}>{getCurrencySymbol(baseCurrency)}</Text>
-      </View>
-      <View style={s.rateInfo}>
-        <Text style={s.rateLabel}>1 {rate.from} =</Text>
-        {editing ? (
-          <TextInput
-            ref={inputRef}
-            style={s.rateInput}
-            value={rateStr}
-            onChangeText={setRateStr}
-            onBlur={handleSave}
-            onSubmitEditing={handleSave}
-            keyboardType="decimal-pad"
-            returnKeyType="done"
-            selectTextOnFocus
-          />
-        ) : (
-          <Text style={s.rateValue}>
-            {rate.rate.toLocaleString("en-US", { maximumFractionDigits: 4 })}{" "}
+        <View style={[s.rateCurrencyBadge, s.rateCurrencyBadgeBase]}>
+          <Text style={[s.rateCurrencyCode, { color: theme.primary.main }]}>
             {baseCurrency}
+          </Text>
+        </View>
+      </View>
+
+      {/* Rate value */}
+      <View style={s.rateValueCol}>
+        <Text style={s.rateEquation}>1 {rate.from} =</Text>
+        {editing ? (
+          <View style={s.rateInputRow}>
+            <TextInput
+              ref={inputRef}
+              style={s.rateInput}
+              value={rateStr}
+              onChangeText={setRateStr}
+              onBlur={handleSave}
+              onSubmitEditing={handleSave}
+              keyboardType="decimal-pad"
+              returnKeyType="done"
+              selectTextOnFocus
+              placeholderTextColor={theme.foreground.gray}
+            />
+            <Text style={s.rateBaseSuffix}>{baseCurrency}</Text>
+          </View>
+        ) : (
+          <Text style={s.rateValueLarge}>
+            {rate.rate.toLocaleString("en-US", { maximumFractionDigits: 6 })}{" "}
+            <Text style={s.rateBaseSuffix}>{baseCurrency}</Text>
           </Text>
         )}
         {rate.isUserDefined && (
-          <Text style={s.rateUserDefined}>manual</Text>
+          <View style={s.rateManualBadge}>
+            <MaterialCommunityIcons
+              name="pencil"
+              size={9}
+              color={theme.foreground.gray}
+            />
+            <Text style={s.rateManualText}>Manual</Text>
+          </View>
         )}
       </View>
+
+      {/* Action button */}
       {editing ? (
         <Pressable style={s.rateSaveBtn} onPress={handleSave}>
           <MaterialCommunityIcons
             name="check"
-            size={16}
+            size={18}
             color={theme.primary.main}
           />
         </Pressable>
@@ -193,44 +335,19 @@ function ExchangeRateRow({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Section title row
-// ─────────────────────────────────────────────────────────────────────────────
-
-function SectionTitle({
-  label,
-  count,
-  action,
-  theme,
-}: {
-  label: string;
-  count?: number;
-  action?: { label: string; onPress: () => void };
-  theme: Theme;
-}) {
-  const s = makeStyles(theme);
-  return (
-    <View style={s.sectionHeader}>
-      <Text style={s.sectionTitle}>
-        {label}
-        {count !== undefined ? (
-          <Text style={s.sectionCount}> ({count})</Text>
-        ) : null}
-      </Text>
-      {action && (
-        <Pressable onPress={action.onPress}>
-          <Text style={s.sectionAction}>{action.label}</Text>
-        </Pressable>
-      )}
-    </View>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Main screen
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TYPE_ORDER: AccountType[] = [
-  "cash", "bank", "savings", "credit", "crypto", "gold", "loan", "charity", "other",
+  "cash",
+  "bank",
+  "savings",
+  "credit",
+  "crypto",
+  "gold",
+  "loan",
+  "charity",
+  "other",
 ];
 
 export default function AccountsTabScreen() {
@@ -245,17 +362,22 @@ export default function AccountsTabScreen() {
     isRefreshing,
     refresh,
     updateExchangeRate,
+    updateBaseCurrency,
   } = useFinance();
 
   const [showArchived, setShowArchived] = useState(false);
+  const [displayCurrency, setDisplayCurrency] = useState(baseCurrency);
 
-  // Rate map
+  // Keep displayCurrency in sync when baseCurrency changes externally
+  useEffect(() => {
+    setDisplayCurrency(baseCurrency);
+  }, [baseCurrency]);
+
   const rateMap = useMemo(
     () => Object.fromEntries(exchangeRates.map((r) => [r.from, r.rate])),
     [exchangeRates],
   );
 
-  // Split active / archived
   const activeAccounts = useMemo(
     () => allAccounts.filter((a) => !a.isArchived),
     [allAccounts],
@@ -265,7 +387,6 @@ export default function AccountsTabScreen() {
     [allAccounts],
   );
 
-  // Group active by type
   const grouped = useMemo(() => {
     const map = new Map<AccountType, Account[]>();
     for (const acc of activeAccounts) {
@@ -279,11 +400,53 @@ export default function AccountsTabScreen() {
     }));
   }, [activeAccounts]);
 
-  // Foreign-currency rates to display
   const foreignRates = useMemo(
     () => exchangeRates.filter((r) => r.from !== baseCurrency),
     [exchangeRates, baseCurrency],
   );
+
+  // All currencies available in the wallet (base + exchange rate froms)
+  const availableCurrencies = useMemo(() => {
+    const set = new Set<string>([baseCurrency]);
+    exchangeRates.forEach((r) => set.add(r.from));
+    return Array.from(set);
+  }, [baseCurrency, exchangeRates]);
+
+  // Net worth converted to the selected display currency
+  const displayNetWorth = useMemo(() => {
+    if (displayCurrency === baseCurrency) return netWorth;
+    const rate = rateMap[displayCurrency];
+    if (!rate || rate === 0) return null;
+    return netWorth / rate;
+  }, [netWorth, displayCurrency, baseCurrency, rateMap]);
+
+  const handleChangeBaseCurrency = useCallback(() => {
+    const others = availableCurrencies.filter((c) => c !== baseCurrency);
+    if (others.length === 0) {
+      Alert.alert(
+        "No other currencies",
+        "Add exchange rates to enable switching the base currency.",
+      );
+      return;
+    }
+    Alert.alert(
+      "Change Base Currency",
+      `Current base: ${baseCurrency}\n\nAll exchange rates will be recalculated.`,
+      [
+        ...others.map((c) => ({
+          text: c,
+          onPress: async () => {
+            try {
+              await updateBaseCurrency(c);
+            } catch {
+              Alert.alert("Error", "Failed to change base currency.");
+            }
+          },
+        })),
+        { text: "Cancel", style: "cancel" as const },
+      ],
+    );
+  }, [availableCurrencies, baseCurrency, updateBaseCurrency]);
 
   const handleSaveRate = useCallback(
     async (from: string, newRate: number) => {
@@ -303,21 +466,25 @@ export default function AccountsTabScreen() {
     [baseCurrency, updateExchangeRate],
   );
 
+  const getGroupTotal = useCallback(
+    (accounts: Account[]) =>
+      accounts.reduce((sum, a) => {
+        const inBase = convertToBase(
+          a.balance,
+          a.currency,
+          baseCurrency,
+          rateMap,
+        );
+        return sum + inBase;
+      }, 0),
+    [baseCurrency, rateMap],
+  );
+
   return (
     <View style={s.root}>
-      {/* ── Screen header ── */}
+      {/* ── Header ── */}
       <View style={s.screenHeader}>
         <Text style={s.screenTitle}>Accounts</Text>
-        <Pressable
-          style={({ pressed }) => [s.addBtn, pressed && { opacity: 0.8 }]}
-          onPress={() => router.navigate("/account/add" as any)}
-        >
-          <MaterialCommunityIcons
-            name="plus"
-            size={20}
-            color={theme.background.dark}
-          />
-        </Pressable>
       </View>
 
       <ScrollView
@@ -334,19 +501,80 @@ export default function AccountsTabScreen() {
       >
         {/* ── Net worth card ── */}
         <View style={s.netWorthCard}>
-          <Text style={s.netWorthLabel}>Total Net Worth</Text>
-          <Text style={s.netWorthValue}>
-            {formatAmount(netWorth, baseCurrency)}
-          </Text>
-          <Text style={s.netWorthSub}>{baseCurrency} base currency</Text>
+          {/* Header row */}
+          <View style={s.netWorthHeaderRow}>
+            <Text style={s.netWorthLabel}>Total Net Worth</Text>
+            <Pressable
+              style={({ pressed }) => [
+                s.baseCurrencyChip,
+                pressed && { opacity: 0.7 },
+              ]}
+              onPress={handleChangeBaseCurrency}
+            >
+              <MaterialCommunityIcons
+                name="database-outline"
+                size={11}
+                color={theme.foreground.gray}
+              />
+              <Text style={s.baseCurrencyChipText}>Base: {baseCurrency}</Text>
+              <MaterialCommunityIcons
+                name="chevron-down"
+                size={12}
+                color={theme.foreground.gray}
+              />
+            </Pressable>
+          </View>
 
+          {/* Display value */}
+          <Text style={s.netWorthValue}>
+            {displayNetWorth !== null
+              ? formatAmount(displayNetWorth, displayCurrency)
+              : "—"}
+          </Text>
+
+          {/* Currency selector pills */}
+          {availableCurrencies.length > 1 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={s.currencyPillsRow}
+            >
+              {availableCurrencies.map((cur) => {
+                const isSelected = cur === displayCurrency;
+                return (
+                  <Pressable
+                    key={cur}
+                    style={({ pressed }) => [
+                      s.currencyPill,
+                      isSelected && s.currencyPillActive,
+                      pressed && { opacity: 0.7 },
+                    ]}
+                    onPress={() => setDisplayCurrency(cur)}
+                  >
+                    <Text
+                      style={[
+                        s.currencyPillText,
+                        isSelected && s.currencyPillTextActive,
+                      ]}
+                    >
+                      {cur}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          )}
+
+          {/* Per-currency subtotals */}
           {perCurrencySubtotals.length > 1 && (
             <View style={s.subtotalsRow}>
               {perCurrencySubtotals.map((sub) => (
                 <View key={sub.currency} style={s.subtotalItem}>
                   <Text style={s.subtotalCurrency}>{sub.currency}</Text>
                   <Text style={s.subtotalAmount}>
-                    {formatAmount(sub.totalNative, sub.currency, { compact: true })}
+                    {formatAmount(sub.totalNative, sub.currency, {
+                      compact: true,
+                    })}
                   </Text>
                 </View>
               ))}
@@ -354,52 +582,41 @@ export default function AccountsTabScreen() {
           )}
         </View>
 
-        {/* ── Active accounts ── */}
-        {grouped.map(({ type, accounts }) => {
-          const meta = getAccountTypeMeta(type);
-          return (
-            <View key={type} style={s.typeGroup}>
-              <SectionTitle
-                label={meta.label}
-                count={accounts.length}
+        {/* ── Grouped account sections ── */}
+        {grouped.length > 0 ? (
+          <View style={s.groupList}>
+            <View style={s.sectionLabelRow}>
+              <Text style={s.sectionLabel}>MY ACCOUNTS</Text>
+            </View>
+            {grouped.map(({ type, accounts }) => (
+              <GroupSection
+                key={type}
+                type={type}
+                accounts={accounts}
+                groupTotal={getGroupTotal(accounts)}
+                baseCurrency={baseCurrency}
+                rateMap={rateMap}
+                showBase={perCurrencySubtotals.length > 1}
                 theme={theme}
               />
-              {accounts.map((acc) => {
-                const inBase = convertToBase(
-                  acc.balance,
-                  acc.currency,
-                  baseCurrency,
-                  rateMap,
-                );
-                return (
-                  <AccountCard
-                    key={acc.id}
-                    account={acc}
-                    balanceInBase={inBase}
-                    baseCurrency={baseCurrency}
-                    showBase={perCurrencySubtotals.length > 1}
-                    theme={theme}
-                  />
-                );
-              })}
-            </View>
-          );
-        })}
-
-        {activeAccounts.length === 0 && (
+            ))}
+          </View>
+        ) : (
           <View style={s.emptyState}>
-            <MaterialCommunityIcons
-              name="wallet-outline"
-              size={48}
-              color={theme.foreground.gray}
-              style={{ opacity: 0.4 }}
-            />
-            <Text style={s.emptyStateText}>No accounts yet</Text>
+            <View style={s.emptyIconWrap}>
+              <MaterialCommunityIcons
+                name="wallet-outline"
+                size={40}
+                color={theme.foreground.gray}
+                style={{ opacity: 0.4 }}
+              />
+            </View>
+            <Text style={s.emptyTitle}>No accounts yet</Text>
+            <Text style={s.emptySubtitle}>
+              Add your first account to start tracking
+            </Text>
             <Pressable
-              style={({ pressed }) => [
-                s.emptyStateCta,
-                pressed && { opacity: 0.8 },
-              ]}
+              style={({ pressed }) => [s.emptyBtn, pressed && { opacity: 0.8 }]}
               onPress={() => router.navigate("/account/add" as any)}
             >
               <MaterialCommunityIcons
@@ -407,7 +624,7 @@ export default function AccountsTabScreen() {
                 size={16}
                 color={theme.background.dark}
               />
-              <Text style={s.emptyStateCtaText}>Add Account</Text>
+              <Text style={s.emptyBtnText}>Add Account</Text>
             </Pressable>
           </View>
         )}
@@ -415,12 +632,24 @@ export default function AccountsTabScreen() {
         {/* ── Exchange rates ── */}
         {foreignRates.length > 0 && (
           <View style={s.ratesSection}>
-            <SectionTitle label="Exchange Rates" theme={theme} />
-            <View style={s.ratesCard}>
-              <Text style={s.ratesHint}>
-                Tap the pencil icon to manually update a rate. All balance
-                conversions use these rates.
-              </Text>
+            <View style={s.sectionLabelRow}>
+              <Text style={s.sectionLabel}>EXCHANGE RATES</Text>
+              <Pressable
+                style={({ pressed }) => [
+                  s.changeBaseBtn,
+                  pressed && { opacity: 0.7 },
+                ]}
+                onPress={handleChangeBaseCurrency}
+              >
+                <MaterialCommunityIcons
+                  name="swap-horizontal"
+                  size={12}
+                  color={theme.primary.main}
+                />
+                <Text style={s.changeBaseBtnText}>Change base</Text>
+              </Pressable>
+            </View>
+            <View style={s.ratesGrid}>
               {foreignRates.map((rate) => (
                 <ExchangeRateRow
                   key={rate.from}
@@ -437,15 +666,28 @@ export default function AccountsTabScreen() {
         {/* ── Archived accounts ── */}
         {archivedAccounts.length > 0 && (
           <View style={s.archivedSection}>
-            <SectionTitle
-              label="Archived"
-              count={archivedAccounts.length}
-              action={{
-                label: showArchived ? "Hide" : "Show",
-                onPress: () => setShowArchived((v) => !v),
-              }}
-              theme={theme}
-            />
+            <Pressable
+              style={({ pressed }) => [
+                s.archivedHeader,
+                pressed && { opacity: 0.8 },
+              ]}
+              onPress={() => setShowArchived((v) => !v)}
+            >
+              <MaterialCommunityIcons
+                name="archive-outline"
+                size={16}
+                color={theme.foreground.gray}
+              />
+              <Text style={s.archivedTitle}>
+                Archived ({archivedAccounts.length})
+              </Text>
+              <View style={{ flex: 1 }} />
+              <MaterialCommunityIcons
+                name={showArchived ? "chevron-up" : "chevron-down"}
+                size={16}
+                color={theme.foreground.gray}
+              />
+            </Pressable>
             {showArchived &&
               archivedAccounts.map((acc) => {
                 const inBase = convertToBase(
@@ -469,7 +711,7 @@ export default function AccountsTabScreen() {
           </View>
         )}
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 110 }} />
       </ScrollView>
 
       {/* ── FAB ── */}
@@ -494,29 +736,36 @@ export default function AccountsTabScreen() {
 function makeStyles(theme: Theme) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: theme.background.dark },
+
+    // Header
     screenHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: 16,
-      paddingVertical: 14,
+      paddingHorizontal: 20,
+      paddingTop: 6,
+      paddingBottom: 16,
     },
     screenTitle: {
-      fontSize: 22,
+      fontSize: 24,
       fontWeight: "800",
       color: theme.foreground.white,
     },
-    addBtn: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
-      backgroundColor: theme.primary.main,
-      alignItems: "center",
-      justifyContent: "center",
-    },
+
     scroll: { flex: 1 },
     scrollContent: { paddingHorizontal: 16 },
-    // Net worth
+
+    // Section label
+    sectionLabelRow: {
+      marginBottom: 10,
+      marginTop: 4,
+    },
+    sectionLabel: {
+      fontSize: 10,
+      fontWeight: "700",
+      letterSpacing: 1.2,
+      color: theme.foreground.gray,
+      opacity: 0.7,
+    },
+
+    // ── Net worth card ──
     netWorthCard: {
       backgroundColor: theme.background.accent,
       borderRadius: 20,
@@ -525,23 +774,67 @@ function makeStyles(theme: Theme) {
       borderWidth: 1,
       borderColor: `${theme.primary.main}33`,
     },
+    netWorthHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 6,
+    },
     netWorthLabel: {
       fontSize: 11,
       fontWeight: "600",
       letterSpacing: 0.8,
       textTransform: "uppercase",
       color: theme.foreground.gray,
-      marginBottom: 6,
+    },
+    baseCurrencyChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      backgroundColor: theme.background.darker,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: `${theme.foreground.gray}20`,
+    },
+    baseCurrencyChipText: {
+      fontSize: 11,
+      fontWeight: "600",
+      color: theme.foreground.gray,
     },
     netWorthValue: {
       fontSize: 34,
       fontWeight: "800",
       color: theme.primary.main,
+      marginBottom: 10,
     },
-    netWorthSub: {
+    currencyPillsRow: {
+      flexDirection: "row",
+      gap: 6,
+      paddingBottom: 2,
+      marginBottom: 4,
+    },
+    currencyPill: {
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+      borderRadius: 20,
+      backgroundColor: theme.background.darker,
+      borderWidth: 1,
+      borderColor: `${theme.foreground.gray}20`,
+    },
+    currencyPillActive: {
+      backgroundColor: `${theme.primary.main}22`,
+      borderColor: theme.primary.main,
+    },
+    currencyPillText: {
       fontSize: 12,
+      fontWeight: "700",
       color: theme.foreground.gray,
-      marginTop: 4,
+      letterSpacing: 0.3,
+    },
+    currencyPillTextActive: {
+      color: theme.primary.main,
     },
     subtotalsRow: {
       flexDirection: "row",
@@ -572,190 +865,311 @@ function makeStyles(theme: Theme) {
       fontWeight: "700",
       color: theme.foreground.white,
     },
-    // Section header
-    sectionHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 8,
-      marginTop: 4,
-    },
-    sectionTitle: {
-      fontSize: 11,
-      fontWeight: "700",
-      letterSpacing: 0.8,
-      textTransform: "uppercase",
-      color: theme.foreground.gray,
-    },
-    sectionCount: { fontWeight: "400", opacity: 0.7 },
-    sectionAction: {
-      fontSize: 13,
-      fontWeight: "600",
-      color: theme.primary.main,
-    },
-    typeGroup: { marginBottom: 16 },
-    // Account card
-    accountCard: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 12,
-      paddingVertical: 14,
-      paddingHorizontal: 14,
+
+    // ── Group section ──
+    groupList: { marginBottom: 8 },
+    groupSection: {
+      marginBottom: 10,
       backgroundColor: theme.background.accent,
-      borderRadius: 14,
-      marginBottom: 8,
-      borderLeftWidth: 3,
+      borderRadius: 18,
+      overflow: "hidden",
+      borderWidth: 1,
+      borderColor: `${theme.foreground.gray}14`,
     },
-    accountCardIcon: {
-      width: 42,
-      height: 42,
-      borderRadius: 12,
+    groupHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 14,
+      paddingVertical: 13,
+      gap: 10,
+    },
+    groupIconWrap: {
+      width: 32,
+      height: 32,
+      borderRadius: 9,
       alignItems: "center",
       justifyContent: "center",
     },
-    accountCardInfo: { flex: 1, gap: 3 },
-    accountCardNameRow: {
+    groupLabel: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: theme.foreground.white,
+    },
+    groupCountBadge: {
+      backgroundColor: theme.background.darker,
+      paddingHorizontal: 7,
+      paddingVertical: 2,
+      borderRadius: 20,
+    },
+    groupCountText: {
+      fontSize: 11,
+      fontWeight: "600",
+      color: theme.foreground.gray,
+    },
+    groupHeaderSpacer: { flex: 1 },
+    groupTotal: {
+      fontSize: 14,
+      fontWeight: "700",
+    },
+    groupCards: {
+      paddingHorizontal: 10,
+      paddingBottom: 10,
+      gap: 6,
+    },
+
+    // ── Account card ──
+    accountCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      paddingVertical: 12,
+      paddingRight: 12,
+      paddingLeft: 10,
+      backgroundColor: theme.background.darker,
+      borderRadius: 13,
+      overflow: "hidden",
+    },
+    accountAccent: {
+      position: "absolute",
+      left: 0,
+      top: 0,
+      bottom: 0,
+      width: 3,
+      borderRadius: 2,
+    },
+    accountIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: 11,
+      alignItems: "center",
+      justifyContent: "center",
+      marginLeft: 6,
+    },
+    accountInfo: { flex: 1, gap: 2 },
+    accountNameRow: {
       flexDirection: "row",
       alignItems: "center",
       gap: 6,
     },
-    accountCardName: {
-      fontSize: 15,
+    accountName: {
+      fontSize: 14,
       fontWeight: "600",
       color: theme.foreground.white,
       flexShrink: 1,
     },
-    liabilityTag: {
-      paddingHorizontal: 6,
-      paddingVertical: 2,
+    liabilityBadge: {
+      paddingHorizontal: 5,
+      paddingVertical: 1,
       borderRadius: 4,
-      backgroundColor: "#F14A6E22",
+      backgroundColor: "#F14A6E1A",
+      borderWidth: 1,
+      borderColor: "#F14A6E44",
     },
-    liabilityTagText: {
+    liabilityBadgeText: {
       fontSize: 9,
       fontWeight: "700",
       color: "#F14A6E",
-      letterSpacing: 0.3,
+      letterSpacing: 0.2,
     },
-    accountCardMeta: {
-      flexDirection: "row",
-      alignItems: "center",
+    accountRef: {
+      fontSize: 11,
+      color: theme.foreground.gray,
     },
-    accountTypePill: { fontSize: 11, color: theme.foreground.gray },
-    accountRef: { fontSize: 11, color: theme.foreground.gray },
-    accountCardBalance: { alignItems: "flex-end", gap: 2 },
-    balanceNative: { fontSize: 15, fontWeight: "700" },
-    balanceBase: { fontSize: 11, color: theme.foreground.gray },
-    // Empty state
+    accountBalanceCol: { alignItems: "flex-end", gap: 2 },
+    balanceNative: {
+      fontSize: 14,
+      fontWeight: "700",
+    },
+    balanceBase: {
+      fontSize: 11,
+      color: theme.foreground.gray,
+    },
+
+    // ── Empty state ──
     emptyState: {
       alignItems: "center",
-      paddingVertical: 48,
-      gap: 12,
+      paddingVertical: 56,
+      gap: 10,
     },
-    emptyStateText: { fontSize: 15, color: theme.foreground.gray },
-    emptyStateCta: {
+    emptyIconWrap: {
+      width: 72,
+      height: 72,
+      borderRadius: 20,
+      backgroundColor: theme.background.accent,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 4,
+    },
+    emptyTitle: {
+      fontSize: 16,
+      fontWeight: "700",
+      color: theme.foreground.white,
+    },
+    emptySubtitle: {
+      fontSize: 13,
+      color: theme.foreground.gray,
+      textAlign: "center",
+      paddingHorizontal: 32,
+    },
+    emptyBtn: {
       flexDirection: "row",
       alignItems: "center",
       gap: 6,
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      borderRadius: 10,
+      paddingHorizontal: 22,
+      paddingVertical: 11,
+      borderRadius: 12,
       backgroundColor: theme.primary.main,
+      marginTop: 6,
     },
-    emptyStateCtaText: {
+    emptyBtnText: {
       fontSize: 14,
       fontWeight: "700",
       color: theme.background.dark,
     },
-    // Exchange rates
+
+    // ── Exchange rates ──
     ratesSection: { marginBottom: 8 },
-    ratesCard: {
-      backgroundColor: theme.background.accent,
-      borderRadius: 14,
-      padding: 14,
-    },
-    ratesHint: {
-      fontSize: 11,
-      color: theme.foreground.gray,
-      marginBottom: 10,
-      lineHeight: 16,
-    },
-    rateRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingVertical: 10,
-      borderTopWidth: 1,
-      borderTopColor: theme.background.darker,
-      gap: 10,
-    },
-    rateSymbols: {
+    changeBaseBtn: {
       flexDirection: "row",
       alignItems: "center",
       gap: 4,
-      width: 64,
     },
-    rateFrom: {
-      fontSize: 16,
-      fontWeight: "700",
-      color: theme.foreground.white,
+    changeBaseBtnText: {
+      fontSize: 11,
+      fontWeight: "600",
+      color: theme.primary.main,
     },
-    rateTo: {
-      fontSize: 16,
-      fontWeight: "700",
-      color: theme.foreground.gray,
+    ratesGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 10,
     },
-    rateInfo: {
-      flex: 1,
+    rateCard: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 6,
-      flexWrap: "wrap",
+      gap: 12,
+      backgroundColor: theme.background.accent,
+      borderRadius: 16,
+      paddingVertical: 14,
+      paddingHorizontal: 14,
+      borderWidth: 1,
+      borderColor: `${theme.foreground.gray}14`,
+      flexBasis: "47%",
+      flexGrow: 1,
     },
-    rateLabel: { fontSize: 12, color: theme.foreground.gray },
-    rateValue: {
-      fontSize: 14,
+    ratePairCol: {
+      alignItems: "center",
+      gap: 3,
+    },
+    rateCurrencyBadge: {
+      backgroundColor: theme.background.darker,
+      borderRadius: 7,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      minWidth: 46,
+      alignItems: "center",
+    },
+    rateCurrencyBadgeBase: {
+      backgroundColor: `${theme.primary.main}18`,
+      borderWidth: 1,
+      borderColor: `${theme.primary.main}30`,
+    },
+    rateCurrencyCode: {
+      fontSize: 11,
+      fontWeight: "800",
+      color: theme.foreground.white,
+      letterSpacing: 0.5,
+    },
+    rateValueCol: {
+      flex: 1,
+      gap: 3,
+    },
+    rateEquation: {
+      fontSize: 11,
+      color: theme.foreground.gray,
+    },
+    rateValueLarge: {
+      fontSize: 15,
       fontWeight: "700",
       color: theme.foreground.white,
     },
+    rateBaseSuffix: {
+      fontSize: 12,
+      fontWeight: "500",
+      color: theme.foreground.gray,
+    },
+    rateInputRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+    },
     rateInput: {
-      fontSize: 14,
+      fontSize: 15,
       fontWeight: "700",
       color: theme.primary.main,
-      borderBottomWidth: 1,
+      borderBottomWidth: 1.5,
       borderBottomColor: theme.primary.main,
-      paddingHorizontal: 4,
-      paddingVertical: 2,
-      minWidth: 70,
+      paddingHorizontal: 2,
+      paddingVertical: 1,
+      minWidth: 60,
     },
-    rateUserDefined: {
-      fontSize: 10,
+    rateManualBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 3,
+      alignSelf: "flex-start",
+      backgroundColor: theme.background.darker,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 5,
+      marginTop: 2,
+    },
+    rateManualText: {
+      fontSize: 9,
       fontWeight: "600",
       color: theme.foreground.gray,
-      backgroundColor: theme.background.darker,
-      paddingHorizontal: 5,
-      paddingVertical: 2,
-      borderRadius: 4,
+      letterSpacing: 0.2,
     },
     rateEditBtn: {
-      width: 32,
-      height: 32,
-      borderRadius: 8,
+      width: 34,
+      height: 34,
+      borderRadius: 10,
       backgroundColor: theme.background.darker,
       alignItems: "center",
       justifyContent: "center",
     },
     rateSaveBtn: {
-      width: 32,
-      height: 32,
-      borderRadius: 8,
-      backgroundColor: `${theme.primary.main}22`,
+      width: 34,
+      height: 34,
+      borderRadius: 10,
+      backgroundColor: `${theme.primary.main}20`,
+      borderWidth: 1,
+      borderColor: `${theme.primary.main}40`,
       alignItems: "center",
       justifyContent: "center",
     },
-    // Archived
-    archivedSection: { marginTop: 8 },
-    archivedCardWrap: { opacity: 0.6 },
-    // FAB
+
+    // ── Archived ──
+    archivedSection: { marginBottom: 8 },
+    archivedHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      backgroundColor: theme.background.accent,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderWidth: 1,
+      borderColor: `${theme.foreground.gray}14`,
+    },
+    archivedTitle: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: theme.foreground.gray,
+    },
+    archivedCardWrap: { opacity: 0.55, marginTop: 6 },
+
+    // ── FAB ──
     fab: {
       position: "absolute",
       bottom: 90,
@@ -766,10 +1180,10 @@ function makeStyles(theme: Theme) {
       backgroundColor: theme.primary.main,
       alignItems: "center",
       justifyContent: "center",
-      shadowColor: "#000",
+      shadowColor: theme.primary.main,
       shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
+      shadowOpacity: 0.4,
+      shadowRadius: 10,
       elevation: 8,
     },
   });

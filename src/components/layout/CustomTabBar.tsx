@@ -42,7 +42,7 @@ export function CustomTabBar({
       style={[
         styles.container,
         {
-          paddingBottom: Platform.OS === "ios" ? insets.bottom : 12,
+          paddingBottom: 5,
         },
       ]}
     >

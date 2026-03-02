@@ -26,6 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authMode, setAuthMode] = useState<AuthMode>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
 
+  // Load persisted auth session on mount
   useEffect(() => {
     const load = async () => {
       try {
@@ -47,7 +48,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInLocal = async (email: string, password: string) => {
-    // TODO: validate against real backend or local credential store
     console.log("[Auth] Local sign-in attempt:", email, password);
     const u: AuthUser = { id: "local-1", email, name: email.split("@")[0] };
     setUser(u);

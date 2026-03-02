@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
   createContext,
   useCallback,
@@ -24,9 +23,6 @@ import {
   Transaction,
 } from "../types/finance";
 import { convertToBase, toDateStr } from "../utils/currency";
-
-const FINANCE_SETUP_KEY = "@mywallet_finance_setup";
-const ONBOARDING_KEY = "@mywallet_onboarding_complete";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Setup type
@@ -79,6 +75,8 @@ interface FinanceContextType {
   deleteAccount: (id: string) => Promise<void>;
   /** Upsert an exchange rate */
   updateExchangeRate: (rate: ExchangeRate) => Promise<void>;
+  /** Change the base currency, recalculating all exchange rates */
+  updateBaseCurrency: (newBase: string) => Promise<void>;
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -214,8 +212,8 @@ function computeQuickStats(
 export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasCompleted, setHasCompleted] = useState(false);
+  const [isLoading] = useState(false);
+  const [hasCompleted, setHasCompleted] = useState(true);
 
   // Raw data — loaded from AsyncStorage (onboarding setup) or falls back to seed data
   const [rawBase, setRawBase] = useState<string>(BASE_CURRENCY);
@@ -226,37 +224,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const [rawTransactions, setRawTransactions] =
     useState<Transaction[]>(INITIAL_TRANSACTIONS);
 
-  // Load persisted finance setup + onboarding flag on mount
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [stored, flag] = await Promise.all([
-          AsyncStorage.getItem(FINANCE_SETUP_KEY),
-          AsyncStorage.getItem(ONBOARDING_KEY),
-        ]);
-        if (stored) {
-          const setup: FinanceSetup = JSON.parse(stored);
-          if (setup.baseCurrency) setRawBase(setup.baseCurrency);
-          if (Array.isArray(setup.accounts) && setup.accounts.length > 0)
-            setRawAccounts(setup.accounts);
-          if (Array.isArray(setup.exchangeRates))
-            setRawRates(setup.exchangeRates);
-          if (Array.isArray(setup.transactions))
-            setRawTransactions(setup.transactions);
-        }
-        setHasCompleted(flag === "true");
-      } catch {
-        // ignore storage errors
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    load();
-  }, []);
-
   const completeOnboarding = useCallback(async (setup: FinanceSetup) => {
-    await AsyncStorage.setItem(FINANCE_SETUP_KEY, JSON.stringify(setup));
-    await AsyncStorage.setItem(ONBOARDING_KEY, "true");
     if (setup.baseCurrency) setRawBase(setup.baseCurrency);
     if (Array.isArray(setup.accounts) && setup.accounts.length > 0)
       setRawAccounts(setup.accounts);
@@ -267,36 +235,10 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Persistence helper
-  // ─────────────────────────────────────────────────────────────────────────
-
-  const persist = useCallback(
-    async (
-      accounts: Account[],
-      transactions: Transaction[],
-      rates?: ExchangeRate[],
-    ) => {
-      const setup: FinanceSetup = {
-        baseCurrency: rawBase,
-        accounts,
-        exchangeRates: rates !== undefined ? rates : rawRates,
-        transactions,
-        useSampleData: false,
-      };
-      await AsyncStorage.setItem(FINANCE_SETUP_KEY, JSON.stringify(setup));
-    },
-    [rawBase, rawRates],
-  );
-
-  // ─────────────────────────────────────────────────────────────────────────
   // Balance helpers
   // ─────────────────────────────────────────────────────────────────────────
 
-  function applyTx(
-    accs: Account[],
-    tx: Transaction,
-    dir: 1 | -1,
-  ): Account[] {
+  function applyTx(accs: Account[], tx: Transaction, dir: 1 | -1): Account[] {
     return accs.map((acc) => {
       if (tx.type === "expense" && acc.id === tx.accountId)
         return { ...acc, balance: acc.balance - dir * tx.amount };
@@ -319,43 +261,33 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const addTransaction = useCallback(
     async (txData: Omit<Transaction, "id">): Promise<Transaction> => {
       const tx: Transaction = { ...txData, id: `tx_${Date.now()}` };
-      const newAccounts = applyTx(rawAccounts, tx, 1);
-      const newTransactions = [...rawTransactions, tx];
-      setRawAccounts(newAccounts);
-      setRawTransactions(newTransactions);
-      await persist(newAccounts, newTransactions);
+      setRawAccounts((prev) => applyTx(prev, tx, 1));
+      setRawTransactions((prev) => [...prev, tx]);
       return tx;
     },
-    [rawAccounts, rawTransactions, persist],
+    [],
   );
 
   const updateTransaction = useCallback(
     async (tx: Transaction): Promise<void> => {
-      const old = rawTransactions.find((t) => t.id === tx.id);
-      let newAccounts = rawAccounts;
-      if (old) newAccounts = applyTx(newAccounts, old, -1); // undo old
-      newAccounts = applyTx(newAccounts, tx, 1); // apply new
-      const newTransactions = rawTransactions.map((t) =>
-        t.id === tx.id ? tx : t,
-      );
-      setRawAccounts(newAccounts);
-      setRawTransactions(newTransactions);
-      await persist(newAccounts, newTransactions);
+      setRawAccounts((prevAccs) => {
+        const old = rawTransactions.find((t) => t.id === tx.id);
+        let updated = prevAccs;
+        if (old) updated = applyTx(updated, old, -1);
+        return applyTx(updated, tx, 1);
+      });
+      setRawTransactions((prev) => prev.map((t) => (t.id === tx.id ? tx : t)));
     },
-    [rawAccounts, rawTransactions, persist],
+    [rawTransactions],
   );
 
   const deleteTransaction = useCallback(
     async (id: string): Promise<void> => {
       const tx = rawTransactions.find((t) => t.id === id);
-      let newAccounts = rawAccounts;
-      if (tx) newAccounts = applyTx(newAccounts, tx, -1); // undo
-      const newTransactions = rawTransactions.filter((t) => t.id !== id);
-      setRawAccounts(newAccounts);
-      setRawTransactions(newTransactions);
-      await persist(newAccounts, newTransactions);
+      if (tx) setRawAccounts((prev) => applyTx(prev, tx, -1));
+      setRawTransactions((prev) => prev.filter((t) => t.id !== id));
     },
-    [rawAccounts, rawTransactions, persist],
+    [rawTransactions],
   );
 
   const duplicateTransaction = useCallback(
@@ -366,14 +298,11 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       const pad = (n: number) => String(n).padStart(2, "0");
       const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
       const dup: Transaction = { ...src, id: `tx_${Date.now()}`, date: todayStr };
-      const newAccounts = applyTx(rawAccounts, dup, 1);
-      const newTransactions = [...rawTransactions, dup];
-      setRawAccounts(newAccounts);
-      setRawTransactions(newTransactions);
-      await persist(newAccounts, newTransactions);
+      setRawAccounts((prev) => applyTx(prev, dup, 1));
+      setRawTransactions((prev) => [...prev, dup]);
       return dup;
     },
-    [rawAccounts, rawTransactions, persist],
+    [rawTransactions],
   );
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -383,23 +312,17 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const addAccount = useCallback(
     async (data: Omit<Account, "id">): Promise<Account> => {
       const account: Account = { ...data, id: `acc_${Date.now()}` };
-      const newAccounts = [...rawAccounts, account];
-      setRawAccounts(newAccounts);
-      await persist(newAccounts, rawTransactions);
+      setRawAccounts((prev) => [...prev, account]);
       return account;
     },
-    [rawAccounts, rawTransactions, persist],
+    [],
   );
 
   const updateAccount = useCallback(
     async (account: Account): Promise<void> => {
-      const newAccounts = rawAccounts.map((a) =>
-        a.id === account.id ? account : a,
-      );
-      setRawAccounts(newAccounts);
-      await persist(newAccounts, rawTransactions);
+      setRawAccounts((prev) => prev.map((a) => (a.id === account.id ? account : a)));
     },
-    [rawAccounts, rawTransactions, persist],
+    [],
   );
 
   const deleteAccount = useCallback(
@@ -412,27 +335,55 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           "Cannot delete an account that has transactions. Archive it instead.",
         );
       }
-      const newAccounts = rawAccounts.filter((a) => a.id !== id);
-      setRawAccounts(newAccounts);
-      await persist(newAccounts, rawTransactions);
+      setRawAccounts((prev) => prev.filter((a) => a.id !== id));
     },
-    [rawAccounts, rawTransactions, persist],
+    [rawTransactions],
   );
 
   const updateExchangeRate = useCallback(
     async (rate: ExchangeRate): Promise<void> => {
-      const existing = rawRates.find((r) => r.from === rate.from);
-      const newRates = existing
-        ? rawRates.map((r) => (r.from === rate.from ? rate : r))
-        : [...rawRates, rate];
-      setRawRates(newRates);
-      await persist(rawAccounts, rawTransactions, newRates);
+      setRawRates((prev) => {
+        const exists = prev.some((r) => r.from === rate.from);
+        return exists ? prev.map((r) => (r.from === rate.from ? rate : r)) : [...prev, rate];
+      });
     },
-    [rawRates, rawAccounts, rawTransactions, persist],
+    [],
+  );
+
+  const updateBaseCurrency = useCallback(
+    async (newBase: string): Promise<void> => {
+      if (newBase === rawBase) return;
+      const rateMap = buildRateMap(rawRates);
+
+      // Rate of the new base expressed in old base (e.g. EUR→DZD = 147)
+      const newBaseInOldBase = rateMap[newBase] ?? 1;
+
+      // Recalculate every existing rate so they point to the new base
+      const recalculated: ExchangeRate[] = rawRates
+        .filter((r) => r.from !== newBase) // drop the rate whose `from` is the new base
+        .map((r) => ({
+          ...r,
+          to: newBase,
+          rate: r.rate / newBaseInOldBase,
+          lastUpdated: new Date().toISOString().slice(0, 10),
+        }));
+
+      // Add a rate for the old base → new base
+      recalculated.push({
+        from: rawBase,
+        to: newBase,
+        rate: 1 / newBaseInOldBase,
+        lastUpdated: new Date().toISOString().slice(0, 10),
+        isUserDefined: false,
+      });
+
+      setRawBase(newBase);
+      setRawRates(recalculated);
+    },
+    [rawBase, rawRates],
   );
 
   const resetOnboarding = useCallback(async () => {
-    await AsyncStorage.multiRemove([ONBOARDING_KEY, FINANCE_SETUP_KEY]);
     setHasCompleted(false);
     setRawBase(BASE_CURRENCY);
     setRawAccounts(INITIAL_ACCOUNTS);
@@ -515,6 +466,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         updateAccount,
         deleteAccount,
         updateExchangeRate,
+        updateBaseCurrency,
       }}
     >
       {children}

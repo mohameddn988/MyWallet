@@ -30,11 +30,17 @@ export const INITIAL_EXCHANGE_RATES: ExchangeRate[] = [
     from: "EUR",
     to: "DZD",
     rate: 280.0,
-    lastUpdated: "2026-02-25",
+    lastUpdated: "2026-03-25",
     isUserDefined: true,
   },
-  // Note: USDT is stored as its DZD-equivalent value directly in the account.
-  // Add a USDT → DZD rate here once the user confirms the actual USDT amount.
+  {
+    // 1 USDT = 250 DZD
+    from: "USDT",
+    to: "DZD",
+    rate: 250.0,
+    lastUpdated: "2026-03-02",
+    isUserDefined: true,
+  },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -59,7 +65,7 @@ export const INITIAL_ACCOUNTS: Account[] = [
     name: "2000",
     type: "bank",
     currency: "DZD",
-    balance: 600_000,     // 6,000 DZD
+    balance: 600_000, // 6,000 DZD
     isLiability: false,
     isArchived: false,
     icon: "bank-outline",
@@ -72,7 +78,7 @@ export const INITIAL_ACCOUNTS: Account[] = [
     name: "1000",
     type: "bank",
     currency: "DZD",
-    balance: 100_000,     // 1,000 DZD
+    balance: 100_000, // 1,000 DZD
     isLiability: false,
     isArchived: false,
     icon: "bank-outline",
@@ -88,7 +94,7 @@ export const INITIAL_ACCOUNTS: Account[] = [
     name: "CCP",
     type: "savings",
     currency: "DZD",
-    balance: 520_000,     // 5,200 DZD
+    balance: 520_000, // 5,200 DZD
     isLiability: false,
     isArchived: false,
     icon: "mailbox-outline",
@@ -104,7 +110,7 @@ export const INITIAL_ACCOUNTS: Account[] = [
     name: "Euro",
     type: "bank",
     currency: "EUR",
-    balance: 132_857,     // 1,328.57 EUR  →  ≈ 372,000 DZD at rate 280
+    balance: 132_857, // 1,328.57 EUR  →  ≈ 372,000 DZD at rate 280
     isLiability: false,
     isArchived: false,
     icon: "currency-eur",
@@ -118,8 +124,8 @@ export const INITIAL_ACCOUNTS: Account[] = [
     id: "acc_usdt",
     name: "USDT",
     type: "crypto",
-    currency: "DZD",      // Stored as DZD snapshot; switch to "USDT" once rate confirmed
-    balance: 200_000,     // 2,000 DZD equivalent
+    currency: "DZD", // Stored as DZD snapshot; switch to "USDT" once rate confirmed
+    balance: 200_000, // 2,000 DZD equivalent
     isLiability: false,
     isArchived: false,
     icon: "bitcoin",
@@ -135,7 +141,7 @@ export const INITIAL_ACCOUNTS: Account[] = [
     name: "Gold",
     type: "gold",
     currency: "DZD",
-    balance: 0,           // 0 — to be updated
+    balance: 0, // 0 — to be updated
     isLiability: false,
     isArchived: false,
     icon: "gold",
@@ -151,19 +157,18 @@ export const INITIAL_ACCOUNTS: Account[] = [
     name: "Loans",
     type: "loan",
     currency: "DZD",
-    balance: 1_700_000,   // 17,000 DZD  (6k + 8k + 3k)
-    isLiability: false,   // asset — money owed to you
+    balance: 1_700_000, // 17,000 DZD  (6k + 8k + 3k)
+    isLiability: false, // asset — money owed to you
     isArchived: false,
     icon: "account-arrow-right-outline",
     color: "#F14A6E",
     note: "Total receivable from Chikoo, Ramzi, Pinina",
     subAccounts: [
-      { name: "Chikoo", balance: 600_000 },  // 6,000 DZD
-      { name: "Ramzi",  balance: 800_000 },  // 8,000 DZD
-      { name: "Pinina", balance: 300_000 },  // 3,000 DZD
+      { name: "Chikoo", balance: 600_000 }, // 6,000 DZD
+      { name: "Ramzi", balance: 800_000 }, // 8,000 DZD
+      { name: "Pinina", balance: 300_000 }, // 3,000 DZD
     ],
   },
-
 
   // ── Charity (earmarked fund) ─────────────────────────────────────────────
 
@@ -172,7 +177,7 @@ export const INITIAL_ACCOUNTS: Account[] = [
     name: "Charity",
     type: "charity",
     currency: "DZD",
-    balance: 450_000,     // 4,500 DZD — earmarked; included in net worth
+    balance: 450_000, // 4,500 DZD — earmarked; included in net worth
     isLiability: false,
     isArchived: false,
     icon: "hand-heart-outline",
@@ -182,11 +187,11 @@ export const INITIAL_ACCOUNTS: Account[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Transactions — February 2026 mock data
+// Transactions — March 2026 mock data
 // ─────────────────────────────────────────────────────────────────────────────
 // All amounts in minor units (×100). e.g. 2,500,000 = 25,000 DZD
 //
-// Monthly totals (Feb 2026):
+// Monthly totals (Mar 2026):
 //   Income  : 25,000 + 12,000 = 37,000 DZD
 //   Expenses: ~23,600 DZD
 //   Net     : ~+13,400 DZD
@@ -197,29 +202,45 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
   {
     id: "tx_income_salary",
     type: "income",
-    amount: 2_500_000,        // 25,000 DZD — monthly salary
+    amount: 2_500_000, // 25,000 DZD — monthly salary
     currency: "DZD",
     accountId: "acc_1000",
     categoryId: "cat_salary",
     categoryName: "Salary",
     categoryIcon: "briefcase-outline",
     categoryColor: "#C8F14A",
-    date: "2026-02-01",
+    date: "2026-03-01",
     merchant: "Employer",
   },
   {
     id: "tx_income_freelance",
     type: "income",
-    amount: 1_200_000,        // 12,000 DZD — freelance payment
+    amount: 1_200_000, // 12,000 DZD — freelance payment
     currency: "DZD",
     accountId: "acc_2000",
     categoryId: "cat_freelance",
     categoryName: "Freelance",
     categoryIcon: "laptop",
     categoryColor: "#C8F14A",
-    date: "2026-02-15",
+    date: "2026-03-15",
     merchant: "Client",
     note: "Web project payment",
+  },
+
+  // ── Today's transaction (Mar 2) ───────────────────────────────────────────
+
+  {
+    id: "tx_exp_coffee_today",
+    type: "expense",
+    amount: 30_000, // 300 DZD
+    currency: "DZD",
+    accountId: "acc_2000",
+    categoryId: "cat_food",
+    categoryName: "Café",
+    categoryIcon: "coffee",
+    categoryColor: "#F14A6E",
+    date: "2026-03-02",
+    merchant: "Starbucks",
   },
 
   // ── Expenses ──────────────────────────────────────────────────────────────
@@ -227,118 +248,118 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
   {
     id: "tx_exp_supermarket_1",
     type: "expense",
-    amount: 320_000,          // 3,200 DZD
+    amount: 320_000, // 3,200 DZD
     currency: "DZD",
     accountId: "acc_2000",
     categoryId: "cat_groceries",
     categoryName: "Groceries",
     categoryIcon: "cart-outline",
     categoryColor: "#FF9500",
-    date: "2026-02-01",
+    date: "2026-03-01",
     merchant: "Marché Centrale",
   },
   {
     id: "tx_exp_transport_1",
     type: "expense",
-    amount: 50_000,           // 500 DZD
+    amount: 50_000, // 500 DZD
     currency: "DZD",
     accountId: "acc_2000",
     categoryId: "cat_transport",
     categoryName: "Transport",
     categoryIcon: "bus",
     categoryColor: "#4A9FF1",
-    date: "2026-02-03",
+    date: "2026-03-03",
     merchant: "ETUSA",
   },
   {
     id: "tx_exp_restaurant_1",
     type: "expense",
-    amount: 180_000,          // 1,800 DZD
+    amount: 180_000, // 1,800 DZD
     currency: "DZD",
     accountId: "acc_2000",
     categoryId: "cat_food",
     categoryName: "Restaurant",
     categoryIcon: "silverware-fork-knife",
     categoryColor: "#F14A6E",
-    date: "2026-02-05",
+    date: "2026-03-05",
     merchant: "Le Boulanger",
   },
   {
     id: "tx_exp_phone",
     type: "expense",
-    amount: 150_000,          // 1,500 DZD
+    amount: 150_000, // 1,500 DZD
     currency: "DZD",
     accountId: "acc_ccp",
     categoryId: "cat_bills",
     categoryName: "Phone Bill",
     categoryIcon: "cellphone",
     categoryColor: "#A44AF1",
-    date: "2026-02-07",
+    date: "2026-03-07",
     merchant: "Djezzy",
   },
   {
     id: "tx_exp_internet",
     type: "expense",
-    amount: 300_000,          // 3,000 DZD
+    amount: 300_000, // 3,000 DZD
     currency: "DZD",
     accountId: "acc_ccp",
     categoryId: "cat_bills",
     categoryName: "Internet",
     categoryIcon: "wifi",
     categoryColor: "#A44AF1",
-    date: "2026-02-09",
+    date: "2026-03-09",
     merchant: "Algérie Télécom",
   },
   {
     id: "tx_exp_pharmacy",
     type: "expense",
-    amount: 85_000,           // 850 DZD
+    amount: 85_000, // 850 DZD
     currency: "DZD",
     accountId: "acc_2000",
     categoryId: "cat_health",
     categoryName: "Health",
     categoryIcon: "medical-bag",
     categoryColor: "#FF6B6B",
-    date: "2026-02-11",
+    date: "2026-03-11",
     merchant: "Pharmacie Centrale",
   },
   {
     id: "tx_exp_clothes",
     type: "expense",
-    amount: 450_000,          // 4,500 DZD
+    amount: 450_000, // 4,500 DZD
     currency: "DZD",
     accountId: "acc_2000",
     categoryId: "cat_shopping",
     categoryName: "Shopping",
     categoryIcon: "shopping-outline",
     categoryColor: "#F1C44A",
-    date: "2026-02-13",
+    date: "2026-03-13",
     merchant: "Zara Algiers",
   },
   {
     id: "tx_exp_supermarket_2",
     type: "expense",
-    amount: 270_000,          // 2,700 DZD
+    amount: 270_000, // 2,700 DZD
     currency: "DZD",
     accountId: "acc_2000",
     categoryId: "cat_groceries",
     categoryName: "Groceries",
     categoryIcon: "cart-outline",
     categoryColor: "#FF9500",
-    date: "2026-02-16",
+    date: "2026-03-16",
     merchant: "BIM Market",
   },
   {
     id: "tx_exp_cafe",
     type: "expense",
-    amount: 45_000,           // 450 DZD
+    amount: 45_000, // 450 DZD
     currency: "DZD",
     accountId: "acc_2000",
     categoryId: "cat_food",
     categoryName: "Café",
     categoryIcon: "coffee",
     categoryColor: "#F14A6E",
-    date: "2026-02-18",
+    date: "2026-03-18",
     merchant: "Café de la Paix",
   },
 
@@ -347,40 +368,40 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
   {
     id: "tx_exp_transport_2",
     type: "expense",
-    amount: 60_000,           // 600 DZD
+    amount: 60_000, // 600 DZD
     currency: "DZD",
     accountId: "acc_2000",
     categoryId: "cat_transport",
     categoryName: "Transport",
     categoryIcon: "bus",
     categoryColor: "#4A9FF1",
-    date: "2026-02-20",
+    date: "2026-03-20",
     merchant: "Taxi",
   },
   {
     id: "tx_exp_haircut",
     type: "expense",
-    amount: 50_000,           // 500 DZD
+    amount: 50_000, // 500 DZD
     currency: "DZD",
     accountId: "acc_2000",
     categoryId: "cat_personal",
     categoryName: "Personal Care",
     categoryIcon: "scissors-cutting",
     categoryColor: "#26A17B",
-    date: "2026-02-22",
+    date: "2026-03-22",
     merchant: "Salon Coiffeur",
   },
   {
     id: "tx_exp_restaurant_2",
     type: "expense",
-    amount: 220_000,          // 2,200 DZD
+    amount: 220_000, // 2,200 DZD
     currency: "DZD",
     accountId: "acc_2000",
     categoryId: "cat_food",
     categoryName: "Restaurant",
     categoryIcon: "silverware-fork-knife",
     categoryColor: "#F14A6E",
-    date: "2026-02-24",
+    date: "2026-03-24",
     merchant: "Pizza Roma",
   },
 
@@ -389,14 +410,14 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
   {
     id: "tx_exp_groceries_today",
     type: "expense",
-    amount: 180_000,          // 1,800 DZD
+    amount: 180_000, // 1,800 DZD
     currency: "DZD",
     accountId: "acc_2000",
     categoryId: "cat_groceries",
     categoryName: "Groceries",
     categoryIcon: "cart-outline",
     categoryColor: "#FF9500",
-    date: "2026-02-26",
+    date: "2026-03-26",
     merchant: "Casino Supermarché",
   },
 ];

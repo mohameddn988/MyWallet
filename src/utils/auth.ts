@@ -2,14 +2,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthMode, AuthUser } from "../contexts/AuthContext";
 
 const AUTH_KEY = "@mywallet_auth";
-// Must match the key used by FinanceContext
 const GET_STARTED_KEY = "@mywallet_onboarding_complete";
 
 export const auth = {
-  // ── Session ──────────────────────────────────────────────────────────────
-
-  /** Load the persisted auth session from storage. Returns null if none. */
-  loadSession: async (): Promise<{ mode: AuthMode; user: AuthUser | null } | null> => {
+  loadSession: async (): Promise<{
+    mode: AuthMode;
+    user: AuthUser | null;
+  } | null> => {
     try {
       const stored = await AsyncStorage.getItem(AUTH_KEY);
       if (!stored) return null;
@@ -21,7 +20,6 @@ export const auth = {
     }
   },
 
-  /** Persist the current auth session to storage. */
   saveSession: async (mode: AuthMode, user: AuthUser | null): Promise<void> => {
     try {
       await AsyncStorage.setItem(AUTH_KEY, JSON.stringify({ mode, user }));
@@ -30,7 +28,6 @@ export const auth = {
     }
   },
 
-  /** Clear the persisted auth session (sign out). */
   clearSession: async (): Promise<void> => {
     try {
       await AsyncStorage.removeItem(AUTH_KEY);
@@ -39,9 +36,6 @@ export const auth = {
     }
   },
 
-  // ── Get-started / Onboarding ──────────────────────────────────────────────
-
-  /** Returns true if the user has already completed the get-started / finance setup flow. */
   hasCompletedSetup: async (): Promise<boolean> => {
     try {
       const value = await AsyncStorage.getItem(GET_STARTED_KEY);
@@ -52,7 +46,6 @@ export const auth = {
     }
   },
 
-  /** Mark the get-started flow as completed. */
   setSetupCompleted: async (): Promise<void> => {
     try {
       await AsyncStorage.setItem(GET_STARTED_KEY, "true");
@@ -61,7 +54,6 @@ export const auth = {
     }
   },
 
-  /** Reset the get-started flag (useful for testing or account reset). */
   resetSetup: async (): Promise<void> => {
     try {
       await AsyncStorage.removeItem(GET_STARTED_KEY);

@@ -1,6 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef } from "react";
 import { Animated, Image, StyleSheet } from "react-native";
+import { useTheme } from "../../contexts/ThemeContext";
 
 interface SplashScreenProps {
   onAnimationComplete: () => void;
@@ -9,6 +10,7 @@ interface SplashScreenProps {
 export default function SplashScreen({
   onAnimationComplete,
 }: SplashScreenProps) {
+  const { theme } = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
@@ -44,7 +46,7 @@ export default function SplashScreen({
 
   return (
     <LinearGradient
-      colors={["#0B0D0E", "#1a1f1a", "#0B0D0E"]}
+      colors={[theme.background.dark, theme.background.accent, theme.background.dark]}
       style={styles.container}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
