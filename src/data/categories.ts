@@ -19,7 +19,7 @@ export const EXPENSE_CATEGORIES: Category[] = [
   { id: "cat_education", name: "Education", icon: "school-outline", color: "#88C0D0", type: "expense" },
   { id: "cat_home", name: "Home", icon: "home-outline", color: "#5E81AC", type: "expense" },
   { id: "cat_travel", name: "Travel", icon: "airplane", color: "#FF9500", type: "expense" },
-  { id: "cat_subscriptions", name: "Subscriptions", icon: "refresh-circle-outline", color: "#A44AF1", type: "expense" },
+  { id: "cat_subscriptions", name: "Subscriptions", icon: "refresh-circle", color: "#A44AF1", type: "expense" },
   { id: "cat_charity_exp", name: "Charity", icon: "hand-heart-outline", color: "#FF6B6B", type: "expense" },
   { id: "cat_other_exp", name: "Other", icon: "dots-horizontal-circle-outline", color: "#BFC3C7", type: "expense" },
 ];

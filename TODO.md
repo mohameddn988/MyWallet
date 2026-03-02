@@ -61,16 +61,16 @@
 
 ## 5. ADD / EDIT TRANSACTION FORM
 
-- [ ] Money input with proper currency formatting
-- [ ] Store money safely (minor units strategy)
-- [ ] Category picker (filtered by expense/income)
-- [ ] Account picker
-- [ ] Date picker (default to today)
-- [ ] Optional time picker
-- [ ] Validation (amount required, account required, category required for non-transfer)
-- [ ] Inline error messages + disable save when invalid
-- [ ] Save feedback (toast/snackbar)
-- [ ] Keyboard-safe layout for small screens
+- [x] Money input with proper currency formatting
+- [x] Store money safely (minor units strategy)
+- [x] Category picker (filtered by expense/income)
+- [x] Account picker
+- [x] Date picker (default to today)
+- [x] Optional time picker
+- [x] Validation (amount required, account required, category required for non-transfer)
+- [x] Inline error messages + disable save when invalid
+- [x] Save feedback (toast/snackbar)
+- [x] Keyboard-safe layout for small screens
 
 ---
 
@@ -88,20 +88,20 @@
 
 ## 7. ACCOUNTS / WALLETS
 
-- [ ] Display accounts list
-- [ ] Create account (name, initial balance)
-- [ ] Account type/category (e.g., Cash, Bank, Savings, Charity, Loan, Other)
-- [ ] Account currency selection (e.g., USD/EUR/etc)
-- [ ] Base currency concept for the app (chosen once, editable later)
-- [ ] Conversion rate per currency → base currency (manual entry to start)
-- [ ] Display balances in both native currency and converted base currency
-- [ ] Edit account
-- [ ] Archive/unarchive account
-- [ ] Prevent deleting accounts with transactions (or provide migration flow)
-- [ ] Show account detail (balance trend + transactions filtered to account)
-- [ ] Multi-currency support (required): overall totals computed in base currency
-- [ ] Loans: support liability accounts (negative balances) and include in overall net worth
-- [ ] Charity: support earmarked/goal accounts (tracked separately but included in overall)
+- [x] Display accounts list
+- [x] Create account (name, initial balance)
+- [x] Account type/category (e.g., Cash, Bank, Savings, Charity, Loan, Other)
+- [x] Account currency selection (e.g., USD/EUR/etc)
+- [x] Base currency concept for the app (chosen once, editable later)
+- [x] Conversion rate per currency → base currency (manual entry to start)
+- [x] Display balances in both native currency and converted base currency
+- [x] Edit account
+- [x] Archive/unarchive account
+- [x] Prevent deleting accounts with transactions (or provide migration flow)
+- [x] Show account detail (balance trend + transactions filtered to account)
+- [x] Multi-currency support (required): overall totals computed in base currency
+- [x] Loans: support liability accounts (negative balances) and include in overall net worth
+- [x] Charity: support earmarked/goal accounts (tracked separately but included in overall)
 
 ---
 
