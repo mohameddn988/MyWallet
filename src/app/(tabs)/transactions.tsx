@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import React, { useMemo, useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   RefreshControl,
   SectionList,
@@ -54,11 +54,21 @@ function groupByDate(txs: Transaction[]): Section[] {
 export default function TransactionsTabScreen() {
   const { theme } = useTheme();
   const styles = makeStyles(theme);
+  const searchParams = useLocalSearchParams<{ filter?: string }>();
 
   const { allTransactions, baseCurrency, isRefreshing, refresh } = useFinance();
 
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<FilterType>("all");
+  const [filter, setFilter] = useState<FilterType>(
+    (searchParams.filter as FilterType) || "all",
+  );
+
+  // ── Update filter from URL params ──────────────────────────────────────────
+  useEffect(() => {
+    if (searchParams.filter) {
+      setFilter((searchParams.filter as FilterType) || "all");
+    }
+  }, [searchParams.filter]);
 
   // ── Filter & search ───────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -96,16 +106,6 @@ export default function TransactionsTabScreen() {
       {/* ── Header ── */}
       <View style={styles.topBar}>
         <Text style={styles.screenTitle}>Transactions</Text>
-        <Pressable
-          style={({ pressed }) => [styles.addFab, pressed && { opacity: 0.8 }]}
-          onPress={() => router.push("/transaction/add?type=expense" as any)}
-        >
-          <MaterialCommunityIcons
-            name="plus"
-            size={20}
-            color={theme.background.dark}
-          />
-        </Pressable>
       </View>
 
       {/* ── Search bar ── */}
@@ -176,7 +176,9 @@ export default function TransactionsTabScreen() {
         <View style={styles.summaryStrip}>
           <View style={styles.summaryItem}>
             <Text style={styles.summaryItemLabel}>Income</Text>
-            <Text style={[styles.summaryItemValue, { color: theme.primary.main }]}>
+            <Text
+              style={[styles.summaryItemValue, { color: theme.primary.main }]}
+            >
               +{formatAmount(totalIncome, baseCurrency)}
             </Text>
           </View>
@@ -426,14 +428,6 @@ function makeStyles(theme: Theme) {
       fontSize: 22,
       fontWeight: "800",
       color: theme.foreground.white,
-    },
-    addFab: {
-      width: 36,
-      height: 36,
-      borderRadius: 11,
-      backgroundColor: theme.primary.main,
-      alignItems: "center",
-      justifyContent: "center",
     },
     searchRow: {
       flexDirection: "row",

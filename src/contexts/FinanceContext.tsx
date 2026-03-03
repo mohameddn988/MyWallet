@@ -42,6 +42,11 @@ export interface FinanceSetup {
 
 interface FinanceContextType {
   baseCurrency: string;
+  /** The currency currently shown in the UI (can differ from baseCurrency) */
+  displayCurrency: string;
+  /** List of unique currencies from all active accounts */
+  availableCurrencies: string[];
+  setDisplayCurrency: (currency: string) => void;
   exchangeRates: ExchangeRate[];
   /** Active (non-archived) accounts with computed balances */
   accounts: AccountWithBalance[];
@@ -224,6 +229,9 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const [rawTransactions, setRawTransactions] =
     useState<Transaction[]>(INITIAL_TRANSACTIONS);
 
+  /** The currency the user has chosen to view amounts in */
+  const [displayCurrency, setDisplayCurrency] = useState<string>(BASE_CURRENCY);
+
   const completeOnboarding = useCallback(async (setup: FinanceSetup) => {
     if (setup.baseCurrency) setRawBase(setup.baseCurrency);
     if (Array.isArray(setup.accounts) && setup.accounts.length > 0)
@@ -297,7 +305,11 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       const today = new Date();
       const pad = (n: number) => String(n).padStart(2, "0");
       const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-      const dup: Transaction = { ...src, id: `tx_${Date.now()}`, date: todayStr };
+      const dup: Transaction = {
+        ...src,
+        id: `tx_${Date.now()}`,
+        date: todayStr,
+      };
       setRawAccounts((prev) => applyTx(prev, dup, 1));
       setRawTransactions((prev) => [...prev, dup]);
       return dup;
@@ -318,12 +330,11 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
-  const updateAccount = useCallback(
-    async (account: Account): Promise<void> => {
-      setRawAccounts((prev) => prev.map((a) => (a.id === account.id ? account : a)));
-    },
-    [],
-  );
+  const updateAccount = useCallback(async (account: Account): Promise<void> => {
+    setRawAccounts((prev) =>
+      prev.map((a) => (a.id === account.id ? account : a)),
+    );
+  }, []);
 
   const deleteAccount = useCallback(
     async (id: string): Promise<void> => {
@@ -344,7 +355,9 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     async (rate: ExchangeRate): Promise<void> => {
       setRawRates((prev) => {
         const exists = prev.some((r) => r.from === rate.from);
-        return exists ? prev.map((r) => (r.from === rate.from ? rate : r)) : [...prev, rate];
+        return exists
+          ? prev.map((r) => (r.from === rate.from ? rate : r))
+          : [...prev, rate];
       });
     },
     [],
@@ -425,6 +438,12 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     const recentTransactions = sorted.slice(0, 12);
     const allTransactions = sorted;
     const allAccounts = rawAccounts;
+    const availableCurrencies = [
+      base,
+      ...Array.from(new Set(accounts.map((a) => a.account.currency))).filter(
+        (c) => c !== base,
+      ),
+    ];
 
     return {
       baseCurrency: base,
@@ -439,6 +458,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       allTransactions,
       isRefreshing,
       refresh,
+      availableCurrencies,
     };
   }, [
     refreshKey,
@@ -454,6 +474,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     <FinanceContext.Provider
       value={{
         ...value,
+        displayCurrency,
+        setDisplayCurrency,
         isLoading,
         hasCompleted,
         completeOnboarding,

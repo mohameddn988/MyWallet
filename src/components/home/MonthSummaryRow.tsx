@@ -1,13 +1,15 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import React from "react";
+import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { MonthSummary } from "../../types/finance";
-import { formatAmount } from "../../utils/currency";
+import { convertFromBase, formatAmount } from "../../utils/currency";
 
 interface MonthSummaryRowProps {
   summary: MonthSummary;
   baseCurrency: string;
+  displayCurrency: string;
+  rateMap: Record<string, number>;
   onIncomePress?: () => void;
   onExpensePress?: () => void;
   onNetPress?: () => void;
@@ -16,6 +18,8 @@ interface MonthSummaryRowProps {
 export default function MonthSummaryRow({
   summary,
   baseCurrency,
+  displayCurrency,
+  rateMap,
   onIncomePress,
   onExpensePress,
   onNetPress,
@@ -24,25 +28,34 @@ export default function MonthSummaryRow({
   const styles = makeStyles(theme);
   const isNetPositive = summary.net >= 0;
 
+  const convertedSummary = useMemo(
+    () => ({
+      income: convertFromBase(summary.income, displayCurrency, baseCurrency, rateMap),
+      expense: convertFromBase(summary.expense, displayCurrency, baseCurrency, rateMap),
+      net: convertFromBase(summary.net, displayCurrency, baseCurrency, rateMap),
+    }),
+    [summary, displayCurrency, baseCurrency, rateMap],
+  );
+
   const rows = [
     {
       icon: "arrow-down-circle-outline" as const,
       label: "Income",
-      value: summary.income,
+      value: convertedSummary.income,
       color: theme.primary.main,
       onPress: onIncomePress,
     },
     {
       icon: "arrow-up-circle-outline" as const,
       label: "Expenses",
-      value: summary.expense,
+      value: convertedSummary.expense,
       color: "#F14A6E",
       onPress: onExpensePress,
     },
     {
       icon: "equal" as const,
       label: "Net",
-      value: summary.net,
+      value: convertedSummary.net,
       color: isNetPositive ? theme.primary.main : "#F14A6E",
       onPress: onNetPress,
       showSign: true,
@@ -77,7 +90,7 @@ export default function MonthSummaryRow({
               : row.showSign && row.value < 0
                 ? "-"
                 : ""}
-            {formatAmount(Math.abs(row.value), baseCurrency)}
+            {formatAmount(Math.abs(row.value), displayCurrency)}
           </Text>
           <MaterialCommunityIcons
             name="chevron-right"

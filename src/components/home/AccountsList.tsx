@@ -11,6 +11,7 @@ interface AccountsListProps {
   baseCurrency: string;
   exchangeRates: ExchangeRate[];
   onAccountPress?: (accountId: string) => void;
+  onViewAllPress?: () => void;
 }
 
 export default function AccountsList({
@@ -19,6 +20,7 @@ export default function AccountsList({
   baseCurrency,
   exchangeRates,
   onAccountPress,
+  onViewAllPress,
 }: AccountsListProps) {
   const { theme } = useTheme();
   const styles = makeStyles(theme);
@@ -29,11 +31,9 @@ export default function AccountsList({
   const specialAccounts = accounts.filter(
     (aw) => aw.account.type === "loan" || aw.account.type === "charity",
   );
-  const hasForeign = exchangeRates.length > 0;
 
   const renderRow = (aw: AccountWithBalance, isLast: boolean) => {
-    const { account, balance, balanceInBase } = aw;
-    const isBase = account.currency === baseCurrency;
+    const { account, balance } = aw;
     const isLiability = account.isLiability || account.type === "loan";
     const balColor = isLiability ? "#F14A6E" : theme.foreground.white;
 
@@ -57,28 +57,13 @@ export default function AccountsList({
           />
         </View>
 
-        <View style={styles.nameCol}>
-          <Text style={styles.accountName} numberOfLines={1}>
-            {account.name}
-          </Text>
-          {account.note ? (
-            <Text style={styles.accountNote} numberOfLines={1}>
-              {account.note}
-            </Text>
-          ) : null}
-        </View>
+        <Text style={styles.accountName} numberOfLines={1}>
+          {account.name}
+        </Text>
 
-        <View style={styles.balanceCol}>
-          <Text style={[styles.balance, { color: balColor }]}>
-            {formatAmount(balance, account.currency)}
-          </Text>
-          {!isBase && (
-            <Text style={styles.balanceConverted}>
-              {String.fromCharCode(8776)}{" "}
-              {formatAmount(balanceInBase, baseCurrency)}
-            </Text>
-          )}
-        </View>
+        <Text style={[styles.balance, { color: balColor }]}>
+          {formatAmount(balance, account.currency)}
+        </Text>
 
         <MaterialCommunityIcons
           name="chevron-right"
@@ -93,97 +78,28 @@ export default function AccountsList({
     <View style={styles.container}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionLabel}>Accounts</Text>
-        <Text style={[styles.netWorthTotal, { color: theme.primary.main }]}>
-          {formatAmount(netWorth, baseCurrency)}
-        </Text>
+        <Pressable
+          style={({ pressed }) => [pressed && { opacity: 0.6 }]}
+          onPress={onViewAllPress}
+        >
+          <Text style={[styles.viewAll, { color: theme.primary.main }]}>
+            View all
+          </Text>
+        </Pressable>
       </View>
 
       <View style={styles.card}>
         {liquidAccounts.map((aw, i) => {
           const isLastLiquid =
             i === liquidAccounts.length - 1 && specialAccounts.length === 0;
-          return (
-            <React.Fragment key={aw.account.id}>
-              {renderRow(aw, isLastLiquid)}
-              {aw.account.subAccounts && aw.account.subAccounts.length > 0 && (
-                <View style={styles.subAccountBlock}>
-                  {aw.account.subAccounts.map((sub, si) => (
-                    <View
-                      key={sub.name}
-                      style={[
-                        styles.subRow,
-                        si < (aw.account.subAccounts?.length ?? 0) - 1 &&
-                          styles.subRowBorder,
-                      ]}
-                    >
-                      <MaterialCommunityIcons
-                        name="subdirectory-arrow-right"
-                        size={14}
-                        color={theme.foreground.gray}
-                        style={styles.subArrow}
-                      />
-                      <Text style={styles.subName}>{sub.name}</Text>
-                      <Text style={styles.subAmount}>
-                        {formatAmount(sub.balance, aw.account.currency)}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </React.Fragment>
-          );
+          return renderRow(aw, isLastLiquid);
         })}
-
-        {specialAccounts.length > 0 && (
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerLabel}>Loans &amp; Charity</Text>
-            <View style={styles.dividerLine} />
-          </View>
-        )}
 
         {specialAccounts.map((aw, i) => {
           const isLast = i === specialAccounts.length - 1;
-          return (
-            <React.Fragment key={aw.account.id}>
-              {renderRow(aw, isLast)}
-              {aw.account.subAccounts && aw.account.subAccounts.length > 0 && (
-                <View style={styles.subAccountBlock}>
-                  {aw.account.subAccounts.map((sub, si) => (
-                    <View
-                      key={sub.name}
-                      style={[
-                        styles.subRow,
-                        si < (aw.account.subAccounts?.length ?? 0) - 1 &&
-                          styles.subRowBorder,
-                      ]}
-                    >
-                      <MaterialCommunityIcons
-                        name="subdirectory-arrow-right"
-                        size={14}
-                        color={theme.foreground.gray}
-                        style={styles.subArrow}
-                      />
-                      <Text style={styles.subName}>{sub.name}</Text>
-                      <Text style={styles.subAmount}>
-                        {formatAmount(sub.balance, aw.account.currency)}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </React.Fragment>
-          );
+          return renderRow(aw, isLast);
         })}
       </View>
-
-      {hasForeign &&
-        exchangeRates.map((r) => (
-          <Text key={r.from} style={styles.rateNote}>
-            {r.from}: 1 {r.from} = {r.rate} {r.to}
-            {r.isUserDefined ? " � Manual" : " � Auto"}
-          </Text>
-        ))}
     </View>
   );
 }
@@ -207,9 +123,9 @@ function makeStyles(theme: ReturnType<typeof useTheme>["theme"]) {
       letterSpacing: 0.9,
       textTransform: "uppercase",
     },
-    netWorthTotal: {
+    viewAll: {
       fontSize: 13,
-      fontWeight: "700",
+      fontWeight: "600",
     },
     card: {
       marginHorizontal: 16,
@@ -240,87 +156,15 @@ function makeStyles(theme: ReturnType<typeof useTheme>["theme"]) {
       alignItems: "center",
       justifyContent: "center",
     },
-    nameCol: {
-      flex: 1,
-      gap: 2,
-    },
     accountName: {
       color: theme.foreground.white,
       fontSize: 14,
       fontWeight: "600",
-    },
-    accountNote: {
-      color: theme.foreground.gray,
-      fontSize: 11,
-    },
-    balanceCol: {
-      alignItems: "flex-end",
-      gap: 2,
+      flex: 1,
     },
     balance: {
       fontSize: 15,
       fontWeight: "700",
-    },
-    balanceConverted: {
-      color: theme.foreground.gray,
-      fontSize: 11,
-    },
-    dividerRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: 14,
-      paddingVertical: 8,
-      gap: 8,
-    },
-    dividerLine: {
-      flex: 1,
-      height: 1,
-      backgroundColor: "#2C3139",
-    },
-    dividerLabel: {
-      fontSize: 10,
-      fontWeight: "600",
-      color: theme.foreground.gray,
-      letterSpacing: 0.6,
-      textTransform: "uppercase",
-    },
-    subAccountBlock: {
-      marginLeft: 60,
-      marginRight: 14,
-      marginBottom: 10,
-      backgroundColor: theme.background.darker,
-      borderRadius: 10,
-      overflow: "hidden",
-    },
-    subRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: 10,
-      paddingVertical: 8,
-      gap: 6,
-    },
-    subRowBorder: {
-      borderBottomWidth: 1,
-      borderBottomColor: "#2C3139",
-    },
-    subArrow: {
-      opacity: 0.5,
-    },
-    subName: {
-      flex: 1,
-      color: theme.foreground.gray,
-      fontSize: 12,
-    },
-    subAmount: {
-      color: theme.foreground.white,
-      fontSize: 12,
-      fontWeight: "600",
-    },
-    rateNote: {
-      color: theme.foreground.gray,
-      fontSize: 11,
-      marginTop: 8,
-      marginHorizontal: 20,
     },
   });
 }

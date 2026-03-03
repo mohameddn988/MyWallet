@@ -1,14 +1,16 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { QuickStats } from "../../types/finance";
-import { formatAmount } from "../../utils/currency";
+import { convertFromBase, formatAmount } from "../../utils/currency";
 
 export type Period = "today" | "week" | "month";
 
 interface QuickStatsBarProps {
   stats: QuickStats;
   baseCurrency: string;
+  displayCurrency: string;
+  rateMap: Record<string, number>;
   activePeriod: Period;
   onPeriodChange: (p: Period) => void;
 }
@@ -22,18 +24,41 @@ const PERIODS: { key: Period; label: string }[] = [
 export default function QuickStatsBar({
   stats,
   baseCurrency,
+  displayCurrency,
+  rateMap,
   activePeriod,
   onPeriodChange,
 }: QuickStatsBarProps) {
   const { theme } = useTheme();
   const styles = makeStyles(theme);
 
+  const convertedStats = useMemo(
+    () => ({
+      today: {
+        net: convertFromBase(stats.today.net, displayCurrency, baseCurrency, rateMap),
+        income: stats.today.income,
+        expense: stats.today.expense,
+      },
+      week: {
+        net: convertFromBase(stats.week.net, displayCurrency, baseCurrency, rateMap),
+        income: stats.week.income,
+        expense: stats.week.expense,
+      },
+      month: {
+        net: convertFromBase(stats.month.net, displayCurrency, baseCurrency, rateMap),
+        income: stats.month.income,
+        expense: stats.month.expense,
+      },
+    }),
+    [stats, displayCurrency, baseCurrency, rateMap],
+  );
+
   return (
     <View style={styles.row}>
       {PERIODS.map((p) => {
         const isActive = activePeriod === p.key;
-        const net = stats[p.key].net;
-        const hasActivity = stats[p.key].income > 0 || stats[p.key].expense > 0;
+        const net = convertedStats[p.key].net;
+        const hasActivity = convertedStats[p.key].income > 0 || convertedStats[p.key].expense > 0;
         const netColor = net >= 0 ? theme.primary.main : "#F14A6E";
 
         return (
@@ -71,7 +96,7 @@ export default function QuickStatsBar({
               ]}
             >
               {hasActivity
-                ? formatAmount(net, baseCurrency, {
+                ? formatAmount(net, displayCurrency, {
                     compact: true,
                     showSign: true,
                   })

@@ -18,19 +18,47 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
   INR: "₹",
   MXN: "MX$",
   BRL: "R$",
-  SAR: "﷼",
-  AED: "د.إ",
+  SAR: "SR",
+  AED: "AED",
   TRY: "₺",
   NGN: "₦",
   ZAR: "R",
-  EGP: "£",
+  EGP: "E£",
   MAD: "MAD",
   DZD: "DA",
   USDT: "₮",
 };
 
+/** Currencies whose symbol goes AFTER the number (e.g. "1,234 DA") */
+const SUFFIX_CURRENCIES = new Set([
+  "USD",
+  "EUR",
+  "GBP",
+  "JPY",
+  "CAD",
+  "AUD",
+  "CHF",
+  "CNY",
+  "INR",
+  "MXN",
+  "BRL",
+  "SAR",
+  "AED",
+  "TRY",
+  "NGN",
+  "ZAR",
+  "EGP",
+  "MAD",
+  "DZD",
+  "USDT",
+]);
+
 export function getCurrencySymbol(currency: string): string {
   return CURRENCY_SYMBOLS[currency.toUpperCase()] ?? currency;
+}
+
+export function isSuffixCurrency(currency: string): boolean {
+  return SUFFIX_CURRENCIES.has(currency.toUpperCase());
 }
 
 /**
@@ -71,7 +99,9 @@ export function formatAmount(
         });
   }
 
-  return `${sign}${symbol}${formatted}`;
+  return isSuffixCurrency(currency)
+    ? `${sign}${formatted} ${symbol}`
+    : `${sign}${symbol}${formatted}`;
 }
 
 /**
@@ -97,6 +127,22 @@ export function convertToBase(
   if (fromCurrency === baseCurrency) return minorUnits;
   const rate = rates[fromCurrency] ?? 1;
   return Math.round(minorUnits * rate);
+}
+
+/**
+ * Convert from baseCurrency to a target currency.
+ * rateMap: { "EUR": 1.08 } means 1 EUR = 1.08 USD (when base is USD),
+ * so to convert to EUR: divide by the EUR rate.
+ */
+export function convertFromBase(
+  minorUnits: number,
+  targetCurrency: string,
+  baseCurrency: string,
+  rates: Record<string, number>,
+): number {
+  if (targetCurrency === baseCurrency) return minorUnits;
+  const rate = rates[targetCurrency] ?? 1;
+  return Math.round(minorUnits / rate);
 }
 
 /** Parse "YYYY-MM-DD" to a Date object. */

@@ -713,18 +713,6 @@ export default function AccountsTabScreen() {
 
         <View style={{ height: 110 }} />
       </ScrollView>
-
-      {/* ── FAB ── */}
-      <Pressable
-        style={({ pressed }) => [s.fab, pressed && { opacity: 0.85 }]}
-        onPress={() => router.navigate("/account/add" as any)}
-      >
-        <MaterialCommunityIcons
-          name="plus"
-          size={26}
-          color={theme.background.dark}
-        />
-      </Pressable>
     </View>
   );
 }
@@ -1168,23 +1156,5 @@ function makeStyles(theme: Theme) {
       color: theme.foreground.gray,
     },
     archivedCardWrap: { opacity: 0.55, marginTop: 6 },
-
-    // ── FAB ──
-    fab: {
-      position: "absolute",
-      bottom: 90,
-      right: 16,
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      backgroundColor: theme.primary.main,
-      alignItems: "center",
-      justifyContent: "center",
-      shadowColor: theme.primary.main,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.4,
-      shadowRadius: 10,
-      elevation: 8,
-    },
   });
 }
