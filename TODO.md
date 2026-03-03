@@ -76,13 +76,13 @@
 
 ## 6. CATEGORIES
 
-- [ ] Display categories (expense + income tabs)
-- [ ] Create category (name + icon)
-- [ ] Edit category
-- [ ] Reorder categories
-- [ ] Archive/unarchive categories
-- [ ] Delete category with reassignment to another category
-- [ ] Category spending breakdown for selected period
+- [x] Display categories (expense + income tabs)
+- [x] Create category (name + icon)
+- [x] Edit category
+- [x] Reorder categories
+- [x] Archive/unarchive categories
+- [x] Delete category with reassignment to another category
+- [x] Category spending breakdown for selected period
 
 ---
 
@@ -119,13 +119,13 @@
 
 ## 9. REPORTS / ANALYTICS
 
-- [ ] Spending by category (pie/bar)
-- [ ] Income vs expenses chart
-- [ ] Trend over time (daily/weekly/monthly)
-- [ ] Period selector (week / month / year / custom)
-- [ ] Top merchants (if merchant field enabled)
-- [ ] Top categories and largest transactions
-- [ ] Export a report snapshot (image/PDF optional)
+- [x] Spending by category (pie/bar)
+- [x] Income vs expenses chart
+- [x] Trend over time (daily/weekly/monthly)
+- [x] Period selector (week / month / year / custom)
+- [x] Top merchants (if merchant field enabled)
+- [x] Top categories and largest transactions
+- [x] Export a report snapshot (image/PDF optional)
 
 ---
 
@@ -197,15 +197,16 @@
 
 ## 16. SETTINGS
 
-- [ ] Theme: light/dark/system (wired to existing ThemeContext)
-- [ ] Base currency (default currency) used for totals
-- [ ] Manage currencies + conversion rates (manual entry MVP)
-- [ ] Locale and number/date formatting
-- [ ] First day of week
-- [ ] Manage categories shortcut
-- [ ] Manage accounts shortcut
-- [ ] Data management (export/import/reset)
-- [ ] About screen (version, build)
+- [x] Theme: light/dark/system (wired to existing ThemeContext)
+- [x] Theme variant selector (default, nord, sapphire, strawberry, ocean, amber)
+- [x] Base currency (default currency) used for totals
+- [x] Manage currencies + conversion rates (manual entry MVP)
+- [x] Locale and number/date formatting
+- [x] First day of week
+- [x] Manage categories shortcut
+- [x] Manage accounts shortcut
+- [x] Data management (export/import/reset)
+- [x] About screen (version, build)
 
 ---
 

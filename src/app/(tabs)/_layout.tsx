@@ -9,6 +9,7 @@ export default function HomeTabsLayout() {
     >
       <Tabs.Screen name="home" options={{ title: "Home" }} />
       <Tabs.Screen name="transactions" options={{ title: "Transactions" }} />
+      <Tabs.Screen name="analytics" options={{ title: "Analytics" }} />
       <Tabs.Screen name="accounts" options={{ title: "Accounts" }} />
       <Tabs.Screen name="settings" options={{ title: "Settings" }} />
       {/* Hidden from tab bar — navigated to programmatically */}

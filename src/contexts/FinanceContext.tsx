@@ -68,6 +68,14 @@ interface FinanceContextType {
   updateTransaction: (tx: Transaction) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   duplicateTransaction: (id: string) => Promise<Transaction>;
+  getTransactionsByCategoryId: (categoryId: string) => Transaction[];
+  reassignTransactionsCategory: (
+    fromCategoryId: string,
+    toCategoryId: string,
+    toCategoryName: string,
+    toCategoryIcon?: string,
+    toCategoryColor?: string,
+  ) => Promise<void>;
   // ── Account CRUD ──
   addAccount: (data: Omit<Account, "id">) => Promise<Account>;
   updateAccount: (account: Account) => Promise<void>;
@@ -305,6 +313,38 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     [rawTransactions],
   );
 
+  const getTransactionsByCategoryId = useCallback(
+    (categoryId: string): Transaction[] => {
+      return rawTransactions.filter((t) => t.categoryId === categoryId);
+    },
+    [rawTransactions],
+  );
+
+  const reassignTransactionsCategory = useCallback(
+    async (
+      fromCategoryId: string,
+      toCategoryId: string,
+      toCategoryName: string,
+      toCategoryIcon?: string,
+      toCategoryColor?: string,
+    ): Promise<void> => {
+      setRawTransactions((prev) =>
+        prev.map((t) =>
+          t.categoryId === fromCategoryId
+            ? {
+                ...t,
+                categoryId: toCategoryId,
+                categoryName: toCategoryName,
+                categoryIcon: toCategoryIcon,
+                categoryColor: toCategoryColor,
+              }
+            : t,
+        ),
+      );
+    },
+    [],
+  );
+
   // ─────────────────────────────────────────────────────────────────────────
   // Account CRUD
   // ─────────────────────────────────────────────────────────────────────────
@@ -462,6 +502,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         updateTransaction,
         deleteTransaction,
         duplicateTransaction,
+        getTransactionsByCategoryId,
+        reassignTransactionsCategory,
         addAccount,
         updateAccount,
         deleteAccount,

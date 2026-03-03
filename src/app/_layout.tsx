@@ -3,23 +3,29 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { View } from "react-native";
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthProvider } from "../contexts/AuthContext";
+import { CategoriesProvider } from "../contexts/CategoriesContext";
 import { FinanceProvider } from "../contexts/FinanceContext";
 import { GetStartedProvider } from "../contexts/GetStartedContext";
+import { SettingsProvider } from "../contexts/SettingsContext";
 import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
 
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
-        <AuthProvider>
-          <FinanceProvider>
-            <GetStartedProvider>
-              <SafeAreaProvider>
-                <RootLayoutWithTheme />
-              </SafeAreaProvider>
-            </GetStartedProvider>
-          </FinanceProvider>
-        </AuthProvider>
+        <SettingsProvider>
+          <AuthProvider>
+            <CategoriesProvider>
+              <FinanceProvider>
+                <GetStartedProvider>
+                  <SafeAreaProvider>
+                    <RootLayoutWithTheme />
+                  </SafeAreaProvider>
+                </GetStartedProvider>
+              </FinanceProvider>
+            </CategoriesProvider>
+          </AuthProvider>
+        </SettingsProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );

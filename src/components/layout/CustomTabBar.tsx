@@ -24,6 +24,11 @@ const ICON_MAP: Record<
     focused: "swap-horizontal",
     label: "Transactions",
   },
+  analytics: {
+    default: "chart-box-outline",
+    focused: "chart-box",
+    label: "Analytics",
+  },
   accounts: { default: "wallet-outline", focused: "wallet", label: "Accounts" },
   settings: { default: "cog-outline", focused: "cog", label: "Settings" },
 };
