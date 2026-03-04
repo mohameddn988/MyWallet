@@ -85,6 +85,9 @@ interface FinanceContextType {
   updateExchangeRate: (rate: ExchangeRate) => Promise<void>;
   /** Change the base currency, recalculating all exchange rates */
   updateBaseCurrency: (newBase: string) => Promise<void>;
+  /** Prank mode: everything shows 0 until reload */
+  eggZeroMode: boolean;
+  triggerEggZero: () => void;
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -233,6 +236,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     useState<Transaction[]>(INITIAL_TRANSACTIONS);
   const [lastDeletedTransaction, setLastDeletedTransaction] =
     useState<Transaction | null>(null);
+  const [eggZeroMode, setEggZeroMode] = useState(false);
+  const triggerEggZero = useCallback(() => setEggZeroMode(true), []);
 
   /** The currency the user has chosen to view amounts in */
   const [displayCurrency, setDisplayCurrency] = useState<string>(BASE_CURRENCY);
@@ -465,17 +470,24 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       ),
     ];
 
+    const ZERO_PERIOD = { income: 0, expense: 0, net: 0 };
+    const ZERO_STATS = {
+      today: ZERO_PERIOD,
+      week: ZERO_PERIOD,
+      month: ZERO_PERIOD,
+    };
+
     return {
       baseCurrency: base,
       exchangeRates: rawRates,
-      accounts,
-      allAccounts,
-      perCurrencySubtotals,
-      netWorth,
-      monthSummary,
-      quickStats,
-      recentTransactions,
-      allTransactions,
+      accounts: eggZeroMode ? [] : accounts,
+      allAccounts: eggZeroMode ? [] : allAccounts,
+      perCurrencySubtotals: eggZeroMode ? [] : perCurrencySubtotals,
+      netWorth: eggZeroMode ? 0 : netWorth,
+      monthSummary: eggZeroMode ? ZERO_PERIOD : monthSummary,
+      quickStats: eggZeroMode ? ZERO_STATS : quickStats,
+      recentTransactions: eggZeroMode ? [] : recentTransactions,
+      allTransactions: eggZeroMode ? [] : allTransactions,
       isRefreshing,
       refresh,
       availableCurrencies,
@@ -488,6 +500,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     rawAccounts,
     rawRates,
     rawTransactions,
+    eggZeroMode,
   ]);
 
   return (
@@ -512,6 +525,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         deleteAccount,
         updateExchangeRate,
         updateBaseCurrency,
+        eggZeroMode,
+        triggerEggZero,
       }}
     >
       {children}

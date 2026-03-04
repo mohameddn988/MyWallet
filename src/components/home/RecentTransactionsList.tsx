@@ -123,8 +123,9 @@ export default function RecentTransactionsList({
               name="receipt-outline"
               size={40}
               color={theme.foreground.gray}
+              style={{ opacity: 0.4 }}
             />
-            <Text style={[styles.emptyText, { color: theme.foreground.gray }]}>
+            <Text style={[styles.emptyText, { color: theme.foreground.gray, opacity: 0.6 }]}>
               No transactions yet
             </Text>
           </View>

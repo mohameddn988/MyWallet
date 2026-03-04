@@ -89,16 +89,30 @@ export default function AccountsList({
       </View>
 
       <View style={styles.card}>
-        {liquidAccounts.map((aw, i) => {
-          const isLastLiquid =
-            i === liquidAccounts.length - 1 && specialAccounts.length === 0;
-          return renderRow(aw, isLastLiquid);
-        })}
+        {accounts.length === 0 ? (
+          <View style={styles.emptyState}>
+            <MaterialCommunityIcons
+              name="wallet-outline"
+              size={28}
+              color={theme.foreground.gray}
+              style={{ opacity: 0.4, marginBottom: 8 }}
+            />
+            <Text style={styles.emptyText}>No accounts</Text>
+          </View>
+        ) : (
+          <>
+            {liquidAccounts.map((aw, i) => {
+              const isLastLiquid =
+                i === liquidAccounts.length - 1 && specialAccounts.length === 0;
+              return renderRow(aw, isLastLiquid);
+            })}
 
-        {specialAccounts.map((aw, i) => {
-          const isLast = i === specialAccounts.length - 1;
-          return renderRow(aw, isLast);
-        })}
+            {specialAccounts.map((aw, i) => {
+              const isLast = i === specialAccounts.length - 1;
+              return renderRow(aw, isLast);
+            })}
+          </>
+        )}
       </View>
     </View>
   );
@@ -165,6 +179,17 @@ function makeStyles(theme: ReturnType<typeof useTheme>["theme"]) {
     balance: {
       fontSize: 15,
       fontWeight: "700",
+    },
+    emptyState: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 28,
+    },
+    emptyText: {
+      fontSize: 13,
+      color: theme.foreground.gray,
+      fontWeight: "500",
+      opacity: 0.6,
     },
   });
 }

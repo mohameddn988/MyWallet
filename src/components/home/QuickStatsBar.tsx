@@ -95,12 +95,10 @@ export default function QuickStatsBar({
                 },
               ]}
             >
-              {hasActivity
-                ? formatAmount(net, displayCurrency, {
-                    compact: true,
-                    showSign: true,
-                  })
-                : "—"}
+              {formatAmount(net, displayCurrency, {
+                compact: true,
+                showSign: hasActivity,
+              })}
             </Text>
           </Pressable>
         );

@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useNavigation } from "expo-router";
 import React, {
   useCallback,
   useEffect,
@@ -10,6 +10,7 @@ import React, {
 import {
   Alert,
   Animated,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -23,7 +24,11 @@ import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getAccountTypeMeta } from "../../data/accounts";
 import { Account, AccountType, ExchangeRate } from "../../types/finance";
-import { convertFromBase, convertToBase, formatAmount } from "../../utils/currency";
+import {
+  convertFromBase,
+  convertToBase,
+  formatAmount,
+} from "../../utils/currency";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Account card (redesigned)
@@ -119,6 +124,8 @@ function GroupSection({
   rateMap,
   showBase,
   theme,
+  expanded,
+  onToggle,
 }: {
   type: AccountType;
   accounts: Account[];
@@ -127,10 +134,11 @@ function GroupSection({
   rateMap: Record<string, number>;
   showBase: boolean;
   theme: Theme;
+  expanded: boolean;
+  onToggle: () => void;
 }) {
   const meta = getAccountTypeMeta(type);
-  const [expanded, setExpanded] = useState(true);
-  const rotateAnim = useRef(new Animated.Value(1)).current;
+  const rotateAnim = useRef(new Animated.Value(expanded ? 1 : 0)).current;
   const s = makeStyles(theme);
 
   const toggle = () => {
@@ -141,7 +149,7 @@ function GroupSection({
       tension: 120,
       friction: 10,
     }).start();
-    setExpanded((v) => !v);
+    onToggle();
   };
 
   const rotation = rotateAnim.interpolate({
@@ -367,6 +375,55 @@ export default function AccountsTabScreen() {
 
   const [showArchived, setShowArchived] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useState(baseCurrency);
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [rateEditorVisible, setRateEditorVisible] = useState(false);
+  const [editingCurrency, setEditingCurrency] = useState<string | null>(null);
+  const [editingRateStr, setEditingRateStr] = useState("");
+  const [expandedTypes, setExpandedTypes] = useState<Set<AccountType>>(
+    new Set(),
+  );
+  const rateInputRef = useRef<TextInput>(null);
+  const lastTabPressRef = useRef<number>(0);
+  const navigation = useNavigation();
+
+  const handleSaveRate = useCallback(
+    async (from: string, newRate: number) => {
+      const updated: ExchangeRate = {
+        from,
+        to: baseCurrency,
+        rate: newRate,
+        lastUpdated: new Date().toISOString().slice(0, 10),
+        isUserDefined: true,
+      };
+      try {
+        await updateExchangeRate(updated);
+      } catch {
+        Alert.alert("Error", "Failed to update exchange rate");
+      }
+    },
+    [baseCurrency, updateExchangeRate],
+  );
+
+  const openRateEditor = useCallback(
+    (currency: string) => {
+      const existing = exchangeRates.find((r) => r.from === currency);
+      setEditingCurrency(currency);
+      setEditingRateStr(existing ? String(existing.rate) : "");
+      setRateEditorVisible(true);
+      setTimeout(() => rateInputRef.current?.focus(), 120);
+    },
+    [exchangeRates],
+  );
+
+  const handleSaveRateFromEditor = useCallback(async () => {
+    if (!editingCurrency) return;
+    const n = parseFloat(editingRateStr);
+    if (!isNaN(n) && n > 0) {
+      await handleSaveRate(editingCurrency, n);
+    }
+    setRateEditorVisible(false);
+    setEditingCurrency(null);
+  }, [editingCurrency, editingRateStr, handleSaveRate]);
 
   // Keep displayCurrency in sync when baseCurrency changes externally
   useEffect(() => {
@@ -399,6 +456,34 @@ export default function AccountsTabScreen() {
       accounts: map.get(t)!,
     }));
   }, [activeAccounts]);
+
+  // Expand all groups on initial load
+  useEffect(() => {
+    setExpandedTypes(new Set(grouped.map((g) => g.type)));
+  }, [grouped]);
+
+  // Double-tap detection: collapse all if any expanded, else expand all
+  useEffect(() => {
+    const unsubscribe = (navigation as any).addListener("tabPress", () => {
+      const now = Date.now();
+      const timeSinceLastPress = now - lastTabPressRef.current;
+
+      // Double-tap window: 300ms
+      if (timeSinceLastPress < 300) {
+        // Double-tap detected
+        setExpandedTypes((prev) =>
+          prev.size > 0
+            ? new Set<AccountType>()
+            : new Set(grouped.map((g) => g.type)),
+        );
+        lastTabPressRef.current = 0; // Reset
+      } else {
+        // Single tap or start of new double-tap sequence
+        lastTabPressRef.current = now;
+      }
+    });
+    return unsubscribe;
+  }, [navigation, grouped]);
 
   const foreignRates = useMemo(
     () => exchangeRates.filter((r) => r.from !== baseCurrency),
@@ -445,24 +530,6 @@ export default function AccountsTabScreen() {
       ],
     );
   }, [availableCurrencies, baseCurrency, updateBaseCurrency]);
-
-  const handleSaveRate = useCallback(
-    async (from: string, newRate: number) => {
-      const updated: ExchangeRate = {
-        from,
-        to: baseCurrency,
-        rate: newRate,
-        lastUpdated: new Date().toISOString().slice(0, 10),
-        isUserDefined: true,
-      };
-      try {
-        await updateExchangeRate(updated);
-      } catch {
-        Alert.alert("Error", "Failed to update exchange rate");
-      }
-    },
-    [baseCurrency, updateExchangeRate],
-  );
 
   const getGroupTotal = useCallback(
     (accounts: Account[]) =>
@@ -523,57 +590,47 @@ export default function AccountsTabScreen() {
             </Pressable>
           </View>
 
-          {/* Display value */}
-          <Text style={s.netWorthValue}>
-            {formatAmount(displayNetWorth, displayCurrency)}
-          </Text>
+          {/* Display value - clickable to open modal */}
+          <Pressable
+            onPress={() => setPickerVisible(true)}
+            hitSlop={8}
+            style={({ pressed }) => [pressed && { opacity: 0.7 }]}
+          >
+            <Text style={s.netWorthValue}>
+              {formatAmount(displayNetWorth, displayCurrency)}
+            </Text>
+          </Pressable>
 
-          {/* Currency selector pills */}
-          {availableCurrencies.length > 1 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={s.currencyPillsRow}
-            >
-              {availableCurrencies.map((cur) => {
-                const isSelected = cur === displayCurrency;
-                return (
-                  <Pressable
-                    key={cur}
-                    style={({ pressed }) => [
-                      s.currencyPill,
-                      isSelected && s.currencyPillActive,
-                      pressed && { opacity: 0.7 },
-                    ]}
-                    onPress={() => setDisplayCurrency(cur)}
-                  >
-                    <Text
-                      style={[
-                        s.currencyPillText,
-                        isSelected && s.currencyPillTextActive,
+          {/* Tappable currency pills - only non-base currencies, tap to edit rate */}
+          {foreignRates.length > 0 && (
+            <View style={s.currencyPillsRow}>
+              {availableCurrencies
+                .filter((c) => c !== baseCurrency)
+                .map((cur) => {
+                  const isDisplay = cur === displayCurrency;
+                  return (
+                    <Pressable
+                      key={cur}
+                      style={({ pressed }) => [
+                        s.currencyPill,
+                        isDisplay && s.currencyPillActive,
+                        pressed && { opacity: 0.7 },
                       ]}
+                      onPress={() => {
+                        openRateEditor(cur);
+                      }}
                     >
-                      {cur}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          )}
-
-          {/* Per-currency subtotals */}
-          {perCurrencySubtotals.length > 1 && (
-            <View style={s.subtotalsRow}>
-              {perCurrencySubtotals.map((sub) => (
-                <View key={sub.currency} style={s.subtotalItem}>
-                  <Text style={s.subtotalCurrency}>{sub.currency}</Text>
-                  <Text style={s.subtotalAmount}>
-                    {formatAmount(sub.totalNative, sub.currency, {
-                      compact: true,
-                    })}
-                  </Text>
-                </View>
-              ))}
+                      <Text
+                        style={[
+                          s.currencyPillText,
+                          isDisplay && s.currencyPillTextActive,
+                        ]}
+                      >
+                        {cur}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
             </View>
           )}
         </View>
@@ -594,6 +651,16 @@ export default function AccountsTabScreen() {
                 rateMap={rateMap}
                 showBase={perCurrencySubtotals.length > 1}
                 theme={theme}
+                expanded={expandedTypes.has(type)}
+                onToggle={() => {
+                  const newExpanded = new Set(expandedTypes);
+                  if (newExpanded.has(type)) {
+                    newExpanded.delete(type);
+                  } else {
+                    newExpanded.add(type);
+                  }
+                  setExpandedTypes(newExpanded);
+                }}
               />
             ))}
           </View>
@@ -622,40 +689,6 @@ export default function AccountsTabScreen() {
               />
               <Text style={s.emptyBtnText}>Add Account</Text>
             </Pressable>
-          </View>
-        )}
-
-        {/* ── Exchange rates ── */}
-        {foreignRates.length > 0 && (
-          <View style={s.ratesSection}>
-            <View style={s.sectionLabelRow}>
-              <Text style={s.sectionLabel}>EXCHANGE RATES</Text>
-              <Pressable
-                style={({ pressed }) => [
-                  s.changeBaseBtn,
-                  pressed && { opacity: 0.7 },
-                ]}
-                onPress={handleChangeBaseCurrency}
-              >
-                <MaterialCommunityIcons
-                  name="swap-horizontal"
-                  size={12}
-                  color={theme.primary.main}
-                />
-                <Text style={s.changeBaseBtnText}>Change base</Text>
-              </Pressable>
-            </View>
-            <View style={s.ratesGrid}>
-              {foreignRates.map((rate) => (
-                <ExchangeRateRow
-                  key={rate.from}
-                  rate={rate}
-                  baseCurrency={baseCurrency}
-                  onSave={handleSaveRate}
-                  theme={theme}
-                />
-              ))}
-            </View>
           </View>
         )}
 
@@ -709,6 +742,162 @@ export default function AccountsTabScreen() {
 
         <View style={{ height: 110 }} />
       </ScrollView>
+
+      {/* Rate editor modal */}
+      <Modal
+        visible={rateEditorVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRateEditorVisible(false)}
+      >
+        <Pressable
+          style={s.modalOverlay}
+          onPress={() => setRateEditorVisible(false)}
+        >
+          <Pressable
+            style={[
+              s.modalSheet,
+              {
+                backgroundColor: theme.background.accent,
+                borderColor: theme.background.darker,
+              },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text style={[s.modalTitle, { color: theme.foreground.white }]}>
+              Exchange Rate
+            </Text>
+            <Text style={[s.rateEditorDesc, { color: theme.foreground.gray }]}>
+              1 {editingCurrency} =
+            </Text>
+            <View style={s.rateEditorInputRow}>
+              <TextInput
+                ref={rateInputRef}
+                style={[
+                  s.rateEditorInput,
+                  {
+                    color: theme.foreground.white,
+                    backgroundColor: theme.background.darker,
+                    borderColor: `${theme.foreground.gray}25`,
+                  },
+                ]}
+                value={editingRateStr}
+                onChangeText={setEditingRateStr}
+                keyboardType="decimal-pad"
+                returnKeyType="done"
+                onSubmitEditing={handleSaveRateFromEditor}
+                placeholderTextColor={theme.foreground.gray}
+                placeholder="0.00"
+                selectTextOnFocus
+              />
+              <Text
+                style={[s.rateEditorSuffix, { color: theme.foreground.gray }]}
+              >
+                {baseCurrency}
+              </Text>
+            </View>
+            <Pressable
+              style={({ pressed }) => [
+                s.rateEditorSaveBtn,
+                { backgroundColor: theme.primary.main },
+                pressed && { opacity: 0.8 },
+              ]}
+              onPress={handleSaveRateFromEditor}
+            >
+              <Text
+                style={[
+                  s.rateEditorSaveBtnText,
+                  { color: theme.background.dark },
+                ]}
+              >
+                Save Rate
+              </Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Currency picker modal */}
+      <Modal
+        visible={pickerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPickerVisible(false)}
+      >
+        <Pressable
+          style={s.modalOverlay}
+          onPress={() => setPickerVisible(false)}
+        >
+          <Pressable
+            style={[
+              s.modalSheet,
+              {
+                backgroundColor: theme.background.accent,
+                borderColor: theme.background.darker,
+              },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text style={[s.modalTitle, { color: theme.foreground.white }]}>
+              Display Currency
+            </Text>
+            <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
+              {availableCurrencies.map((c) => {
+                const isSelected = c === displayCurrency;
+                return (
+                  <Pressable
+                    key={c}
+                    style={({ pressed }) => [
+                      s.currencyRow,
+                      {
+                        borderBottomColor: theme.background.darker,
+                        backgroundColor: pressed
+                          ? theme.background.darker
+                          : "transparent",
+                      },
+                    ]}
+                    onPress={() => {
+                      setDisplayCurrency(c);
+                      setPickerVisible(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        s.currencyRowText,
+                        {
+                          color: isSelected
+                            ? theme.primary.main
+                            : theme.foreground.white,
+                          fontWeight: isSelected ? "700" : "500",
+                        },
+                      ]}
+                    >
+                      {c}
+                    </Text>
+                    {c === baseCurrency && (
+                      <Text
+                        style={[
+                          s.baseBadgeText,
+                          { color: theme.foreground.gray },
+                        ]}
+                      >
+                        base
+                      </Text>
+                    )}
+                    {isSelected && (
+                      <Text
+                        style={[s.checkmark, { color: theme.primary.main }]}
+                      >
+                        ✓
+                      </Text>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -1159,5 +1348,94 @@ function makeStyles(theme: Theme) {
       color: theme.foreground.gray,
     },
     archivedCardWrap: { opacity: 0.55, marginTop: 6 },
+
+    pillBaseDot: {
+      width: 5,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor: theme.primary.main,
+      marginLeft: 4,
+    },
+    rateEditorDesc: {
+      fontSize: 22,
+      fontWeight: "700",
+      textAlign: "center",
+      marginTop: 8,
+      marginBottom: 16,
+    },
+    rateEditorInputRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      paddingHorizontal: 20,
+      marginBottom: 20,
+    },
+    rateEditorInput: {
+      flex: 1,
+      fontSize: 22,
+      fontWeight: "700",
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+    },
+    rateEditorSuffix: {
+      fontSize: 18,
+      fontWeight: "700",
+    },
+    rateEditorSaveBtn: {
+      marginHorizontal: 20,
+      marginBottom: 20,
+      paddingVertical: 14,
+      borderRadius: 14,
+      alignItems: "center",
+    },
+    rateEditorSaveBtnText: {
+      fontSize: 15,
+      fontWeight: "700",
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.55)",
+      justifyContent: "center",
+      alignItems: "center",
+      paddingHorizontal: 40,
+    },
+    modalSheet: {
+      width: "100%",
+      borderRadius: 16,
+      borderWidth: 1,
+      paddingTop: 20,
+      paddingBottom: 8,
+      maxHeight: 360,
+      overflow: "hidden",
+    },
+    modalTitle: {
+      fontSize: 14,
+      fontWeight: "700",
+      letterSpacing: 0.5,
+      textAlign: "center",
+      marginBottom: 12,
+      paddingHorizontal: 20,
+    },
+    currencyRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    currencyRowText: {
+      fontSize: 16,
+      flex: 1,
+    },
+    baseBadgeText: {
+      fontSize: 11,
+      marginRight: 8,
+    },
+    checkmark: {
+      fontSize: 16,
+      fontWeight: "700",
+    },
   });
 }
