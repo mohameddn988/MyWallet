@@ -1,4 +1,8 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  BottomSheetScrollView,
+  BottomSheetTextInput,
+} from "@gorhom/bottom-sheet";
 import { router, useLocalSearchParams } from "expo-router";
 import React, {
   useCallback,
@@ -11,7 +15,6 @@ import {
   Animated,
   Easing,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -20,6 +23,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import AppBottomSheet from "../../components/ui/AppBottomSheet";
 import { COMMON_CURRENCIES } from "../../constants/getStarted";
 import { Theme } from "../../constants/themes";
 import { useFinance } from "../../contexts/FinanceContext";
@@ -28,8 +32,14 @@ import {
   ACCOUNT_COLOR_PALETTE,
   ACCOUNT_ICON_PRESETS,
   ACCOUNT_TYPE_META,
+  LOAN_DIRECTIONS,
 } from "../../data/accounts";
-import { Account, AccountType } from "../../types/finance";
+import {
+  Account,
+  AccountType,
+  LoanDirection,
+  SubAccount,
+} from "../../types/finance";
 import { getCurrencySymbol } from "../../utils/currency";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -75,7 +85,7 @@ function useToast() {
 // Currency picker modal
 // ─────────────────────────────────────────────────────────────────────────────
 
-function CurrencyPickerModal({
+function CurrencyPickerSheet({
   visible,
   selected,
   onSelect,
@@ -96,26 +106,13 @@ function CurrencyPickerModal({
   );
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
+    <AppBottomSheet
+      snapPoints={["70%"]}
+      isOpen={visible}
+      onClose={onClose}
+      noWrapper
     >
-      <Pressable
-        style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)" }}
-        onPress={onClose}
-      />
-      <View
-        style={{
-          backgroundColor: theme.background.darker,
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          padding: 20,
-          paddingBottom: Platform.OS === "ios" ? 36 : 20,
-          maxHeight: "70%",
-        }}
-      >
+      <View style={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: 12 }}>
         <Text
           style={{
             fontSize: 17,
@@ -126,7 +123,7 @@ function CurrencyPickerModal({
         >
           Select Currency
         </Text>
-        <TextInput
+        <BottomSheetTextInput
           style={{
             backgroundColor: theme.background.accent,
             borderRadius: 10,
@@ -143,78 +140,83 @@ function CurrencyPickerModal({
           value={search}
           onChangeText={setSearch}
         />
-        <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          {filtered.map((c) => {
-            const active = selected === c.code;
-            const symbol = getCurrencySymbol(c.code);
-            return (
-              <Pressable
-                key={c.code}
-                style={({ pressed }) => ({
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingVertical: 13,
-                  paddingHorizontal: 12,
-                  borderRadius: 10,
-                  marginBottom: 4,
-                  backgroundColor: active
-                    ? `${theme.primary.main}22`
-                    : pressed
-                      ? theme.background.accent
-                      : "transparent",
-                  borderWidth: active ? 1 : 0,
-                  borderColor: theme.primary.main,
-                })}
-                onPress={() => {
-                  onSelect(c.code);
-                  onClose();
+      </View>
+      <BottomSheetScrollView
+        style={{ flex: 1 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+      >
+        {filtered.map((c) => {
+          const active = selected === c.code;
+          const symbol = getCurrencySymbol(c.code);
+          return (
+            <Pressable
+              key={c.code}
+              style={({ pressed }) => ({
+                flexDirection: "row",
+                alignItems: "center",
+                paddingVertical: 13,
+                paddingHorizontal: 12,
+                borderRadius: 10,
+                marginBottom: 4,
+                backgroundColor: active
+                  ? `${theme.primary.main}22`
+                  : pressed
+                    ? theme.background.accent
+                    : "transparent",
+                borderWidth: active ? 1 : 0,
+                borderColor: theme.primary.main,
+              })}
+              onPress={() => {
+                onSelect(c.code);
+                onClose();
+              }}
+            >
+              <Text
+                style={{
+                  width: 38,
+                  fontSize: 16,
+                  fontWeight: "700",
+                  color: active ? theme.primary.main : theme.foreground.gray,
                 }}
               >
+                {symbol}
+              </Text>
+              <View style={{ flex: 1 }}>
                 <Text
                   style={{
-                    width: 38,
-                    fontSize: 16,
-                    fontWeight: "700",
-                    color: active ? theme.primary.main : theme.foreground.gray,
+                    fontSize: 14,
+                    fontWeight: active ? "700" : "500",
+                    color: active
+                      ? theme.primary.main
+                      : theme.foreground.white,
                   }}
                 >
-                  {symbol}
+                  {c.code}
                 </Text>
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      fontWeight: active ? "700" : "500",
-                      color: active
-                        ? theme.primary.main
-                        : theme.foreground.white,
-                    }}
-                  >
-                    {c.code}
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      color: theme.foreground.gray,
-                      marginTop: 1,
-                    }}
-                  >
-                    {c.name}
-                  </Text>
-                </View>
-                {active && (
-                  <MaterialCommunityIcons
-                    name="check-circle"
-                    size={18}
-                    color={theme.primary.main}
-                  />
-                )}
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      </View>
-    </Modal>
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: theme.foreground.gray,
+                    marginTop: 1,
+                  }}
+                >
+                  {c.name}
+                </Text>
+              </View>
+              {active && (
+                <MaterialCommunityIcons
+                  name="check-circle"
+                  size={18}
+                  color={theme.primary.main}
+                />
+              )}
+            </Pressable>
+          );
+        })}
+      </BottomSheetScrollView>
+    </AppBottomSheet>
   );
 }
 
@@ -229,7 +231,14 @@ export default function AddAccountScreen() {
   const isEdit = Boolean(params.editId);
   const { msg: toast, show: showToast, translateY: toastY } = useToast();
 
-  const { allAccounts, addAccount, updateAccount } = useFinance();
+  const {
+    allAccounts,
+    addAccount,
+    updateAccount,
+    hasLoanDirection,
+    baseCurrency,
+    updateExchangeRate,
+  } = useFinance();
 
   const editAcc = useMemo(
     () =>
@@ -245,18 +254,29 @@ export default function AddAccountScreen() {
     editAcc?.type ?? "cash",
   );
   const [currency, setCurrency] = useState(editAcc?.currency ?? "DZD");
+  const [exchangeRate, setExchangeRate] = useState("");
   const [balanceRaw, setBalanceRaw] = useState(
-    editAcc
-      ? String(Math.abs(editAcc.balance) / 100)
-      : "0",
+    editAcc ? String(Math.abs(editAcc.balance) / 100) : "0",
   );
-  const [isLiability, setIsLiability] = useState(editAcc?.isLiability ?? false);
   const [color, setColor] = useState(editAcc?.color ?? "#4A9FF1");
   const [icon, setIcon] = useState(editAcc?.icon ?? "wallet-outline");
   const [accountRef, setAccountRef] = useState(editAcc?.accountRef ?? "");
   const [note, setNote] = useState(editAcc?.note ?? "");
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Loan-specific state
+  const [loanDirection, setLoanDirection] = useState<LoanDirection>(
+    editAcc?.loanDirection ?? "owe",
+  );
+  const [subAccounts, setSubAccounts] = useState<SubAccount[]>(
+    editAcc?.subAccounts ?? [],
+  );
+  const [newPersonName, setNewPersonName] = useState("");
+  const [newPersonAmount, setNewPersonAmount] = useState("");
+
+  // Check if currency differs from base
+  const currencyDiffersFromBase = currency !== baseCurrency;
 
   // Touched state for validation
   const [touchedName, setTouchedName] = useState(false);
@@ -268,14 +288,20 @@ export default function AddAccountScreen() {
       setAccountType(editAcc.type);
       setCurrency(editAcc.currency);
       setBalanceRaw(String(Math.abs(editAcc.balance) / 100));
-      setIsLiability(editAcc.isLiability);
       setColor(editAcc.color);
       setIcon(editAcc.icon);
       setAccountRef(editAcc.accountRef ?? "");
       setNote(editAcc.note ?? "");
+      if (editAcc.loanDirection) setLoanDirection(editAcc.loanDirection);
+      if (editAcc.subAccounts) setSubAccounts(editAcc.subAccounts);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editAcc?.id]);
+
+  // Reset exchange rate when currency changes
+  useEffect(() => {
+    setExchangeRate("");
+  }, [currency]);
 
   // Auto-set defaults when type changes
   const handleTypeChange = (type: AccountType) => {
@@ -284,19 +310,52 @@ export default function AddAccountScreen() {
     if (!editAcc) {
       setColor(meta.defaultColor);
       setIcon(meta.icon);
-      setIsLiability(meta.isLiability);
+      // Auto-set name for loan accounts
+      if (type === "loan") {
+        const dirMeta = LOAN_DIRECTIONS.find((d) => d.value === loanDirection);
+        if (dirMeta) setName(dirMeta.defaultName);
+      }
     }
   };
 
   // ── Validation ────────────────────────────────────────────────────────────
+  const isLoan = accountType === "loan";
+  const isCharity = accountType === "charity";
+
+  // Check if the selected loan direction is already taken (by another account)
+  const loanDirectionTaken =
+    isLoan && !isEdit && hasLoanDirection(loanDirection);
+
   const nameError = !name.trim() ? "Account name is required" : null;
-  const canSave = !nameError;
+  const loanError =
+    isLoan && !isEdit && loanDirectionTaken
+      ? `A "${LOAN_DIRECTIONS.find((d) => d.value === loanDirection)?.label}" account already exists`
+      : null;
+  const canSave = !nameError && !loanError;
 
   const balanceMinorUnits = (() => {
+    if (isLoan) {
+      // For loans, balance = sum of sub-accounts
+      return subAccounts.reduce((sum, s) => sum + s.balance, 0);
+    }
     const n = parseFloat(balanceRaw) || 0;
     const minor = Math.round(Math.abs(n) * 100);
-    return isLiability ? -minor : minor;
+    return minor;
   })();
+
+  // ── Loan sub-account helpers ──────────────────────────────────────────────
+  const handleAddPerson = () => {
+    const personName = newPersonName.trim();
+    const amount = Math.round((parseFloat(newPersonAmount) || 0) * 100);
+    if (!personName || amount <= 0) return;
+    setSubAccounts((prev) => [...prev, { name: personName, balance: amount }]);
+    setNewPersonName("");
+    setNewPersonAmount("");
+  };
+
+  const handleRemovePerson = (index: number) => {
+    setSubAccounts((prev) => prev.filter((_, i) => i !== index));
+  };
 
   // ── Save ──────────────────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
@@ -309,25 +368,45 @@ export default function AddAccountScreen() {
       type: accountType,
       currency,
       balance: balanceMinorUnits,
-      isLiability,
+      isLiability: accountType === "credit",
       isArchived: editAcc?.isArchived ?? false,
       icon,
       color,
       accountRef: accountRef.trim() || undefined,
       note: note.trim() || undefined,
+      ...(isLoan
+        ? {
+            loanDirection,
+            subAccounts,
+          }
+        : {}),
     };
 
     try {
       if (isEdit && editAcc) {
         await updateAccount({ ...data, id: editAcc.id });
-        showToast("Account updated", true);
       } else {
         await addAccount(data);
-        showToast("Account created", true);
       }
+
+      // Update exchange rate if currency differs and rate was provided
+      if (currencyDiffersFromBase && exchangeRate.trim()) {
+        const rate = parseFloat(exchangeRate);
+        if (!isNaN(rate) && rate > 0) {
+          await updateExchangeRate({
+            from: currency,
+            to: baseCurrency,
+            rate,
+            lastUpdated: new Date().toISOString().slice(0, 10),
+            isUserDefined: true,
+          });
+        }
+      }
+
+      showToast(isEdit ? "Account updated" : "Account created", true);
       setTimeout(() => router.back(), 700);
-    } catch {
-      showToast("Failed to save account", false);
+    } catch (e: any) {
+      showToast(e?.message ?? "Failed to save account", false);
     } finally {
       setSaving(false);
     }
@@ -335,12 +414,14 @@ export default function AddAccountScreen() {
     canSave,
     saving,
     isEdit,
+    isLoan,
     editAcc,
     name,
     accountType,
     currency,
     balanceMinorUnits,
-    isLiability,
+    loanDirection,
+    subAccounts,
     icon,
     color,
     accountRef,
@@ -407,7 +488,10 @@ export default function AddAccountScreen() {
           {/* ── Preview card ── */}
           <View style={[styles.previewCard, { borderColor: color }]}>
             <View
-              style={[styles.previewIconWrap, { backgroundColor: `${color}22` }]}
+              style={[
+                styles.previewIconWrap,
+                { backgroundColor: `${color}22` },
+              ]}
             >
               <MaterialCommunityIcons
                 name={icon as any}
@@ -421,7 +505,6 @@ export default function AddAccountScreen() {
               </Text>
               <Text style={styles.previewMeta}>
                 {selectedTypeMeta.label} · {currency}
-                {isLiability ? " · Liability" : ""}
               </Text>
             </View>
           </View>
@@ -479,7 +562,9 @@ export default function AddAccountScreen() {
                       <MaterialCommunityIcons
                         name={meta.icon as any}
                         size={20}
-                        color={active ? meta.defaultColor : theme.foreground.gray}
+                        color={
+                          active ? meta.defaultColor : theme.foreground.gray
+                        }
                       />
                     </View>
                     <Text
@@ -496,6 +581,87 @@ export default function AddAccountScreen() {
               })}
             </View>
           </View>
+
+          {/* ── Loan Direction Picker (only for loan type) ── */}
+          {isLoan && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Loan Direction</Text>
+              <View style={{ gap: 8 }}>
+                {LOAN_DIRECTIONS.map((dir) => {
+                  const active = loanDirection === dir.value;
+                  const taken = !isEdit && hasLoanDirection(dir.value);
+                  return (
+                    <Pressable
+                      key={dir.value}
+                      style={[
+                        styles.loanDirItem,
+                        active && {
+                          backgroundColor: `${selectedTypeMeta.defaultColor}22`,
+                          borderColor: selectedTypeMeta.defaultColor,
+                        },
+                        taken && !active && { opacity: 0.4 },
+                      ]}
+                      onPress={() => {
+                        if (taken) return;
+                        setLoanDirection(dir.value);
+                        if (!editAcc) setName(dir.defaultName);
+                      }}
+                      disabled={taken && !active}
+                    >
+                      <View
+                        style={[
+                          styles.loanDirIconWrap,
+                          {
+                            backgroundColor: active
+                              ? `${selectedTypeMeta.defaultColor}33`
+                              : theme.background.darker,
+                          },
+                        ]}
+                      >
+                        <MaterialCommunityIcons
+                          name={dir.icon as any}
+                          size={20}
+                          color={
+                            active
+                              ? selectedTypeMeta.defaultColor
+                              : theme.foreground.gray
+                          }
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={[
+                            styles.loanDirLabel,
+                            active && {
+                              color: selectedTypeMeta.defaultColor,
+                            },
+                          ]}
+                        >
+                          {dir.label}
+                        </Text>
+                        <Text style={styles.loanDirDesc}>
+                          {dir.description}
+                        </Text>
+                      </View>
+                      {taken && !active && (
+                        <View style={styles.loanTakenBadge}>
+                          <Text style={styles.loanTakenText}>Exists</Text>
+                        </View>
+                      )}
+                      {active && (
+                        <MaterialCommunityIcons
+                          name="check-circle"
+                          size={20}
+                          color={selectedTypeMeta.defaultColor}
+                        />
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {loanError && <Text style={styles.errorText}>{loanError}</Text>}
+            </View>
+          )}
 
           {/* ── Currency ── */}
           <View style={styles.section}>
@@ -527,58 +693,186 @@ export default function AddAccountScreen() {
             </Pressable>
           </View>
 
-          {/* ── Balance ── */}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>
-              {isEdit ? "Current Balance" : "Initial Balance"}
-            </Text>
-            <View style={styles.balanceRow}>
-              <View style={styles.balanceSymbol}>
-                <Text style={styles.balanceSymbolText}>
-                  {getCurrencySymbol(currency)}
-                </Text>
-              </View>
-              <TextInput
-                style={styles.balanceInput}
-                value={balanceRaw}
-                onChangeText={(v) =>
-                  setBalanceRaw(v.replace(/[^0-9.]/g, ""))
-                }
-                placeholder="0"
-                placeholderTextColor={theme.foreground.gray}
-                keyboardType="decimal-pad"
-                selectTextOnFocus
-              />
-            </View>
-            {/* Liability toggle */}
-            <Pressable
-              style={styles.liabilityRow}
-              onPress={() => setIsLiability((v) => !v)}
-            >
-              <View
-                style={[
-                  styles.checkbox,
-                  isLiability && {
-                    backgroundColor: "#F14A6E",
-                    borderColor: "#F14A6E",
-                  },
-                ]}
+          {/* ── Exchange Rate (if currency differs from base) ── */}
+          {currencyDiffersFromBase && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>
+                Exchange Rate ({currency} → {baseCurrency})
+              </Text>
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: theme.foreground.gray,
+                  marginBottom: 10,
+                  lineHeight: 17,
+                }}
               >
-                {isLiability && (
-                  <MaterialCommunityIcons name="check" size={14} color="#fff" />
-                )}
-              </View>
-              <View>
-                <Text style={styles.liabilityLabel}>
-                  This is money I owe (liability)
+                How many {baseCurrency} equals 1 {currency}?
+              </Text>
+              <View style={styles.balanceRow}>
+                <Text style={styles.balanceSymbolText}>1 {currency} =</Text>
+                <TextInput
+                  style={[styles.balanceInput, { fontSize: 18 }]}
+                  value={exchangeRate}
+                  onChangeText={(v) =>
+                    setExchangeRate(v.replace(/[^0-9.]/g, ""))
+                  }
+                  placeholder="0.00"
+                  placeholderTextColor={theme.foreground.gray}
+                  keyboardType="decimal-pad"
+                  selectTextOnFocus
+                />
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: theme.foreground.gray,
+                    marginLeft: 8,
+                  }}
+                >
+                  {baseCurrency}
                 </Text>
-                <Text style={styles.liabilityHint}>
-                  Balance will be stored as negative and excluded from net worth
-                  totals
-                </Text>
               </View>
-            </Pressable>
-          </View>
+            </View>
+          )}
+
+          {/* ── Balance / Sub-accounts ── */}
+          {isLoan ? (
+            /* Loan: People entries instead of plain balance */
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>People</Text>
+
+              {/* Existing entries */}
+              {subAccounts.map((sub, idx) => (
+                <View key={idx} style={styles.personRow}>
+                  <View style={styles.personInfo}>
+                    <Text style={styles.personName}>{sub.name}</Text>
+                    <Text style={styles.personAmount}>
+                      {getCurrencySymbol(currency)}{" "}
+                      {(sub.balance / 100).toLocaleString()}
+                    </Text>
+                  </View>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.personRemoveBtn,
+                      pressed && { opacity: 0.6 },
+                    ]}
+                    onPress={() => handleRemovePerson(idx)}
+                  >
+                    <MaterialCommunityIcons
+                      name="close-circle"
+                      size={20}
+                      color="#F14A6E"
+                    />
+                  </Pressable>
+                </View>
+              ))}
+
+              {/* Add new person */}
+              <View style={styles.addPersonCard}>
+                <TextInput
+                  style={[styles.input, { marginBottom: 8 }]}
+                  placeholder="Person's name"
+                  placeholderTextColor={theme.foreground.gray}
+                  value={newPersonName}
+                  onChangeText={setNewPersonName}
+                  returnKeyType="next"
+                />
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  <View style={[styles.balanceRow, { flex: 1 }]}>
+                    <View style={styles.balanceSymbol}>
+                      <Text style={styles.balanceSymbolText}>
+                        {getCurrencySymbol(currency)}
+                      </Text>
+                    </View>
+                    <TextInput
+                      style={[styles.balanceInput, { fontSize: 16 }]}
+                      value={newPersonAmount}
+                      onChangeText={(v) =>
+                        setNewPersonAmount(v.replace(/[^0-9.]/g, ""))
+                      }
+                      placeholder="0"
+                      placeholderTextColor={theme.foreground.gray}
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.addPersonBtn,
+                      pressed && { opacity: 0.7 },
+                      (!newPersonName.trim() ||
+                        !(parseFloat(newPersonAmount) > 0)) && {
+                        opacity: 0.4,
+                      },
+                    ]}
+                    onPress={handleAddPerson}
+                    disabled={
+                      !newPersonName.trim() ||
+                      !(parseFloat(newPersonAmount) > 0)
+                    }
+                  >
+                    <MaterialCommunityIcons
+                      name="plus"
+                      size={22}
+                      color={theme.background.dark}
+                    />
+                  </Pressable>
+                </View>
+              </View>
+
+              {/* Total */}
+              {subAccounts.length > 0 && (
+                <View style={styles.personTotalRow}>
+                  <Text style={styles.personTotalLabel}>Total</Text>
+                  <Text style={styles.personTotalAmount}>
+                    {getCurrencySymbol(currency)}{" "}
+                    {(
+                      subAccounts.reduce((s, e) => s + e.balance, 0) / 100
+                    ).toLocaleString()}
+                  </Text>
+                </View>
+              )}
+            </View>
+          ) : (
+            /* Normal / Charity balance input */
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>
+                {isCharity
+                  ? "Target Amount"
+                  : isEdit
+                    ? "Current Balance"
+                    : "Initial Balance"}
+              </Text>
+              {isCharity && (
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: theme.foreground.gray,
+                    marginBottom: 10,
+                    lineHeight: 17,
+                  }}
+                >
+                  This is the amount you want to set aside for charity. It won't
+                  affect your net worth until you transfer money into it.
+                </Text>
+              )}
+              <View style={styles.balanceRow}>
+                <View style={styles.balanceSymbol}>
+                  <Text style={styles.balanceSymbolText}>
+                    {getCurrencySymbol(currency)}
+                  </Text>
+                </View>
+                <TextInput
+                  style={styles.balanceInput}
+                  value={balanceRaw}
+                  onChangeText={(v) => setBalanceRaw(v.replace(/[^0-9.]/g, ""))}
+                  placeholder="0"
+                  placeholderTextColor={theme.foreground.gray}
+                  keyboardType="decimal-pad"
+                  selectTextOnFocus
+                />
+              </View>
+            </View>
+          )}
 
           {/* ── Color palette ── */}
           <View style={styles.section}>
@@ -675,9 +969,8 @@ export default function AddAccountScreen() {
           <View style={{ height: 48 }} />
         </ScrollView>
       </KeyboardAvoidingView>
-
-      {/* ── Currency modal ── */}
-      <CurrencyPickerModal
+      {/* ── Currency sheet ── */}
+      <CurrencyPickerSheet
         visible={showCurrencyModal}
         selected={currency}
         onSelect={setCurrency}
@@ -700,9 +993,7 @@ export default function AddAccountScreen() {
             size={18}
             color={toast.ok ? theme.background.dark : "#fff"}
           />
-          <Text
-            style={[styles.toastText, !toast.ok && { color: "#fff" }]}
-          >
+          <Text style={[styles.toastText, !toast.ok && { color: "#fff" }]}>
             {toast.text}
           </Text>
         </Animated.View>
@@ -908,35 +1199,6 @@ function makeStyles(theme: Theme) {
       color: theme.foreground.white,
       paddingVertical: 14,
     },
-    liabilityRow: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      gap: 12,
-      marginTop: 4,
-    },
-    checkbox: {
-      width: 22,
-      height: 22,
-      borderRadius: 6,
-      borderWidth: 2,
-      borderColor: "#2C3139",
-      backgroundColor: theme.background.accent,
-      alignItems: "center",
-      justifyContent: "center",
-      marginTop: 1,
-    },
-    liabilityLabel: {
-      fontSize: 13,
-      fontWeight: "600",
-      color: theme.foreground.white,
-      flex: 1,
-    },
-    liabilityHint: {
-      fontSize: 11,
-      color: theme.foreground.gray,
-      marginTop: 3,
-      flex: 1,
-    },
     // Color
     palette: {
       flexDirection: "row",
@@ -969,6 +1231,112 @@ function makeStyles(theme: Theme) {
       backgroundColor: theme.background.accent,
       alignItems: "center",
       justifyContent: "center",
+    },
+    // Loan direction picker
+    loanDirItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      padding: 14,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: "#2C3139",
+      backgroundColor: theme.background.accent,
+    },
+    loanDirIconWrap: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    loanDirLabel: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: theme.foreground.white,
+    },
+    loanDirDesc: {
+      fontSize: 11,
+      color: theme.foreground.gray,
+      marginTop: 2,
+    },
+    loanTakenBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 6,
+      backgroundColor: "#F14A6E22",
+    },
+    loanTakenText: {
+      fontSize: 10,
+      fontWeight: "700",
+      color: "#F14A6E",
+    },
+    // Person entries (loan sub-accounts)
+    personRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: theme.background.accent,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: "#2C3139",
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      marginBottom: 8,
+    },
+    personInfo: {
+      flex: 1,
+    },
+    personName: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: theme.foreground.white,
+    },
+    personAmount: {
+      fontSize: 13,
+      color: theme.foreground.gray,
+      marginTop: 2,
+    },
+    personRemoveBtn: {
+      padding: 4,
+    },
+    addPersonCard: {
+      backgroundColor: theme.background.darker,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: "#2C3139",
+      borderStyle: "dashed",
+      padding: 12,
+      marginBottom: 8,
+    },
+    addPersonBtn: {
+      width: 56,
+      height: 60,
+      borderRadius: 12,
+      backgroundColor: theme.primary.main,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    personTotalRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      backgroundColor: theme.background.accent,
+      borderRadius: 10,
+      marginTop: 4,
+    },
+    personTotalLabel: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: theme.foreground.gray,
+      textTransform: "uppercase",
+      letterSpacing: 0.8,
+    },
+    personTotalAmount: {
+      fontSize: 16,
+      fontWeight: "800",
+      color: theme.primary.main,
     },
     // Toast
     toast: {

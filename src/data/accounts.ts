@@ -1,4 +1,4 @@
-import { AccountType } from "../types/finance";
+import { AccountType, LoanDirection } from "../types/finance";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Account type metadata
@@ -13,6 +13,8 @@ export interface AccountTypeMeta {
   /** Whether this type normally carries a negative balance (credit, loan) */
   isLiability: boolean;
   description: string;
+  /** If true, only one account of this type (per loanDirection) is allowed */
+  isSingleton?: boolean;
 }
 
 export const ACCOUNT_TYPE_META: AccountTypeMeta[] = [
@@ -53,8 +55,9 @@ export const ACCOUNT_TYPE_META: AccountTypeMeta[] = [
     label: "Loan",
     icon: "hand-coin-outline",
     defaultColor: "#FF9500",
-    isLiability: true,
-    description: "Money lent out (receivable) or borrowed",
+    isLiability: false,
+    description: "Track debts and receivables with per-person breakdown",
+    isSingleton: true,
   },
   {
     value: "charity",
@@ -62,7 +65,7 @@ export const ACCOUNT_TYPE_META: AccountTypeMeta[] = [
     icon: "hand-heart-outline",
     defaultColor: "#A44AF1",
     isLiability: false,
-    description: "Earmarked funds — tracked separately",
+    description: "Neutral fund — tracked separately from your net worth",
   },
   {
     value: "crypto",
@@ -141,4 +144,33 @@ export const ACCOUNT_ICON_PRESETS = [
   "school-outline",
   "cellphone",
   "dots-horizontal-circle-outline",
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Loan direction metadata
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface LoanDirectionMeta {
+  value: LoanDirection;
+  label: string;
+  description: string;
+  icon: string;
+  defaultName: string;
+}
+
+export const LOAN_DIRECTIONS: LoanDirectionMeta[] = [
+  {
+    value: "owe",
+    label: "I Owe People",
+    description: "Money you borrowed from others",
+    icon: "arrow-up-circle-outline",
+    defaultName: "I Owe People",
+  },
+  {
+    value: "owed",
+    label: "People Owe Me",
+    description: "Money others borrowed from you",
+    icon: "arrow-down-circle-outline",
+    defaultName: "People Owe Me",
+  },
 ];

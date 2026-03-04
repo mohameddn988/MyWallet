@@ -32,6 +32,8 @@ export interface Transaction {
   paymentMethod?: string;
 }
 
+export type LoanDirection = "owe" | "owed";
+
 export interface Account {
   id: string;
   name: string;
@@ -53,6 +55,12 @@ export interface Account {
   note?: string;
   /** Sub-accounts or breakdown items shown inside this account card */
   subAccounts?: SubAccount[];
+  /**
+   * For loan accounts only.
+   * "owe"  = money I owe to other people (my debts)
+   * "owed" = money other people owe me (receivables)
+   */
+  loanDirection?: LoanDirection;
 }
 
 /** A named breakdown entry shown inside a parent account card */

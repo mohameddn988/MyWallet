@@ -17,9 +17,11 @@ import {
   AccountWithBalance,
   CurrencySubtotal,
   ExchangeRate,
+  LoanDirection,
   MonthSummary,
   PeriodSummary,
   QuickStats,
+  SubAccount,
   Transaction,
 } from "../types/finance";
 import { convertToBase, toDateStr } from "../utils/currency";
@@ -81,6 +83,16 @@ interface FinanceContextType {
   updateAccount: (account: Account) => Promise<void>;
   /** Throws if transactions reference this account */
   deleteAccount: (id: string) => Promise<void>;
+  // ── Sub-account CRUD (for loans) ──
+  addSubAccount: (accountId: string, sub: SubAccount) => Promise<void>;
+  updateSubAccount: (
+    accountId: string,
+    index: number,
+    sub: SubAccount,
+  ) => Promise<void>;
+  removeSubAccount: (accountId: string, index: number) => Promise<void>;
+  /** Check if a loan account with the given direction already exists */
+  hasLoanDirection: (direction: LoanDirection) => boolean;
   /** Upsert an exchange rate */
   updateExchangeRate: (rate: ExchangeRate) => Promise<void>;
   /** Change the base currency, recalculating all exchange rates */
@@ -348,11 +360,24 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
 
   const addAccount = useCallback(
     async (data: Omit<Account, "id">): Promise<Account> => {
+      // Singleton enforcement for loan accounts
+      if (data.type === "loan" && data.loanDirection) {
+        const exists = rawAccounts.some(
+          (a) => a.type === "loan" && a.loanDirection === data.loanDirection,
+        );
+        if (exists) {
+          const label =
+            data.loanDirection === "owe" ? "I Owe People" : "People Owe Me";
+          throw new Error(
+            `A "${label}" loan account already exists. You can only have one of each.`,
+          );
+        }
+      }
       const account: Account = { ...data, id: `acc_${Date.now()}` };
       setRawAccounts((prev) => [...prev, account]);
       return account;
     },
-    [],
+    [rawAccounts],
   );
 
   const updateAccount = useCallback(async (account: Account): Promise<void> => {
@@ -374,6 +399,63 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       setRawAccounts((prev) => prev.filter((a) => a.id !== id));
     },
     [rawTransactions],
+  );
+
+  // ── Sub-account CRUD (for loan person entries) ──
+
+  const addSubAccount = useCallback(
+    async (accountId: string, sub: SubAccount): Promise<void> => {
+      setRawAccounts((prev) =>
+        prev.map((a) => {
+          if (a.id !== accountId) return a;
+          const subs = [...(a.subAccounts ?? []), sub];
+          const total = subs.reduce((s, e) => s + e.balance, 0);
+          return { ...a, subAccounts: subs, balance: total };
+        }),
+      );
+    },
+    [],
+  );
+
+  const updateSubAccount = useCallback(
+    async (accountId: string, index: number, sub: SubAccount): Promise<void> => {
+      setRawAccounts((prev) =>
+        prev.map((a) => {
+          if (a.id !== accountId) return a;
+          const subs = [...(a.subAccounts ?? [])];
+          if (index < 0 || index >= subs.length) return a;
+          subs[index] = sub;
+          const total = subs.reduce((s, e) => s + e.balance, 0);
+          return { ...a, subAccounts: subs, balance: total };
+        }),
+      );
+    },
+    [],
+  );
+
+  const removeSubAccount = useCallback(
+    async (accountId: string, index: number): Promise<void> => {
+      setRawAccounts((prev) =>
+        prev.map((a) => {
+          if (a.id !== accountId) return a;
+          const subs = [...(a.subAccounts ?? [])];
+          if (index < 0 || index >= subs.length) return a;
+          subs.splice(index, 1);
+          const total = subs.reduce((s, e) => s + e.balance, 0);
+          return { ...a, subAccounts: subs, balance: total };
+        }),
+      );
+    },
+    [],
+  );
+
+  const hasLoanDirection = useCallback(
+    (direction: LoanDirection): boolean => {
+      return rawAccounts.some(
+        (a) => a.type === "loan" && a.loanDirection === direction,
+      );
+    },
+    [rawAccounts],
   );
 
   const updateExchangeRate = useCallback(
@@ -523,6 +605,10 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         addAccount,
         updateAccount,
         deleteAccount,
+        addSubAccount,
+        updateSubAccount,
+        removeSubAccount,
+        hasLoanDirection,
         updateExchangeRate,
         updateBaseCurrency,
         eggZeroMode,

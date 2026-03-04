@@ -1,14 +1,8 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useState } from "react";
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ConfirmDeleteModal } from "../../components/ui/ConfirmDeleteModal";
 import { Theme } from "../../constants/themes";
 import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -218,56 +212,14 @@ export default function TransactionDetailScreen() {
         <View style={styles.bottomPad} />
       </ScrollView>
 
-      <Modal
+      <ConfirmDeleteModal
         visible={showDeleteConfirm}
-        animationType="fade"
-        transparent
-        onRequestClose={() => !busy && setShowDeleteConfirm(false)}
-      >
-        <View style={styles.confirmOverlay}>
-          <View style={styles.confirmModal}>
-            <View style={styles.confirmIconWrap}>
-              <MaterialCommunityIcons
-                name="trash-can-outline"
-                size={36}
-                color="#F14A6E"
-              />
-            </View>
-            <Text style={styles.confirmTitle}>Delete Transaction</Text>
-            <Text style={styles.confirmText}>
-              Are you sure you want to delete this {tx.type}?{"\n"}This action
-              cannot be undone.
-            </Text>
-            <View style={styles.confirmActions}>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.confirmBtn,
-                  styles.confirmBtnCancel,
-                  pressed && { opacity: 0.7 },
-                ]}
-                onPress={() => setShowDeleteConfirm(false)}
-                disabled={busy}
-              >
-                <Text style={styles.confirmBtnCancelText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.confirmBtn,
-                  styles.confirmBtnDelete,
-                  pressed && { opacity: 0.7 },
-                  busy && { opacity: 0.5 },
-                ]}
-                onPress={handleConfirmDelete}
-                disabled={busy}
-              >
-                <Text style={styles.confirmBtnDeleteText}>
-                  {busy ? "Deleting..." : "Delete"}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+        busy={busy}
+        title="Delete Transaction"
+        description={`Are you sure you want to delete this ${tx.type}?\nThis action cannot be undone.`}
+      />
     </View>
   );
 }
@@ -522,74 +474,6 @@ function makeStyles(theme: Theme) {
     },
     bottomPad: {
       height: 40,
-    },
-    confirmOverlay: {
-      flex: 1,
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
-      alignItems: "center",
-      justifyContent: "center",
-      paddingHorizontal: 20,
-    },
-    confirmModal: {
-      backgroundColor: theme.background.accent,
-      borderRadius: 20,
-      paddingVertical: 28,
-      paddingHorizontal: 24,
-      alignItems: "center",
-      gap: 16,
-      maxWidth: 320,
-    },
-    confirmIconWrap: {
-      width: 72,
-      height: 72,
-      borderRadius: 36,
-      backgroundColor: `${theme.foreground.white}10`,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    confirmTitle: {
-      fontSize: 18,
-      fontWeight: "700",
-      color: theme.foreground.white,
-      textAlign: "center",
-    },
-    confirmText: {
-      fontSize: 14,
-      color: theme.foreground.gray,
-      textAlign: "center",
-      lineHeight: 20,
-      marginBottom: 8,
-    },
-    confirmActions: {
-      flexDirection: "row",
-      gap: 12,
-      marginTop: 16,
-      width: "100%",
-    },
-    confirmBtn: {
-      flex: 1,
-      paddingVertical: 12,
-      borderRadius: 10,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    confirmBtnCancel: {
-      backgroundColor: theme.background.dark,
-      borderWidth: 1,
-      borderColor: `${theme.foreground.gray}22`,
-    },
-    confirmBtnCancelText: {
-      fontSize: 14,
-      fontWeight: "600",
-      color: theme.foreground.white,
-    },
-    confirmBtnDelete: {
-      backgroundColor: "#F14A6E",
-    },
-    confirmBtnDeleteText: {
-      fontSize: 14,
-      fontWeight: "600",
-      color: theme.foreground.white,
     },
   });
 }

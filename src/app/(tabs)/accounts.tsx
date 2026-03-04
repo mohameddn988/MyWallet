@@ -54,9 +54,6 @@ function AccountCard({
       style={({ pressed }) => [s.accountCard, pressed && { opacity: 0.78 }]}
       onPress={() => router.navigate(`/account/${account.id}` as any)}
     >
-      {/* Colored accent strip */}
-      <View style={[s.accountAccent, { backgroundColor: account.color }]} />
-
       {/* Icon */}
       <View style={[s.accountIcon, { backgroundColor: `${account.color}18` }]}>
         <MaterialCommunityIcons
@@ -68,21 +65,26 @@ function AccountCard({
 
       {/* Info */}
       <View style={s.accountInfo}>
-        <View style={s.accountNameRow}>
-          <Text style={s.accountName} numberOfLines={1}>
-            {account.name}
-          </Text>
-          {account.isLiability && (
-            <View style={s.liabilityBadge}>
-              <Text style={s.liabilityBadgeText}>Liability</Text>
-            </View>
-          )}
-        </View>
-        {account.accountRef ? (
-          <Text style={s.accountRef} numberOfLines={1}>
-            {account.accountRef}
-          </Text>
-        ) : null}
+        <Text style={s.accountName} numberOfLines={1}>
+          {account.name}
+        </Text>
+        {(account.type === "loan" || account.type === "charity") && (
+          <View style={s.accountBadgesRow}>
+            {account.type === "loan" && account.subAccounts && (
+              <View style={s.loanCountBadge}>
+                <Text style={s.loanCountBadgeText}>
+                  {account.subAccounts.length}{" "}
+                  {account.subAccounts.length === 1 ? "person" : "people"}
+                </Text>
+              </View>
+            )}
+            {account.type === "charity" && (
+              <View style={s.charityBadge}>
+                <Text style={s.charityBadgeText}>Neutral</Text>
+              </View>
+            )}
+          </View>
+        )}
       </View>
 
       {/* Balance */}
@@ -253,7 +255,6 @@ function ExchangeRateRow({
   const handleEdit = () => {
     setRateStr(String(rate.rate));
     setEditing(true);
-    setTimeout(() => inputRef.current?.focus(), 80);
   };
 
   const handleSave = () => {
@@ -297,7 +298,6 @@ function ExchangeRateRow({
               onSubmitEditing={handleSave}
               keyboardType="decimal-pad"
               returnKeyType="done"
-              selectTextOnFocus
               placeholderTextColor={theme.foreground.gray}
             />
             <Text style={s.rateBaseSuffix}>{baseCurrency}</Text>
@@ -377,6 +377,7 @@ export default function AccountsTabScreen() {
   const [displayCurrency, setDisplayCurrency] = useState(baseCurrency);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [rateEditorVisible, setRateEditorVisible] = useState(false);
+  const [basePickerVisible, setBasePickerVisible] = useState(false);
   const [editingCurrency, setEditingCurrency] = useState<string | null>(null);
   const [editingRateStr, setEditingRateStr] = useState("");
   const [expandedTypes, setExpandedTypes] = useState<Set<AccountType>>(
@@ -410,7 +411,6 @@ export default function AccountsTabScreen() {
       setEditingCurrency(currency);
       setEditingRateStr(existing ? String(existing.rate) : "");
       setRateEditorVisible(true);
-      setTimeout(() => rateInputRef.current?.focus(), 120);
     },
     [exchangeRates],
   );
@@ -504,32 +504,15 @@ export default function AccountsTabScreen() {
   );
 
   const handleChangeBaseCurrency = useCallback(() => {
-    const others = availableCurrencies.filter((c) => c !== baseCurrency);
-    if (others.length === 0) {
+    if (availableCurrencies.length <= 1) {
       Alert.alert(
         "No other currencies",
         "Add exchange rates to enable switching the base currency.",
       );
       return;
     }
-    Alert.alert(
-      "Change Base Currency",
-      `Current base: ${baseCurrency}\n\nAll exchange rates will be recalculated.`,
-      [
-        ...others.map((c) => ({
-          text: c,
-          onPress: async () => {
-            try {
-              await updateBaseCurrency(c);
-            } catch {
-              Alert.alert("Error", "Failed to change base currency.");
-            }
-          },
-        })),
-        { text: "Cancel", style: "cancel" as const },
-      ],
-    );
-  }, [availableCurrencies, baseCurrency, updateBaseCurrency]);
+    setBasePickerVisible(true);
+  }, [availableCurrencies, setBasePickerVisible]);
 
   const getGroupTotal = useCallback(
     (accounts: Account[]) =>
@@ -788,7 +771,6 @@ export default function AccountsTabScreen() {
                 onSubmitEditing={handleSaveRateFromEditor}
                 placeholderTextColor={theme.foreground.gray}
                 placeholder="0.00"
-                selectTextOnFocus
               />
               <Text
                 style={[s.rateEditorSuffix, { color: theme.foreground.gray }]}
@@ -890,6 +872,152 @@ export default function AccountsTabScreen() {
                       >
                         ✓
                       </Text>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Base currency picker modal */}
+      <Modal
+        visible={basePickerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setBasePickerVisible(false)}
+      >
+        <Pressable
+          style={s.modalOverlay}
+          onPress={() => setBasePickerVisible(false)}
+        >
+          <Pressable
+            style={[
+              s.baseCurrencySheet,
+              {
+                backgroundColor: theme.background.accent,
+                borderColor: `${theme.foreground.gray}20`,
+              },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <View style={s.baseCurrencyHeader}>
+              <View
+                style={[
+                  s.baseCurrencyIconWrap,
+                  { backgroundColor: `${theme.primary.main}18` },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name="swap-horizontal"
+                  size={20}
+                  color={theme.primary.main}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[s.baseCurrencyTitle, { color: theme.foreground.white }]}
+                >
+                  Change Base Currency
+                </Text>
+                <Text
+                  style={[
+                    s.baseCurrencySubtitle,
+                    { color: theme.foreground.gray },
+                  ]}
+                >
+                  All rates will be recalculated
+                </Text>
+              </View>
+            </View>
+
+            {/* Divider */}
+            <View
+              style={[
+                s.baseCurrencyDivider,
+                { backgroundColor: `${theme.foreground.gray}18` },
+              ]}
+            />
+
+            {/* Currency list */}
+            <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
+              {availableCurrencies.map((c) => {
+                const isBase = c === baseCurrency;
+                return (
+                  <Pressable
+                    key={c}
+                    style={({ pressed }) => [
+                      s.baseCurrencyRow,
+                      {
+                        borderBottomColor: `${theme.foreground.gray}12`,
+                        backgroundColor: pressed
+                          ? theme.background.darker
+                          : isBase
+                            ? `${theme.primary.main}0C`
+                            : "transparent",
+                      },
+                    ]}
+                    onPress={async () => {
+                      if (!isBase) {
+                        setBasePickerVisible(false);
+                        try {
+                          await updateBaseCurrency(c);
+                        } catch {
+                          Alert.alert("Error", "Failed to change base currency.");
+                        }
+                      }
+                    }}
+                  >
+                    <View
+                      style={[
+                        s.baseCurrencyBadge,
+                        {
+                          backgroundColor: isBase
+                            ? `${theme.primary.main}20`
+                            : theme.background.darker,
+                          borderColor: isBase
+                            ? `${theme.primary.main}40`
+                            : "transparent",
+                          borderWidth: isBase ? 1 : 0,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          s.baseCurrencyCode,
+                          {
+                            color: isBase
+                              ? theme.primary.main
+                              : theme.foreground.white,
+                          },
+                        ]}
+                      >
+                        {c}
+                      </Text>
+                    </View>
+
+                    <Text
+                      style={[
+                        s.baseCurrencyRowLabel,
+                        {
+                          color: isBase
+                            ? theme.primary.main
+                            : theme.foreground.white,
+                          fontWeight: isBase ? "700" : "500",
+                        },
+                      ]}
+                    >
+                      {isBase ? "Current base" : "Set as base"}
+                    </Text>
+
+                    {isBase && (
+                      <MaterialCommunityIcons
+                        name="check-circle"
+                        size={18}
+                        color={theme.primary.main}
+                      />
                     )}
                   </Pressable>
                 );
@@ -1104,18 +1232,10 @@ function makeStyles(theme: Theme) {
       gap: 10,
       paddingVertical: 13,
       paddingRight: 12,
-      paddingLeft: 10,
+      paddingLeft: 12,
       backgroundColor: theme.background.darker,
       borderRadius: 13,
       overflow: "hidden",
-    },
-    accountAccent: {
-      position: "absolute",
-      left: 0,
-      top: 0,
-      bottom: 0,
-      width: 3,
-      borderRadius: 2,
     },
     accountIcon: {
       width: 40,
@@ -1123,13 +1243,18 @@ function makeStyles(theme: Theme) {
       borderRadius: 12,
       alignItems: "center",
       justifyContent: "center",
-      marginLeft: 6,
     },
-    accountInfo: { flex: 1, gap: 2 },
+    accountInfo: { flex: 1, gap: 4 },
     accountNameRow: {
       flexDirection: "row",
       alignItems: "center",
       gap: 6,
+    },
+    accountBadgesRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      marginTop: 2,
     },
     accountName: {
       fontSize: 14,
@@ -1149,6 +1274,34 @@ function makeStyles(theme: Theme) {
       fontSize: 9,
       fontWeight: "700",
       color: "#F14A6E",
+      letterSpacing: 0.2,
+    },
+    loanCountBadge: {
+      paddingHorizontal: 5,
+      paddingVertical: 1,
+      borderRadius: 4,
+      backgroundColor: "#FF950022",
+      borderWidth: 1,
+      borderColor: "#FF950044",
+    },
+    loanCountBadgeText: {
+      fontSize: 9,
+      fontWeight: "700",
+      color: "#FF9500",
+      letterSpacing: 0.2,
+    },
+    charityBadge: {
+      paddingHorizontal: 5,
+      paddingVertical: 1,
+      borderRadius: 4,
+      backgroundColor: "#A44AF122",
+      borderWidth: 1,
+      borderColor: "#A44AF144",
+    },
+    charityBadgeText: {
+      fontSize: 9,
+      fontWeight: "700",
+      color: "#A44AF1",
       letterSpacing: 0.2,
     },
     accountRef: {
@@ -1436,6 +1589,66 @@ function makeStyles(theme: Theme) {
     checkmark: {
       fontSize: 16,
       fontWeight: "700",
+    },
+
+    // ── Base currency picker modal ──
+    baseCurrencySheet: {
+      width: "100%",
+      borderRadius: 20,
+      borderWidth: 1,
+      overflow: "hidden",
+      maxHeight: 420,
+    },
+    baseCurrencyHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingHorizontal: 18,
+      paddingTop: 18,
+      paddingBottom: 16,
+    },
+    baseCurrencyIconWrap: {
+      width: 42,
+      height: 42,
+      borderRadius: 13,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    baseCurrencyTitle: {
+      fontSize: 15,
+      fontWeight: "700",
+    },
+    baseCurrencySubtitle: {
+      fontSize: 12,
+      marginTop: 2,
+    },
+    baseCurrencyDivider: {
+      height: 1,
+      marginHorizontal: 0,
+    },
+    baseCurrencyRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 18,
+      paddingVertical: 14,
+      gap: 12,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    baseCurrencyBadge: {
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 8,
+      minWidth: 52,
+      alignItems: "center",
+    },
+    baseCurrencyCode: {
+      fontSize: 12,
+      fontWeight: "800",
+      letterSpacing: 0.5,
+    },
+    baseCurrencyRowLabel: {
+      fontSize: 14,
+      flex: 1,
     },
   });
 }

@@ -7,17 +7,20 @@ import {
   SectionList,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { Theme } from "../../constants/themes";
 import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
-import { getAccountTypeMeta } from "../../data/accounts";
+import { getAccountTypeMeta, LOAN_DIRECTIONS } from "../../data/accounts";
+import { ConfirmDeleteModal } from "../../components/ui/ConfirmDeleteModal";
 import { Transaction } from "../../types/finance";
 import {
   convertToBase,
   formatAmount,
   formatAmountSigned,
+  getCurrencySymbol,
   parseDate,
 } from "../../utils/currency";
 
@@ -69,7 +72,12 @@ function buildWeeklyFlow(
   const weeks: number[] = new Array(8).fill(0);
 
   for (const tx of transactions) {
-    if (tx.type === "transfer" && tx.accountId !== accountId && tx.toAccountId !== accountId) continue;
+    if (
+      tx.type === "transfer" &&
+      tx.accountId !== accountId &&
+      tx.toAccountId !== accountId
+    )
+      continue;
     if (tx.type !== "transfer" && tx.accountId !== accountId) continue;
 
     const d = parseDate(tx.date);
@@ -123,14 +131,10 @@ function TxRow({
           paddingVertical: 13,
           paddingHorizontal: 16,
           gap: 12,
-          backgroundColor: pressed
-            ? theme.background.accent
-            : "transparent",
+          backgroundColor: pressed ? theme.background.accent : "transparent",
         },
       ]}
-      onPress={() =>
-        router.navigate(`/transaction/${tx.id}` as any)
-      }
+      onPress={() => router.navigate(`/transaction/${tx.id}` as any)}
     >
       <View
         style={{
@@ -217,6 +221,8 @@ export default function AccountDetailScreen() {
     baseCurrency,
     updateAccount,
     deleteAccount,
+    addSubAccount,
+    removeSubAccount,
   } = useFinance();
 
   const account = useMemo(
@@ -228,9 +234,7 @@ export default function AccountDetailScreen() {
   const accountTxs = useMemo(
     () =>
       allTransactions
-        .filter(
-          (t) => t.accountId === id || t.toAccountId === id,
-        )
+        .filter((t) => t.accountId === id || t.toAccountId === id)
         .sort((a, b) => b.date.localeCompare(a.date)),
     [allTransactions, id],
   );
@@ -252,7 +256,8 @@ export default function AccountDetailScreen() {
     let totalOut = 0;
     for (const tx of accountTxs) {
       if (tx.type === "income" && tx.accountId === id) totalIn += tx.amount;
-      else if (tx.type === "expense" && tx.accountId === id) totalOut += tx.amount;
+      else if (tx.type === "expense" && tx.accountId === id)
+        totalOut += tx.amount;
       else if (tx.type === "transfer") {
         if (tx.toAccountId === id) totalIn += tx.amount;
         else if (tx.accountId === id) totalOut += tx.amount;
@@ -276,6 +281,41 @@ export default function AccountDetailScreen() {
 
   const [archiving, setArchiving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pendingRemoveIndex, setPendingRemoveIndex] = useState<number | null>(
+    null,
+  );
+
+  // Loan sub-account add state
+  const [newPersonName, setNewPersonName] = useState("");
+  const [newPersonAmount, setNewPersonAmount] = useState("");
+
+  const isLoanAccount = account?.type === "loan";
+  const isCharityAccount = account?.type === "charity";
+
+  const handleAddPerson = useCallback(async () => {
+    if (!account) return;
+    const personName = newPersonName.trim();
+    const amount = Math.round((parseFloat(newPersonAmount) || 0) * 100);
+    if (!personName || amount <= 0) return;
+    await addSubAccount(account.id, { name: personName, balance: amount });
+    setNewPersonName("");
+    setNewPersonAmount("");
+  }, [account, newPersonName, newPersonAmount, addSubAccount]);
+
+  const handleRemovePerson = useCallback(
+    (index: number) => {
+      if (!account) return;
+      setPendingRemoveIndex(index);
+    },
+    [account],
+  );
+
+  const handleConfirmRemovePerson = useCallback(async () => {
+    if (!account || pendingRemoveIndex === null) return;
+    await removeSubAccount(account.id, pendingRemoveIndex);
+    setPendingRemoveIndex(null);
+  }, [account, pendingRemoveIndex, removeSubAccount]);
 
   const handleArchiveToggle = useCallback(async () => {
     if (!account || archiving) return;
@@ -289,33 +329,29 @@ export default function AccountDetailScreen() {
   }, [account, archiving, updateAccount]);
 
   const handleDelete = useCallback(() => {
-    Alert.alert(
-      "Delete Account",
-      accountTxs.length > 0
-        ? `This account has ${accountTxs.length} transaction(s). You must delete all of them first, or archive the account instead.`
-        : "Are you sure you want to permanently delete this account? This cannot be undone.",
-      accountTxs.length > 0
-        ? [{ text: "OK" }]
-        : [
-            { text: "Cancel", style: "cancel" },
-            {
-              text: "Delete",
-              style: "destructive",
-              onPress: async () => {
-                setDeleting(true);
-                try {
-                  await deleteAccount(id);
-                  router.back();
-                } catch (e: any) {
-                  Alert.alert("Error", e?.message ?? "Failed to delete");
-                } finally {
-                  setDeleting(false);
-                }
-              },
-            },
-          ],
-    );
-  }, [account, accountTxs.length, deleteAccount, id]);
+    if (accountTxs.length > 0) {
+      Alert.alert(
+        "Delete Account",
+        `This account has ${accountTxs.length} transaction(s). You must delete all of them first, or archive the account instead.`,
+        [{ text: "OK" }],
+      );
+    } else {
+      setShowDeleteConfirm(true);
+    }
+  }, [accountTxs.length]);
+
+  const handleConfirmDelete = useCallback(async () => {
+    setShowDeleteConfirm(false);
+    setDeleting(true);
+    try {
+      await deleteAccount(id);
+      router.back();
+    } catch (e: any) {
+      Alert.alert("Error", e?.message ?? "Failed to delete");
+    } finally {
+      setDeleting(false);
+    }
+  }, [deleteAccount, id]);
 
   if (!account) {
     return (
@@ -382,9 +418,7 @@ export default function AccountDetailScreen() {
         ListHeaderComponent={
           <>
             {/* ── Account card ── */}
-            <View
-              style={[styles.accountCard, { borderColor: account.color }]}
-            >
+            <View style={[styles.accountCard, { borderColor: account.color }]}>
               <View
                 style={[
                   styles.accountIconWrap,
@@ -406,25 +440,68 @@ export default function AccountDetailScreen() {
                       { backgroundColor: `${meta.defaultColor}22` },
                     ]}
                   >
-                    <Text style={[styles.badgeText, { color: meta.defaultColor }]}>
+                    <Text
+                      style={[styles.badgeText, { color: meta.defaultColor }]}
+                    >
                       {meta.label}
                     </Text>
                   </View>
+                  {account.loanDirection && (
+                    <View
+                      style={[
+                        styles.badge,
+                        {
+                          backgroundColor:
+                            account.loanDirection === "owe"
+                              ? "#F14A6E22"
+                              : `${theme.primary.main}22`,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.badgeText,
+                          {
+                            color:
+                              account.loanDirection === "owe"
+                                ? "#F14A6E"
+                                : theme.primary.main,
+                          },
+                        ]}
+                      >
+                        {LOAN_DIRECTIONS.find(
+                          (d) => d.value === account.loanDirection,
+                        )?.label ?? ""}
+                      </Text>
+                    </View>
+                  )}
+                  {isCharityAccount && (
+                    <View
+                      style={[
+                        styles.badge,
+                        { backgroundColor: `${theme.primary.main}22` },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.badgeText,
+                          { color: theme.primary.main },
+                        ]}
+                      >
+                        Neutral
+                      </Text>
+                    </View>
+                  )}
                   {account.isArchived && (
                     <View style={styles.archivedBadge}>
                       <Text style={styles.archivedBadgeText}>Archived</Text>
                     </View>
                   )}
-                  {account.isLiability && (
-                    <View style={[styles.badge, { backgroundColor: "#F14A6E22" }]}>
-                      <Text style={[styles.badgeText, { color: "#F14A6E" }]}>
-                        Liability
-                      </Text>
-                    </View>
-                  )}
                 </View>
                 {account.accountRef ? (
-                  <Text style={styles.accountRef}>Ref: {account.accountRef}</Text>
+                  <Text style={styles.accountRef}>
+                    Ref: {account.accountRef}
+                  </Text>
                 ) : null}
               </View>
             </View>
@@ -460,14 +537,20 @@ export default function AccountDetailScreen() {
               <View style={styles.statItem}>
                 <Text style={styles.statLabel}>Total In</Text>
                 <Text style={[styles.statValue, { color: theme.primary.main }]}>
-                  +{formatAmount(stats.totalIn, account.currency, { compact: true })}
+                  +
+                  {formatAmount(stats.totalIn, account.currency, {
+                    compact: true,
+                  })}
                 </Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
                 <Text style={styles.statLabel}>Total Out</Text>
                 <Text style={[styles.statValue, { color: "#F14A6E" }]}>
-                  -{formatAmount(stats.totalOut, account.currency, { compact: true })}
+                  -
+                  {formatAmount(stats.totalOut, account.currency, {
+                    compact: true,
+                  })}
                 </Text>
               </View>
             </View>
@@ -493,8 +576,182 @@ export default function AccountDetailScreen() {
               </View>
             )}
 
-            {/* ── Sub-accounts (if any) ── */}
-            {account.subAccounts && account.subAccounts.length > 0 && (
+            {/* ── Sub-accounts / Loan people ── */}
+            {isLoanAccount ? (
+              <View style={styles.subSection}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: 10,
+                  }}
+                >
+                  <Text style={styles.subTitle}>
+                    {account.loanDirection === "owe"
+                      ? "People I Owe"
+                      : "People Who Owe Me"}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: "700",
+                      color: theme.primary.main,
+                    }}
+                  >
+                    {formatAmount(account.balance, account.currency)}
+                  </Text>
+                </View>
+
+                {/* Existing entries */}
+                {account.subAccounts?.map((sub, i) => (
+                  <View key={i} style={styles.subRow}>
+                    <Text style={styles.subName}>{sub.name}</Text>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 10,
+                      }}
+                    >
+                      <Text style={styles.subBalance}>
+                        {formatAmount(sub.balance, account.currency)}
+                      </Text>
+                      <Pressable
+                        style={({ pressed }) => [pressed && { opacity: 0.5 }]}
+                        onPress={() => handleRemovePerson(i)}
+                      >
+                        <MaterialCommunityIcons
+                          name="close-circle-outline"
+                          size={18}
+                          color="#F14A6E"
+                        />
+                      </Pressable>
+                    </View>
+                  </View>
+                ))}
+
+                {(!account.subAccounts || account.subAccounts.length === 0) && (
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      color: theme.foreground.gray,
+                      textAlign: "center",
+                      paddingVertical: 12,
+                      opacity: 0.6,
+                    }}
+                  >
+                    No entries yet
+                  </Text>
+                )}
+
+                {/* Add new person */}
+                <View
+                  style={{
+                    borderTopWidth: 1,
+                    borderTopColor: theme.background.darker,
+                    marginTop: 8,
+                    paddingTop: 12,
+                    gap: 8,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: "600",
+                      color: theme.foreground.gray,
+                      letterSpacing: 0.5,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Add Person
+                  </Text>
+                  <TextInput
+                    style={{
+                      backgroundColor: theme.background.darker,
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: "#2C3139",
+                      paddingHorizontal: 12,
+                      paddingVertical: 10,
+                      color: theme.foreground.white,
+                      fontSize: 14,
+                    }}
+                    placeholder="Name"
+                    placeholderTextColor={theme.foreground.gray}
+                    value={newPersonName}
+                    onChangeText={setNewPersonName}
+                  />
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <View
+                      style={{
+                        flex: 1,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        backgroundColor: theme.background.darker,
+                        borderRadius: 10,
+                        borderWidth: 1,
+                        borderColor: "#2C3139",
+                        paddingHorizontal: 12,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          color: theme.foreground.gray,
+                          marginRight: 8,
+                        }}
+                      >
+                        {getCurrencySymbol(account.currency)}
+                      </Text>
+                      <TextInput
+                        style={{
+                          flex: 1,
+                          color: theme.foreground.white,
+                          fontSize: 14,
+                          paddingVertical: 10,
+                        }}
+                        placeholder="0"
+                        placeholderTextColor={theme.foreground.gray}
+                        value={newPersonAmount}
+                        onChangeText={(v) =>
+                          setNewPersonAmount(v.replace(/[^0-9.]/g, ""))
+                        }
+                        keyboardType="decimal-pad"
+                      />
+                    </View>
+                    <Pressable
+                      style={({ pressed }) => [
+                        {
+                          width: 44,
+                          height: 44,
+                          borderRadius: 12,
+                          backgroundColor: theme.primary.main,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        },
+                        pressed && { opacity: 0.7 },
+                        (!newPersonName.trim() ||
+                          !(parseFloat(newPersonAmount) > 0)) && {
+                          opacity: 0.4,
+                        },
+                      ]}
+                      onPress={handleAddPerson}
+                      disabled={
+                        !newPersonName.trim() ||
+                        !(parseFloat(newPersonAmount) > 0)
+                      }
+                    >
+                      <MaterialCommunityIcons
+                        name="plus"
+                        size={20}
+                        color={theme.background.dark}
+                      />
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+            ) : account.subAccounts && account.subAccounts.length > 0 ? (
               <View style={styles.subSection}>
                 <Text style={styles.subTitle}>Breakdown</Text>
                 {account.subAccounts.map((sub, i) => (
@@ -506,7 +763,7 @@ export default function AccountDetailScreen() {
                   </View>
                 ))}
               </View>
-            )}
+            ) : null}
 
             {/* ── Actions ── */}
             <View style={styles.actionsRow}>
@@ -540,9 +797,17 @@ export default function AccountDetailScreen() {
                 disabled={archiving}
               >
                 <MaterialCommunityIcons
-                  name={account.isArchived ? "archive-arrow-up-outline" : "archive-arrow-down-outline"}
+                  name={
+                    account.isArchived
+                      ? "archive-arrow-up-outline"
+                      : "archive-arrow-down-outline"
+                  }
                   size={18}
-                  color={account.isArchived ? theme.primary.main : theme.foreground.white}
+                  color={
+                    account.isArchived
+                      ? theme.primary.main
+                      : theme.foreground.white
+                  }
                 />
                 <Text
                   style={[
@@ -582,9 +847,7 @@ export default function AccountDetailScreen() {
         }
         renderSectionHeader={({ section: { date } }) => (
           <View style={styles.dateHeader}>
-            <Text style={styles.dateHeaderText}>
-              {formatDateHeading(date)}
-            </Text>
+            <Text style={styles.dateHeaderText}>{formatDateHeading(date)}</Text>
             <Text style={styles.dateHeaderSub}>{date}</Text>
           </View>
         )}
@@ -614,6 +877,29 @@ export default function AccountDetailScreen() {
           </View>
         }
         contentContainerStyle={{ paddingBottom: 40 }}
+      />
+      <ConfirmDeleteModal
+        visible={showDeleteConfirm}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+        busy={deleting}
+        title="Delete Account"
+        description="Are you sure you want to permanently delete this account? This cannot be undone."
+      />
+      <ConfirmDeleteModal
+        visible={pendingRemoveIndex !== null}
+        onConfirm={handleConfirmRemovePerson}
+        onCancel={() => setPendingRemoveIndex(null)}
+        title="Remove Entry"
+        description={
+          pendingRemoveIndex !== null &&
+          account?.subAccounts?.[pendingRemoveIndex]
+            ? `Remove "${account.subAccounts[pendingRemoveIndex].name}" (${getCurrencySymbol(account.currency)} ${(account.subAccounts[pendingRemoveIndex].balance / 100).toLocaleString()}) from this list?`
+            : "Remove this entry from the list?"
+        }
+        confirmLabel="Remove"
+        busyLabel="Removing…"
+        icon="account-remove-outline"
       />
     </View>
   );
