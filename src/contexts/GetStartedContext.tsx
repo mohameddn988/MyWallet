@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useMemo, useState } from "react";
-import { TransactionType } from "../types/finance";
 import {
   AccountDraft,
   TxDraft,

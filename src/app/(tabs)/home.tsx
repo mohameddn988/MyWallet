@@ -63,7 +63,6 @@ export default function HomeScreen() {
     refresh,
     displayCurrency,
     setDisplayCurrency,
-    availableCurrencies,
     triggerEggZero,
   } = useFinance();
 
@@ -128,7 +127,7 @@ export default function HomeScreen() {
         }),
       ]),
     ]).start();
-  }, [eggScale, eggRotate]);
+  }, [eggScale, eggRotate, triggerEggZero]);
 
   const rotateInterp = eggRotate.interpolate({
     inputRange: [-1, 0, 1],

@@ -139,7 +139,7 @@ export function TimePickerModal({
       setSelMin(minute);
       setStep("hour");
     }
-  }, [visible]);
+  }, [visible, hour, minute]);
 
   const handleConfirm = () => onConfirm(selHour, selMin);
 

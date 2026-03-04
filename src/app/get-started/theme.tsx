@@ -9,7 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { Theme, ThemeMode, themeVariants, getThemeByVariantAndMode } from "../../constants/themes";
+import { ThemeMode, themeVariants, getThemeByVariantAndMode } from "../../constants/themes";
 import { useTheme } from "../../contexts/ThemeContext";
 
 export default function ThemeSelectionScreen() {

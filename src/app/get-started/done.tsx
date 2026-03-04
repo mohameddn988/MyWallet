@@ -70,7 +70,7 @@ export default function DoneScreen() {
           color={theme.primary.main}
           style={styles.icon}
         />
-        <Text style={styles.title}>You're all set!</Text>
+        <Text style={styles.title}>You&apos;re all set!</Text>
         <Text style={styles.subtitle}>
           {accountDrafts.length} account{accountDrafts.length > 1 ? "s" : ""} created in{" "}
           {baseCurrency}. Your wallet is ready.

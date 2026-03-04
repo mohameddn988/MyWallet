@@ -1,5 +1,5 @@
-import { Tabs, usePathname } from "expo-router";
-import { router } from "expo-router";
+import { Tabs, usePathname , router } from "expo-router";
+
 import React, { useCallback, useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { CustomTabBar } from "../../components/layout/CustomTabBar";

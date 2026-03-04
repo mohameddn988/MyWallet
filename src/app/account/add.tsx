@@ -429,6 +429,10 @@ export default function AddAccountScreen() {
     addAccount,
     updateAccount,
     showToast,
+    baseCurrency,
+    currencyDiffersFromBase,
+    exchangeRate,
+    updateExchangeRate,
   ]);
 
   const selectedTypeMeta = ACCOUNT_TYPE_META.find(
@@ -851,7 +855,7 @@ export default function AddAccountScreen() {
                     lineHeight: 17,
                   }}
                 >
-                  This is the amount you want to set aside for charity. It won't
+                  This is the amount you want to set aside for charity. It won&apos;t
                   affect your net worth until you transfer money into it.
                 </Text>
               )}
