@@ -1,9 +1,9 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  FlatList,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -95,7 +95,7 @@ const FILTER_CONFIG: {
 
 export default function TransactionsTabScreen() {
   const { theme } = useTheme();
-  const styles = makeStyles(theme);
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const searchParams = useLocalSearchParams<{ filter?: string }>();
   const { allTransactions, isRefreshing, refresh, allAccounts } = useFinance();
 
@@ -112,15 +112,13 @@ export default function TransactionsTabScreen() {
 
   const navigation = useNavigation();
 
-  const toggleDate = (date: string) => {
-    const newExpanded = new Set(expandedDates);
-    if (newExpanded.has(date)) {
-      newExpanded.delete(date);
-    } else {
-      newExpanded.add(date);
-    }
-    setExpandedDates(newExpanded);
-  };
+  const handleToggle = useCallback((date: string) => {
+    setExpandedDates((prev) => {
+      const next = new Set(prev);
+      next.has(date) ? next.delete(date) : next.add(date);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (searchParams.filter) {
@@ -291,22 +289,23 @@ export default function TransactionsTabScreen() {
         })}
       </View>
 
-      <ScrollView
+      <FlatList
         style={styles.list}
+        data={groups}
+        keyExtractor={(item) => item.date}
+        renderItem={({ item }) => (
+          <DayCard
+            group={item}
+            theme={theme}
+            styles={styles}
+            isExpanded={expandedDates.has(item.date)}
+            onToggle={handleToggle}
+          />
+        )}
         contentContainerStyle={
           groups.length === 0 ? styles.emptyContainer : styles.listContent
         }
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={refresh}
-            tintColor={theme.primary.main}
-            colors={[theme.primary.main]}
-          />
-        }
-      >
-        {groups.length === 0 ? (
+        ListEmptyComponent={
           <View style={styles.emptyState}>
             <View style={styles.emptyIconWrap}>
               <MaterialCommunityIcons
@@ -340,19 +339,18 @@ export default function TransactionsTabScreen() {
               </Pressable>
             )}
           </View>
-        ) : (
-          groups.map((group) => (
-            <DayCard
-              key={group.date}
-              group={group}
-              theme={theme}
-              styles={styles}
-              isExpanded={expandedDates.has(group.date)}
-              onToggle={() => toggleDate(group.date)}
-            />
-          ))
-        )}
-      </ScrollView>
+        }
+        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refresh}
+            tintColor={theme.primary.main}
+            colors={[theme.primary.main]}
+          />
+        }
+      />
       <TransactionFilterSheet
         isOpen={filterSheetOpen}
         onClose={() => setFilterSheetOpen(false)}
@@ -363,7 +361,7 @@ export default function TransactionsTabScreen() {
   );
 }
 
-function DayCard({
+const DayCard = React.memo(function DayCard({
   group,
   theme,
   styles,
@@ -374,7 +372,7 @@ function DayCard({
   theme: Theme;
   styles: ReturnType<typeof makeStyles>;
   isExpanded: boolean;
-  onToggle: () => void;
+  onToggle: (date: string) => void;
 }) {
   const net = group.dayNet;
   const netColor =
@@ -382,7 +380,7 @@ function DayCard({
 
   return (
     <View style={styles.dayCard}>
-      <Pressable style={styles.dayCardHeaderPress} onPress={onToggle}>
+      <Pressable style={styles.dayCardHeaderPress} onPress={() => onToggle(group.date)}>
         <View style={styles.dayCardHeaderContent}>
           <Text style={styles.dayCardDate}>{formatDateLabel(group.date)}</Text>
           <Text style={[styles.dayCardNet, { color: netColor }]}>
@@ -410,9 +408,9 @@ function DayCard({
         ))}
     </View>
   );
-}
+});
 
-function TxRow({
+const TxRow = React.memo(function TxRow({
   tx,
   isLast,
   theme,
@@ -480,7 +478,7 @@ function TxRow({
       </Text>
     </Pressable>
   );
-}
+});
 
 function makeStyles(theme: Theme) {
   return StyleSheet.create({
@@ -582,7 +580,6 @@ function makeStyles(theme: Theme) {
     listContent: {
       paddingHorizontal: 16,
       paddingBottom: 110,
-      gap: 12,
     },
     dayCard: {
       backgroundColor: theme.background.accent,

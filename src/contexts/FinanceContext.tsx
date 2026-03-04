@@ -316,7 +316,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         };
       } else if (dir === 1) {
         // Only create on add, not on undo/delete
-        subs.push({ name: tx.subAccountName, balance: tx.amount });
+        subs.push({ name: tx.subAccountName!, balance: tx.amount });
       }
       return { ...acc, subAccounts: subs };
     });
@@ -636,36 +636,65 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     eggZeroMode,
   ]);
 
+  const fullValue = useMemo(
+    () => ({
+      ...value,
+      displayCurrency,
+      setDisplayCurrency,
+      isLoading,
+      hasCompleted,
+      completeOnboarding,
+      resetOnboarding,
+      addTransaction,
+      updateTransaction,
+      deleteTransaction,
+      duplicateTransaction,
+      lastDeletedTransaction,
+      restoreLastDeleted,
+      clearLastDeleted,
+      addAccount,
+      updateAccount,
+      deleteAccount,
+      addSubAccount,
+      updateSubAccount,
+      removeSubAccount,
+      hasLoanDirection,
+      updateExchangeRate,
+      updateBaseCurrency,
+      eggZeroMode,
+      triggerEggZero,
+    }),
+    [
+      value,
+      displayCurrency,
+      setDisplayCurrency,
+      isLoading,
+      hasCompleted,
+      completeOnboarding,
+      resetOnboarding,
+      addTransaction,
+      updateTransaction,
+      deleteTransaction,
+      duplicateTransaction,
+      lastDeletedTransaction,
+      restoreLastDeleted,
+      clearLastDeleted,
+      addAccount,
+      updateAccount,
+      deleteAccount,
+      addSubAccount,
+      updateSubAccount,
+      removeSubAccount,
+      hasLoanDirection,
+      updateExchangeRate,
+      updateBaseCurrency,
+      eggZeroMode,
+      triggerEggZero,
+    ],
+  );
+
   return (
-    <FinanceContext.Provider
-      value={{
-        ...value,
-        displayCurrency,
-        setDisplayCurrency,
-        isLoading,
-        hasCompleted,
-        completeOnboarding,
-        resetOnboarding,
-        addTransaction,
-        updateTransaction,
-        deleteTransaction,
-        duplicateTransaction,
-        lastDeletedTransaction,
-        restoreLastDeleted,
-        clearLastDeleted,
-        addAccount,
-        updateAccount,
-        deleteAccount,
-        addSubAccount,
-        updateSubAccount,
-        removeSubAccount,
-        hasLoanDirection,
-        updateExchangeRate,
-        updateBaseCurrency,
-        eggZeroMode,
-        triggerEggZero,
-      }}
-    >
+    <FinanceContext.Provider value={fullValue}>
       {children}
     </FinanceContext.Provider>
   );

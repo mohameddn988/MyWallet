@@ -30,7 +30,7 @@ export default function QuickStatsBar({
   onPeriodChange,
 }: QuickStatsBarProps) {
   const { theme } = useTheme();
-  const styles = makeStyles(theme);
+  const styles = useMemo(() => makeStyles(theme), [theme]);
 
   const convertedStats = useMemo(
     () => ({

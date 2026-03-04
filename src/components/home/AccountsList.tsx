@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import React from "react";
+import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { AccountWithBalance, ExchangeRate } from "../../types/finance";
@@ -23,7 +23,7 @@ export default function AccountsList({
   onViewAllPress,
 }: AccountsListProps) {
   const { theme } = useTheme();
-  const styles = makeStyles(theme);
+  const styles = useMemo(() => makeStyles(theme), [theme]);
 
   const liquidAccounts = accounts.filter(
     (aw) => aw.account.type !== "loan" && aw.account.type !== "charity",

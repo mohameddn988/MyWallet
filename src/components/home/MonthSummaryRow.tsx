@@ -25,7 +25,7 @@ export default function MonthSummaryRow({
   onNetPress,
 }: MonthSummaryRowProps) {
   const { theme } = useTheme();
-  const styles = makeStyles(theme);
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const isNetPositive = summary.net >= 0;
 
   const convertedSummary = useMemo(

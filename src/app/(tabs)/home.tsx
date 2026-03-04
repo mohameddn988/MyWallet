@@ -50,6 +50,7 @@ const EASTER_EGGS = [
 
 export default function HomeScreen() {
   const { theme } = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const {
     baseCurrency,
     exchangeRates,
@@ -83,8 +84,6 @@ export default function HomeScreen() {
     exchangeRates.forEach((r) => set.add(r.from));
     return Array.from(set);
   }, [baseCurrency, exchangeRates]);
-
-  const styles = makeStyles(theme);
 
   const showEasterEgg = useCallback(() => {
     const idx = easterEggIndexRef.current % EASTER_EGGS.length;
@@ -179,7 +178,7 @@ export default function HomeScreen() {
   const latestTransactions = recentTransactions.slice(0, 4);
 
   // Get the 4 most used accounts
-  const getMostUsedAccounts = () => {
+  const mostUsedAccounts = useMemo(() => {
     const accountUsage = new Map<string, number>();
 
     // Count how many times each account appears in transactions
@@ -201,9 +200,7 @@ export default function HomeScreen() {
 
     // Return filtered accounts in the sorted order
     return accounts.filter((aw) => sortedAccountIds.includes(aw.account.id));
-  };
-
-  const mostUsedAccounts = getMostUsedAccounts();
+  }, [allTransactions, accounts]);
 
   return (
     <View style={styles.root}>

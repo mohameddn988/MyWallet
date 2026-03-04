@@ -3,9 +3,9 @@ import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React from "react";
 import {
   Platform,
+  Pressable,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -107,13 +107,12 @@ function TabButton({
   const styles = createStyles(theme);
 
   return (
-    <TouchableOpacity
+    <Pressable
       accessibilityRole="button"
       accessibilityState={isFocused ? { selected: true } : {}}
       onPress={onPress}
       onLongPress={onLongPress}
-      style={styles.tabButton}
-      activeOpacity={0.7}
+      style={({ pressed }) => [styles.tabButton, pressed && { opacity: 0.7 }]}
     >
       <View style={styles.iconContainer}>
         <MaterialCommunityIcons
@@ -130,7 +129,7 @@ function TabButton({
       >
         {label}
       </Text>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
