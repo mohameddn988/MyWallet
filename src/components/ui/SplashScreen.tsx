@@ -15,7 +15,7 @@ export default function SplashScreen({
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
-    // Animation sequence: fade in + scale up, hold, then fade out
+    // Animation sequence: fade in + scale up, hold, then complete
     Animated.sequence([
       // Fade in and scale up
       Animated.parallel([
@@ -32,12 +32,6 @@ export default function SplashScreen({
       ]),
       // Hold for a moment
       Animated.delay(1000),
-      // Fade out
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
     ]).start(() => {
       // Animation complete, trigger callback
       onAnimationComplete();

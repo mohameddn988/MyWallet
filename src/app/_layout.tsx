@@ -55,31 +55,31 @@ function RootLayoutWithTheme() {
             contentStyle: { backgroundColor: theme.background.dark },
           }}
         >
-          <Stack.Screen name="index" />
-          <Stack.Screen name="auth/index" />
+          <Stack.Screen name="index" options={{ animation: "fade" }} />
+          <Stack.Screen name="auth/index" options={{ animation: "fade" }} />
           <Stack.Screen
             name="get-started/welcome"
-            options={{ animation: "none" }}
+            options={{ animation: "fade" }}
           />
           <Stack.Screen
             name="get-started/currency"
-            options={{ animation: "none" }}
+            options={{ animation: "fade" }}
           />
           <Stack.Screen
             name="get-started/accounts"
-            options={{ animation: "none" }}
+            options={{ animation: "fade" }}
           />
           <Stack.Screen
             name="get-started/exchange-rates"
-            options={{ animation: "none" }}
+            options={{ animation: "fade" }}
           />
           <Stack.Screen
             name="get-started/first-transaction"
-            options={{ animation: "none" }}
+            options={{ animation: "fade" }}
           />
           <Stack.Screen
             name="get-started/done"
-            options={{ animation: "none" }}
+            options={{ animation: "fade" }}
           />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen
@@ -88,16 +88,13 @@ function RootLayoutWithTheme() {
           />
           <Stack.Screen
             name="transaction/[id]"
-            options={{ animation: "slide_from_right" }}
+            options={{ animation: "fade" }}
           />
           <Stack.Screen
             name="account/add"
             options={{ presentation: "modal", animation: "slide_from_bottom" }}
           />
-          <Stack.Screen
-            name="account/[id]"
-            options={{ animation: "slide_from_right" }}
-          />
+          <Stack.Screen name="account/[id]" options={{ animation: "fade" }} />
         </Stack>
       </SafeAreaView>
     </View>

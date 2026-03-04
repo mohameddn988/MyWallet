@@ -1,4 +1,4 @@
-import { Tabs, usePathname , router } from "expo-router";
+import { Tabs, usePathname, router } from "expo-router";
 
 import React, { useCallback, useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -39,10 +39,19 @@ export default function HomeTabsLayout() {
         tabBar={(props) => <CustomTabBar {...props} />}
         screenOptions={{ headerShown: false }}
       >
-        <Tabs.Screen name="home" options={{ title: "Home" }} />
-        <Tabs.Screen name="transactions" options={{ title: "Transactions" }} />
-        <Tabs.Screen name="accounts" options={{ title: "Accounts" }} />
-        <Tabs.Screen name="settings" options={{ title: "Settings" }} />
+        <Tabs.Screen name="home" options={{ title: "Home", lazy: false }} />
+        <Tabs.Screen
+          name="transactions"
+          options={{ title: "Transactions", lazy: false }}
+        />
+        <Tabs.Screen
+          name="accounts"
+          options={{ title: "Accounts", lazy: false }}
+        />
+        <Tabs.Screen
+          name="settings"
+          options={{ title: "Settings", lazy: false }}
+        />
       </Tabs>
 
       {showAddButton && (
