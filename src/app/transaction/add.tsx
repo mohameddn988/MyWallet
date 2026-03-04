@@ -11,7 +11,6 @@ import {
   Animated,
   Easing,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -21,12 +20,13 @@ import {
   View,
 } from "react-native";
 import { Theme } from "../../constants/themes";
+import { DatePickerModal } from "../../components/ui/DatePickerModal";
+import { TimePickerModal } from "../../components/ui/TimePickerModal";
 import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import {
   EXPENSE_CATEGORIES,
   INCOME_CATEGORIES,
-  PAYMENT_METHODS,
 } from "../../data/categories";
 import { Transaction, TransactionType } from "../../types/finance";
 import {
@@ -87,23 +87,6 @@ function shiftDate(dateStr: string, days: number): string {
   return toDateStr(d);
 }
 
-/** Build day grid for a month (Sunday-first) */
-function buildCalendarGrid(year: number, month: number): (number | null)[] {
-  const firstDow = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const cells: (number | null)[] = [];
-  for (let i = 0; i < firstDow; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-  while (cells.length % 7 !== 0) cells.push(null);
-  return cells;
-}
-
-const MONTH_NAMES = [
-  "January","February","March","April","May","June",
-  "July","August","September","October","November","December",
-];
-const WEEK_DAYS = ["Su","Mo","Tu","We","Th","Fr","Sa"];
-
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Toast
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -154,266 +137,8 @@ function useToast() {
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Date Picker Modal
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-interface DatePickerModalProps {
-  visible: boolean;
-  value: string; // YYYY-MM-DD
-  onConfirm: (date: string) => void;
-  onClose: () => void;
-  theme: Theme;
-}
-
-function DatePickerModal({
-  visible,
-  value,
-  onConfirm,
-  onClose,
-  theme,
-}: DatePickerModalProps) {
-  const parsed = parseDate(value);
-  const [calYear, setCalYear] = useState(parsed.getFullYear());
-  const [calMonth, setCalMonth] = useState(parsed.getMonth());
-  const [selectedDay, setSelectedDay] = useState(parsed.getDate());
-
-  // Sync when value changes from outside
-  useEffect(() => {
-    const d = parseDate(value);
-    setCalYear(d.getFullYear());
-    setCalMonth(d.getMonth());
-    setSelectedDay(d.getDate());
-  }, [value, visible]);
-
-  const grid = useMemo(
-    () => buildCalendarGrid(calYear, calMonth),
-    [calYear, calMonth],
-  );
-
-  const today = new Date();
-  const todayStr = toDateStr(today);
-
-  const prevMonth = () => {
-    if (calMonth === 0) {
-      setCalMonth(11);
-      setCalYear((y) => y - 1);
-    } else {
-      setCalMonth((m) => m - 1);
-    }
-  };
-
-  const nextMonth = () => {
-    if (calMonth === 11) {
-      setCalMonth(0);
-      setCalYear((y) => y + 1);
-    } else {
-      setCalMonth((m) => m + 1);
-    }
-  };
-
-  const handleConfirm = () => {
-    const mm = String(calMonth + 1).padStart(2, "0");
-    const dd = String(selectedDay).padStart(2, "0");
-    onConfirm(`${calYear}-${mm}-${dd}`);
-  };
-
-  const s = dpStyles(theme);
-
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <Pressable style={s.overlay} onPress={onClose} />
-      <View style={s.sheet}>
-        {/* Month/Year header */}
-        <View style={s.calHeader}>
-          <Pressable style={s.calNavBtn} onPress={prevMonth}>
-            <MaterialCommunityIcons
-              name="chevron-left"
-              size={22}
-              color={theme.foreground.white}
-            />
-          </Pressable>
-          <Text style={s.calTitle}>
-            {MONTH_NAMES[calMonth]} {calYear}
-          </Text>
-          <Pressable style={s.calNavBtn} onPress={nextMonth}>
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={22}
-              color={theme.foreground.white}
-            />
-          </Pressable>
-        </View>
-
-        {/* Weekday labels */}
-        <View style={s.weekRow}>
-          {WEEK_DAYS.map((d) => (
-            <Text key={d} style={s.weekDay}>
-              {d}
-            </Text>
-          ))}
-        </View>
-
-        {/* Day grid */}
-        <View style={s.grid}>
-          {grid.map((day, idx) => {
-            if (!day) return <View key={`empty-${idx}`} style={s.dayCell} />;
-            const mm = String(calMonth + 1).padStart(2, "0");
-            const dd = String(day).padStart(2, "0");
-            const dateStr = `${calYear}-${mm}-${dd}`;
-            const isSelected = day === selectedDay;
-            const isToday = dateStr === todayStr;
-
-            return (
-              <Pressable
-                key={dateStr}
-                style={[
-                  s.dayCell,
-                  isSelected && {
-                    backgroundColor: theme.primary.main,
-                    borderRadius: 10,
-                  },
-                  !isSelected && isToday && s.dayCellToday,
-                ]}
-                onPress={() => setSelectedDay(day)}
-              >
-                <Text
-                  style={[
-                    s.dayText,
-                    isSelected && { color: theme.background.dark, fontWeight: "700" },
-                    !isSelected && isToday && { color: theme.primary.main, fontWeight: "700" },
-                  ]}
-                >
-                  {day}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        {/* Actions */}
-        <View style={s.dpActions}>
-          <Pressable
-            style={({ pressed }) => [s.dpCancelBtn, pressed && { opacity: 0.7 }]}
-            onPress={onClose}
-          >
-            <Text style={s.dpCancelText}>Cancel</Text>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [s.dpConfirmBtn, pressed && { opacity: 0.8 }]}
-            onPress={handleConfirm}
-          >
-            <Text style={s.dpConfirmText}>Confirm</Text>
-          </Pressable>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-function dpStyles(theme: Theme) {
-  return StyleSheet.create({
-    overlay: {
-      flex: 1,
-      backgroundColor: "rgba(0,0,0,0.55)",
-    },
-    sheet: {
-      backgroundColor: theme.background.darker,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      padding: 20,
-      paddingBottom: Platform.OS === "ios" ? 36 : 20,
-    },
-    calHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: 16,
-    },
-    calNavBtn: {
-      width: 38,
-      height: 38,
-      borderRadius: 10,
-      backgroundColor: theme.background.accent,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    calTitle: {
-      fontSize: 17,
-      fontWeight: "700",
-      color: theme.foreground.white,
-    },
-    weekRow: {
-      flexDirection: "row",
-      marginBottom: 8,
-    },
-    weekDay: {
-      flex: 1,
-      textAlign: "center",
-      fontSize: 11,
-      fontWeight: "600",
-      color: theme.foreground.gray,
-      letterSpacing: 0.5,
-    },
-    grid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-    },
-    dayCell: {
-      width: `${100 / 7}%`,
-      aspectRatio: 1,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    dayCellToday: {
-      borderWidth: 1,
-      borderColor: theme.primary.main,
-      borderRadius: 10,
-    },
-    dayText: {
-      fontSize: 14,
-      color: theme.foreground.white,
-    },
-    dpActions: {
-      flexDirection: "row",
-      gap: 12,
-      marginTop: 16,
-    },
-    dpCancelBtn: {
-      flex: 1,
-      paddingVertical: 14,
-      borderRadius: 12,
-      backgroundColor: theme.background.accent,
-      alignItems: "center",
-    },
-    dpCancelText: {
-      fontSize: 15,
-      fontWeight: "600",
-      color: theme.foreground.gray,
-    },
-    dpConfirmBtn: {
-      flex: 2,
-      paddingVertical: 14,
-      borderRadius: 12,
-      backgroundColor: theme.primary.main,
-      alignItems: "center",
-    },
-    dpConfirmText: {
-      fontSize: 15,
-      fontWeight: "700",
-      color: theme.background.dark,
-    },
-  });
-}
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Main Screen
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 interface TouchedFields {
   amount: boolean;
   account: boolean;
@@ -468,14 +193,19 @@ export default function AddTransactionScreen() {
   const [date, setDate] = useState(editTx?.date ?? toDateStr(new Date()));
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTime, setShowTime] = useState(false);
-  const [timeHour, setTimeHour] = useState("12");
-  const [timeMin, setTimeMin] = useState("00");
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [timeHour, setTimeHour] = useState(12);
+  const [timeMin, setTimeMin] = useState(0);
   const [note, setNote] = useState(editTx?.note ?? "");
   const [merchant, setMerchant] = useState(editTx?.merchant ?? "");
-  const [tagsStr, setTagsStr] = useState(editTx?.tags?.join(", ") ?? "");
-  const [paymentMethod, setPaymentMethod] = useState(
-    editTx?.paymentMethod ?? "",
+  const [subAccountName, setSubAccountName] = useState(
+    editTx?.subAccountName ?? "",
   );
+  const [newPersonName, setNewPersonName] = useState("");
+  const [secondaryAccountId, setSecondaryAccountId] = useState(
+    editTx?.secondaryAccountId ?? "",
+  );
+  const [catExpanded, setCatExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [touched, setTouched] = useState<TouchedFields>({
     amount: false,
@@ -485,6 +215,8 @@ export default function AddTransactionScreen() {
   });
 
   const amountRef = useRef<TextInput>(null);
+  const accountScrollRef = useRef<ScrollView>(null);
+  const secondaryScrollRef = useRef<ScrollView>(null);
 
   // Re-init when editing and editTx loads
   useEffect(() => {
@@ -497,8 +229,8 @@ export default function AddTransactionScreen() {
       setDate(editTx.date);
       setNote(editTx.note ?? "");
       setMerchant(editTx.merchant ?? "");
-      setTagsStr(editTx.tags?.join(", ") ?? "");
-      setPaymentMethod(editTx.paymentMethod ?? "");
+      setSubAccountName(editTx.subAccountName ?? "");
+      setSecondaryAccountId(editTx.secondaryAccountId ?? "");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editTx?.id]);
@@ -515,9 +247,43 @@ export default function AddTransactionScreen() {
     (c) => c.id === categoryId,
   );
 
+  // Loan account + person picker
+  const isLoanAccount =
+    selectedAccount?.account.type === "loan" && txType !== "transfer";
+  const loanSubAccounts = isLoanAccount
+    ? (selectedAccount?.account.subAccounts ?? [])
+    : [];
+
+  // Secondary account picker (charity expense = paid from, debt expense = paid from, loan income = deposit to)
+  const needsSecondaryAccount =
+    (txType === "expense" &&
+      (selectedAccount?.account.type === "charity" || isLoanAccount)) ||
+    (txType === "income" && isLoanAccount);
+  const secondaryAccounts = accounts.filter(
+    ({ account: acc }) => acc.type !== "loan" && acc.type !== "charity",
+  );
+
+  // Filter accounts based on transaction type
+  const filteredAccounts = accounts.filter(({ account: acc }) => {
+    if (txType === "expense") {
+      // Exclude "people owe me" loan accounts from expense
+      return !(acc.type === "loan" && acc.loanDirection === "owed");
+    }
+    if (txType === "income") {
+      // Exclude only charity from income (debt + loan accounts allowed)
+      return acc.type !== "charity";
+    }
+    if (txType === "transfer") {
+      // Exclude all loan and charity accounts from transfer
+      return acc.type !== "loan" && acc.type !== "charity";
+    }
+    return true;
+  });
+
   const amountNum = parseFloat(amountRaw);
   const amountMinorUnits = toMinorUnits(amountRaw);
-  const liveFormatted = amountMinorUnits > 0 ? formatLiveAmount(amountRaw, currency) : null;
+  const liveFormatted =
+    amountMinorUnits > 0 ? formatLiveAmount(amountRaw, currency) : null;
 
   // â”€â”€ Validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const errors = {
@@ -539,10 +305,7 @@ export default function AddTransactionScreen() {
   };
 
   const canSave =
-    !errors.amount &&
-    !errors.account &&
-    !errors.toAccount &&
-    !errors.category;
+    !errors.amount && !errors.account && !errors.toAccount && !errors.category;
 
   // â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleAmountChange = (raw: string) => {
@@ -550,7 +313,12 @@ export default function AddTransactionScreen() {
   };
 
   const touchAll = () =>
-    setTouched({ amount: true, account: true, toAccount: true, category: true });
+    setTouched({
+      amount: true,
+      account: true,
+      toAccount: true,
+      category: true,
+    });
 
   const handleSave = useCallback(async () => {
     touchAll();
@@ -563,9 +331,11 @@ export default function AddTransactionScreen() {
       currency,
       accountId,
       toAccountId: txType === "transfer" ? toAccountId : undefined,
+      secondaryAccountId: needsSecondaryAccount
+        ? secondaryAccountId || undefined
+        : undefined,
       categoryId: txType !== "transfer" ? categoryId : undefined,
-      categoryName:
-        txType !== "transfer" ? selectedCategory?.name : "Transfer",
+      categoryName: txType !== "transfer" ? selectedCategory?.name : "Transfer",
       categoryIcon:
         txType !== "transfer" ? selectedCategory?.icon : "swap-horizontal",
       categoryColor:
@@ -573,13 +343,9 @@ export default function AddTransactionScreen() {
       date,
       note: note.trim() || undefined,
       merchant: merchant.trim() || undefined,
-      tags: tagsStr.trim()
-        ? tagsStr
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean)
+      subAccountName: isLoanAccount
+        ? subAccountName.trim() || newPersonName.trim() || undefined
         : undefined,
-      paymentMethod: paymentMethod || undefined,
     };
 
     try {
@@ -607,12 +373,15 @@ export default function AddTransactionScreen() {
     currency,
     accountId,
     toAccountId,
+    secondaryAccountId,
+    needsSecondaryAccount,
     categoryId,
     date,
     note,
     merchant,
-    tagsStr,
-    paymentMethod,
+    subAccountName,
+    newPersonName,
+    isLoanAccount,
     selectedCategory,
     addTransaction,
     updateTransaction,
@@ -628,16 +397,7 @@ export default function AddTransactionScreen() {
         : "#F14A6E";
 
   // â”€â”€ Time formatting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const clampHour = (s: string) => {
-    const n = parseInt(s, 10);
-    if (isNaN(n)) return "00";
-    return String(Math.min(23, Math.max(0, n))).padStart(2, "0");
-  };
-  const clampMin = (s: string) => {
-    const n = parseInt(s, 10);
-    if (isNaN(n)) return "00";
-    return String(Math.min(59, Math.max(0, n))).padStart(2, "0");
-  };
+  const timeLabel = `${String(timeHour).padStart(2, "0")}:${String(timeMin).padStart(2, "0")}`;
 
   return (
     <>
@@ -706,8 +466,23 @@ export default function AddTransactionScreen() {
                 ]}
                 onPress={() => {
                   setTxType(t);
+                  accountScrollRef.current?.scrollTo({ x: 0, animated: false });
+                  secondaryScrollRef.current?.scrollTo({
+                    x: 0,
+                    animated: false,
+                  });
                   setCategoryId("");
-                  setTouched((prev) => ({ ...prev, category: false }));
+                  setAccountId("");
+                  setToAccountId("");
+                  setSubAccountName("");
+                  setNewPersonName("");
+                  setSecondaryAccountId("");
+                  setCatExpanded(false);
+                  setTouched((prev) => ({
+                    ...prev,
+                    category: false,
+                    account: false,
+                  }));
                 }}
               >
                 <Text
@@ -747,7 +522,6 @@ export default function AddTransactionScreen() {
               placeholderTextColor={`${typeColor}44`}
               keyboardType="decimal-pad"
               returnKeyType="done"
-              selectTextOnFocus
             />
           </Pressable>
 
@@ -774,11 +548,12 @@ export default function AddTransactionScreen() {
               {txType === "transfer" ? "From Account" : "Account"}
             </Text>
             <ScrollView
+              ref={accountScrollRef}
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.chipsRow}
             >
-              {accounts.map(({ account: acc }) => (
+              {filteredAccounts.map(({ account: acc }) => (
                 <Pressable
                   key={acc.id}
                   style={[
@@ -790,6 +565,9 @@ export default function AddTransactionScreen() {
                   ]}
                   onPress={() => {
                     setAccountId(acc.id);
+                    setSecondaryAccountId("");
+                    setSubAccountName("");
+                    setNewPersonName("");
                     setTouched((t) => ({ ...t, account: true }));
                   }}
                 >
@@ -821,8 +599,164 @@ export default function AddTransactionScreen() {
               <Text style={styles.errorText}>{errors.account}</Text>
             )}
           </View>
+          {/* Person picker (loan accounts only) */}
+          {isLoanAccount && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>
+                {selectedAccount?.account.loanDirection === "owe"
+                  ? "Who do you owe?"
+                  : "Who owes you?"}
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipsRow}
+              >
+                {loanSubAccounts.map((sub) => {
+                  const active = subAccountName === sub.name;
+                  return (
+                    <Pressable
+                      key={sub.name}
+                      style={[
+                        styles.accountChip,
+                        active && {
+                          backgroundColor: `${selectedAccount!.account.color}22`,
+                          borderColor: selectedAccount!.account.color,
+                        },
+                      ]}
+                      onPress={() => {
+                        setSubAccountName(active ? "" : sub.name);
+                        setNewPersonName("");
+                      }}
+                    >
+                      <MaterialCommunityIcons
+                        name="account-outline"
+                        size={14}
+                        color={
+                          active
+                            ? selectedAccount!.account.color
+                            : theme.foreground.gray
+                        }
+                      />
+                      <Text
+                        style={[
+                          styles.chipText,
+                          active && {
+                            color: selectedAccount!.account.color,
+                            fontWeight: "600",
+                          },
+                        ]}
+                      >
+                        {sub.name}
+                      </Text>
+                      <Text style={styles.chipBalance}>
+                        {formatAmount(sub.balance, currency, { compact: true })}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+                <Pressable
+                  style={[
+                    styles.accountChip,
+                    !subAccountName && {
+                      backgroundColor: `${theme.primary.main}22`,
+                      borderColor: theme.primary.main,
+                    },
+                  ]}
+                  onPress={() => setSubAccountName("")}
+                >
+                  <MaterialCommunityIcons
+                    name="account-plus-outline"
+                    size={14}
+                    color={
+                      !subAccountName
+                        ? theme.primary.main
+                        : theme.foreground.gray
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.chipText,
+                      !subAccountName && {
+                        color: theme.primary.main,
+                        fontWeight: "600",
+                      },
+                    ]}
+                  >
+                    New
+                  </Text>
+                </Pressable>
+              </ScrollView>
+              {!subAccountName && (
+                <TextInput
+                  style={[styles.input, { marginTop: 10 }]}
+                  placeholder="Enter name..."
+                  placeholderTextColor={theme.foreground.gray}
+                  value={newPersonName}
+                  onChangeText={setNewPersonName}
+                  returnKeyType="done"
+                />
+              )}
+            </View>
+          )}
 
           {/* â”€â”€ To Account (transfer only) â”€â”€ */}
+          {/* Secondary account picker (charity paid-from / loan deposit-to) */}
+          {needsSecondaryAccount && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>
+                {txType === "expense" ? "Paid from" : "Deposit to"}
+              </Text>
+              <ScrollView
+                ref={secondaryScrollRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipsRow}
+              >
+                {secondaryAccounts.map(({ account: acc }) => {
+                  const active = secondaryAccountId === acc.id;
+                  return (
+                    <Pressable
+                      key={acc.id}
+                      style={[
+                        styles.accountChip,
+                        active && {
+                          backgroundColor: `${acc.color}22`,
+                          borderColor: acc.color,
+                        },
+                      ]}
+                      onPress={() =>
+                        setSecondaryAccountId(active ? "" : acc.id)
+                      }
+                    >
+                      <MaterialCommunityIcons
+                        name={acc.icon as any}
+                        size={14}
+                        color={active ? acc.color : theme.foreground.gray}
+                      />
+                      <Text
+                        style={[
+                          styles.chipText,
+                          active && {
+                            color: acc.color,
+                            fontWeight: "600",
+                          },
+                        ]}
+                      >
+                        {acc.name}
+                      </Text>
+                      <Text style={styles.chipBalance}>
+                        {formatAmount(acc.balance, acc.currency, {
+                          compact: true,
+                        })}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
           {txType === "transfer" && (
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>To Account</Text>
@@ -831,7 +765,7 @@ export default function AddTransactionScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.chipsRow}
               >
-                {accounts
+                {filteredAccounts
                   .filter(({ account: acc }) => acc.id !== accountId)
                   .map(({ account: acc }) => (
                     <Pressable
@@ -885,53 +819,78 @@ export default function AddTransactionScreen() {
           {/* â”€â”€ Category picker â”€â”€ */}
           {txType !== "transfer" && (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Category</Text>
+              <Pressable
+                style={styles.catHeaderRow}
+                onPress={() =>
+                  categories.length > 8 && setCatExpanded((v) => !v)
+                }
+              >
+                <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>
+                  Category
+                </Text>
+                {categories.length > 8 && (
+                  <View style={styles.catHeaderRight}>
+                    <Text style={styles.catCountText}>
+                      {catExpanded
+                        ? "Show less"
+                        : `+${categories.length - 8} more`}
+                    </Text>
+                    <MaterialCommunityIcons
+                      name={catExpanded ? "chevron-up" : "chevron-down"}
+                      size={15}
+                      color={theme.foreground.gray}
+                    />
+                  </View>
+                )}
+              </Pressable>
               <View style={styles.categoryGrid}>
-                {categories.map((cat) => {
-                  const active = categoryId === cat.id;
-                  return (
-                    <Pressable
-                      key={cat.id}
-                      style={[
-                        styles.categoryItem,
-                        active && {
-                          backgroundColor: `${cat.color}22`,
-                          borderColor: cat.color,
-                        },
-                      ]}
-                      onPress={() => {
-                        setCategoryId(cat.id);
-                        setTouched((t) => ({ ...t, category: true }));
-                      }}
-                    >
-                      <View
+                {(catExpanded ? categories : categories.slice(0, 8)).map(
+                  (cat) => {
+                    const active = categoryId === cat.id;
+                    return (
+                      <Pressable
+                        key={cat.id}
                         style={[
-                          styles.categoryIconWrap,
-                          {
-                            backgroundColor: active
-                              ? `${cat.color}33`
-                              : theme.background.darker,
+                          styles.categoryItem,
+                          active && {
+                            backgroundColor: `${cat.color}22`,
+                            borderColor: cat.color,
                           },
                         ]}
+                        onPress={() => {
+                          setCategoryId(cat.id);
+                          setTouched((t) => ({ ...t, category: true }));
+                        }}
                       >
-                        <MaterialCommunityIcons
-                          name={cat.icon as any}
-                          size={20}
-                          color={active ? cat.color : theme.foreground.gray}
-                        />
-                      </View>
-                      <Text
-                        style={[
-                          styles.categoryName,
-                          active && { color: cat.color },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {cat.name}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+                        <View
+                          style={[
+                            styles.categoryIconWrap,
+                            {
+                              backgroundColor: active
+                                ? `${cat.color}33`
+                                : theme.background.darker,
+                            },
+                          ]}
+                        >
+                          <MaterialCommunityIcons
+                            name={cat.icon as any}
+                            size={20}
+                            color={active ? cat.color : theme.foreground.gray}
+                          />
+                        </View>
+                        <Text
+                          style={[
+                            styles.categoryName,
+                            active && { color: cat.color },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {cat.name}
+                        </Text>
+                      </Pressable>
+                    );
+                  },
+                )}
               </View>
               {touched.category && errors.category && (
                 <Text style={[styles.errorText, { marginTop: 8 }]}>
@@ -970,7 +929,6 @@ export default function AddTransactionScreen() {
                 <Text style={styles.dateLabelText}>
                   {formatDateDisplay(date)}
                 </Text>
-                <Text style={styles.dateSub}>{date}</Text>
               </Pressable>
               <Pressable
                 style={({ pressed }) => [
@@ -1007,34 +965,17 @@ export default function AddTransactionScreen() {
               </Pressable>
             </View>
             {showTime && (
-              <View style={styles.timeRow}>
-                <TextInput
-                  style={styles.timeInput}
-                  value={timeHour}
-                  onChangeText={(v) =>
-                    setTimeHour(v.replace(/[^0-9]/g, "").slice(0, 2))
-                  }
-                  onBlur={() => setTimeHour(clampHour(timeHour))}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                  selectTextOnFocus
-                  placeholderTextColor={theme.foreground.gray}
+              <Pressable
+                style={styles.timeChip}
+                onPress={() => setShowTimePicker(true)}
+              >
+                <MaterialCommunityIcons
+                  name="clock-outline"
+                  size={16}
+                  color={theme.primary.main}
                 />
-                <Text style={styles.timeColon}>:</Text>
-                <TextInput
-                  style={styles.timeInput}
-                  value={timeMin}
-                  onChangeText={(v) =>
-                    setTimeMin(v.replace(/[^0-9]/g, "").slice(0, 2))
-                  }
-                  onBlur={() => setTimeMin(clampMin(timeMin))}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                  selectTextOnFocus
-                  placeholderTextColor={theme.foreground.gray}
-                />
-                <Text style={styles.timeHint}>HH : MM (24h)</Text>
-              </View>
+                <Text style={styles.timeChipText}>{timeLabel}</Text>
+              </Pressable>
             )}
           </View>
 
@@ -1065,58 +1006,6 @@ export default function AddTransactionScreen() {
             />
           </View>
 
-          {/* â”€â”€ Tags â”€â”€ */}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Tags (Optional)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="work, urgent, familyâ€¦"
-              placeholderTextColor={theme.foreground.gray}
-              value={tagsStr}
-              onChangeText={setTagsStr}
-              returnKeyType="done"
-            />
-            <Text style={styles.inputHint}>Separate tags with commas</Text>
-          </View>
-
-          {/* â”€â”€ Payment method â”€â”€ */}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Payment Method (Optional)</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.chipsRow}
-            >
-              {PAYMENT_METHODS.map((pm) => {
-                const active = paymentMethod === pm.id;
-                return (
-                  <Pressable
-                    key={pm.id}
-                    style={[
-                      styles.pmChip,
-                      active && {
-                        backgroundColor: `${theme.primary.main}22`,
-                        borderColor: theme.primary.main,
-                      },
-                    ]}
-                    onPress={() =>
-                      setPaymentMethod((prev) => (prev === pm.id ? "" : pm.id))
-                    }
-                  >
-                    <Text
-                      style={[
-                        styles.pmChipText,
-                        active && { color: theme.primary.main, fontWeight: "600" },
-                      ]}
-                    >
-                      {pm.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
-
           <View style={styles.bottomPad} />
         </ScrollView>
       </KeyboardAvoidingView>
@@ -1130,7 +1019,18 @@ export default function AddTransactionScreen() {
           setShowDatePicker(false);
         }}
         onClose={() => setShowDatePicker(false)}
-        theme={theme}
+      />
+
+      <TimePickerModal
+        visible={showTimePicker}
+        hour={timeHour}
+        minute={timeMin}
+        onConfirm={(h, m) => {
+          setTimeHour(h);
+          setTimeMin(m);
+          setShowTimePicker(false);
+        }}
+        onClose={() => setShowTimePicker(false)}
       />
 
       {/* â”€â”€ Toast â”€â”€ */}
@@ -1145,12 +1045,12 @@ export default function AddTransactionScreen() {
         >
           <MaterialCommunityIcons
             name={
-              toast.type === "success" ? "check-circle-outline" : "alert-circle-outline"
+              toast.type === "success"
+                ? "check-circle-outline"
+                : "alert-circle-outline"
             }
             size={18}
-            color={
-              toast.type === "success" ? theme.background.dark : "#fff"
-            }
+            color={toast.type === "success" ? theme.background.dark : "#fff"}
           />
           <Text
             style={[
@@ -1337,6 +1237,28 @@ function makeStyles(theme: Theme) {
       flexWrap: "wrap",
       gap: 8,
     },
+    showMoreBtn: {
+      display: "none",
+    },
+    showMoreText: {
+      fontSize: 13,
+      color: "#8A8F98",
+    },
+    catHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 10,
+    },
+    catHeaderRight: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 3,
+    },
+    catCountText: {
+      fontSize: 12,
+      color: "#8A8F98",
+    },
     categoryItem: {
       width: "23%",
       alignItems: "center",
@@ -1411,32 +1333,23 @@ function makeStyles(theme: Theme) {
       fontWeight: "600",
       color: theme.foreground.gray,
     },
-    timeRow: {
+    timeChip: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 6,
-    },
-    timeInput: {
-      width: 58,
+      alignSelf: "center",
+      gap: 8,
+      paddingHorizontal: 16,
       paddingVertical: 12,
-      borderRadius: 10,
+      borderRadius: 12,
       borderWidth: 1,
       borderColor: "#2C3139",
       backgroundColor: theme.background.accent,
-      color: theme.foreground.white,
+    },
+    timeChipText: {
       fontSize: 20,
       fontWeight: "700",
-      textAlign: "center",
-    },
-    timeColon: {
-      fontSize: 22,
-      fontWeight: "700",
       color: theme.foreground.white,
-    },
-    timeHint: {
-      fontSize: 11,
-      color: theme.foreground.gray,
-      marginLeft: 8,
+      letterSpacing: 1,
     },
     // â”€â”€ Text inputs â”€â”€
     input: {
@@ -1457,19 +1370,6 @@ function makeStyles(theme: Theme) {
       fontSize: 11,
       color: theme.foreground.gray,
       marginTop: 5,
-    },
-    pmChip: {
-      paddingHorizontal: 14,
-      paddingVertical: 9,
-      borderRadius: 10,
-      borderWidth: 1,
-      borderColor: "#2C3139",
-      backgroundColor: theme.background.accent,
-    },
-    pmChipText: {
-      fontSize: 13,
-      fontWeight: "500",
-      color: theme.foreground.gray,
     },
     bottomPad: {
       height: 48,

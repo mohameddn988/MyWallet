@@ -71,13 +71,15 @@
 - [x] Inline error messages + disable save when invalid
 - [x] Save feedback (toast/snackbar)
 - [x] Keyboard-safe layout for small screens
+- [x] Loan account person picker (for debts owed / receivables)
+- [x] Secondary account picker (charity paid-from, debt/loan transfers)
 
 ---
 
 ## 6. CATEGORIES
 
-- [ ] Display categories (expense + income tabs)
-- [ ] Create category (name + icon)
+- [x] Display categories (expense + income tabs) with collapsible expansion
+- [x] Expanded category set (18+ categories for expense, 13+ for income)
 - [ ] Edit category
 - [ ] Reorder categories
 - [ ] Archive/unarchive categories
@@ -101,23 +103,15 @@
 - [x] Show account detail (balance trend + transactions filtered to account)
 - [x] Multi-currency support (required): overall totals computed in base currency
 - [x] Loans: support liability accounts (negative balances) and include in overall net worth
+- [x] Loans: person-level tracking with sub-accounts (debts owed / receivables)
 - [x] Charity: support earmarked/goal accounts (tracked separately but included in overall)
+- [x] Charity & Debt: secondary account picker (track source/destination account)
+
+
 
 ---
 
-## 8. BUDGETS
-
-- [ ] Create monthly budget per category
-- [ ] Create overall monthly budget (optional)
-- [ ] Budget progress view (spent vs limit)
-- [ ] Budget remaining amount
-- [ ] Budget carryover rules (optional)
-- [ ] Exclude specific categories from budgets (optional)
-- [ ] Budget overspend indicators
-
----
-
-## 9. REPORTS / ANALYTICS
+## 8. REPORTS / ANALYTICS
 
 - [ ] Spending by category (pie/bar)
 - [ ] Income vs expenses chart
@@ -129,7 +123,7 @@
 
 ---
 
-## 10. SEARCH / FILTER / SORT
+## 9. SEARCH / FILTER / SORT
 
 - [ ] Search transactions by note/merchant
 - [ ] Filter by date range
@@ -142,7 +136,7 @@
 
 ---
 
-## 11. RECURRING TRANSACTIONS
+## 10. RECURRING TRANSACTIONS
 
 - [ ] Create recurring transaction (expense/income)
 - [ ] Frequencies: daily / weekly / monthly / yearly
@@ -155,7 +149,7 @@
 
 ---
 
-## 12. DATA STORAGE & MIGRATIONS
+## 11. DATA STORAGE & MIGRATIONS
 
 - [ ] Persist data locally (transactions, categories, accounts, budgets, settings)
 - [ ] Data versioning and migrations
@@ -166,7 +160,7 @@
 
 ---
 
-## 13. EXPORT / IMPORT / BACKUP
+## 12. EXPORT / IMPORT / BACKUP
 
 - [ ] Export full backup to JSON
 - [ ] Import backup from JSON
@@ -178,7 +172,7 @@
 
 ---
 
-## 14. SECURITY & PRIVACY
+## 13. SECURITY & PRIVACY
 
 - [ ] App lock with PIN/biometric (optional)
 - [ ] Hide sensitive screen in app switcher (privacy blur) (optional)
@@ -187,7 +181,7 @@
 
 ---
 
-## 15. NOTIFICATIONS
+## 14. NOTIFICATIONS
 
 - [ ] Budget alerts (near limit / over limit)
 - [ ] Recurring transaction reminders
@@ -195,7 +189,7 @@
 
 ---
 
-## 16. SETTINGS
+## 15. SETTINGS
 
 - [ ] Theme: light/dark/system (wired to existing ThemeContext)
 - [ ] Base currency (default currency) used for totals
@@ -209,7 +203,7 @@
 
 ---
 
-## 17. ACCESSIBILITY & LOCALIZATION
+## 16. ACCESSIBILITY & LOCALIZATION
 
 - [ ] Accessible labels for all interactive elements
 - [ ] Dynamic type / font scaling support
@@ -219,7 +213,7 @@
 
 ---
 
-## 18. PERFORMANCE & RELIABILITY
+## 17. PERFORMANCE & RELIABILITY
 
 - [ ] Fast list rendering for transactions (virtualization)
 - [ ] Memoize derived totals and charts
@@ -229,7 +223,7 @@
 
 ---
 
-## 19. TESTING
+## 18. TESTING
 
 - [ ] Unit tests for money math (minor units), totals, budgets
 - [ ] Tests for transfer logic and balance calculations
@@ -238,7 +232,7 @@
 
 ---
 
-## 20. POLISH
+## 19. POLISH
 
 - [ ] First-launch setup (pick currency, create first account)
 - [ ] Sample/demo data toggle (optional)

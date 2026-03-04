@@ -14,7 +14,7 @@ const ACTIONS = [
     label: "Transaction",
     icon: "swap-horizontal" as const,
     color: "#4A9FF1",
-    description: "Add income, expense or transfer",
+    description: "Create a new transaction",
   },
   {
     label: "Account",

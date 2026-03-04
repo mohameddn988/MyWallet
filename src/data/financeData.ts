@@ -55,6 +55,7 @@ export const INITIAL_EXCHANGE_RATES: ExchangeRate[] = [
 //   [CCP   = Me]  = [5,200]
 //   [Gold]        = [0]
 //   [loan  = [Chikoo=6k]+[Ramzi=8k]+[Pinina=3k]] = [17,000]
+//   [debts = [Ahmed=5k]+[Sara=10k]+[Karim=10k]] = [-25,000]
 //   [Charity]     = [4,500]
 
 export const INITIAL_ACCOUNTS: Account[] = [
@@ -163,10 +164,33 @@ export const INITIAL_ACCOUNTS: Account[] = [
     icon: "account-arrow-right-outline",
     color: "#F14A6E",
     note: "Total receivable from Chikoo, Ramzi, Pinina",
+    loanDirection: "owed",
     subAccounts: [
       { name: "Chikoo", balance: 600_000 }, // 6,000 DZD
       { name: "Ramzi", balance: 800_000 }, // 8,000 DZD
       { name: "Pinina", balance: 300_000 }, // 3,000 DZD
+    ],
+  },
+
+  // ── Loans taken (liabilities — money I owe TO others) ─────────────────────
+  // One combined account; per-person breakdown stored in subAccounts.
+
+  {
+    id: "acc_debts",
+    name: "Debts",
+    type: "loan",
+    currency: "DZD",
+    balance: -2_500_000, // -25,000 DZD (5k + 10k + 10k)
+    isLiability: true, // liability — money I owe
+    isArchived: false,
+    icon: "account-arrow-left-outline",
+    color: "#FF9500",
+    note: "Total debts to Ahmed, Sara, Karim",
+    loanDirection: "owe",
+    subAccounts: [
+      { name: "Ahmed", balance: 500_000 }, // 5,000 DZD
+      { name: "Sara", balance: 1_000_000 }, // 10,000 DZD
+      { name: "Karim", balance: 1_000_000 }, // 10,000 DZD
     ],
   },
 

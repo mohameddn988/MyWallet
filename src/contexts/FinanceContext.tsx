@@ -272,7 +272,19 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     return accs.map((acc) => {
       if (tx.type === "expense" && acc.id === tx.accountId)
         return { ...acc, balance: acc.balance - dir * tx.amount };
+      if (
+        tx.type === "expense" &&
+        tx.secondaryAccountId &&
+        acc.id === tx.secondaryAccountId
+      )
+        return { ...acc, balance: acc.balance - dir * tx.amount };
       if (tx.type === "income" && acc.id === tx.accountId)
+        return { ...acc, balance: acc.balance + dir * tx.amount };
+      if (
+        tx.type === "income" &&
+        tx.secondaryAccountId &&
+        acc.id === tx.secondaryAccountId
+      )
         return { ...acc, balance: acc.balance + dir * tx.amount };
       if (tx.type === "transfer") {
         if (acc.id === tx.accountId)
@@ -284,6 +296,32 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     });
   }
 
+  /** Sync sub-account balance when a loan transaction has a subAccountName */
+  function applySubAccountTx(
+    accs: Account[],
+    tx: Transaction,
+    dir: 1 | -1,
+  ): Account[] {
+    if (!tx.subAccountName || tx.type === "transfer") return accs;
+    return accs.map((acc) => {
+      if (acc.id !== tx.accountId || acc.type !== "loan") return acc;
+      const subs = [...(acc.subAccounts ?? [])];
+      const idx = subs.findIndex(
+        (s) => s.name.toLowerCase() === tx.subAccountName!.toLowerCase(),
+      );
+      if (idx >= 0) {
+        subs[idx] = {
+          ...subs[idx],
+          balance: Math.max(0, subs[idx].balance + dir * tx.amount),
+        };
+      } else if (dir === 1) {
+        // Only create on add, not on undo/delete
+        subs.push({ name: tx.subAccountName, balance: tx.amount });
+      }
+      return { ...acc, subAccounts: subs };
+    });
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // CRUD
   // ─────────────────────────────────────────────────────────────────────────
@@ -291,7 +329,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const addTransaction = useCallback(
     async (txData: Omit<Transaction, "id">): Promise<Transaction> => {
       const tx: Transaction = { ...txData, id: `tx_${Date.now()}` };
-      setRawAccounts((prev) => applyTx(prev, tx, 1));
+      setRawAccounts((prev) => applySubAccountTx(applyTx(prev, tx, 1), tx, 1));
       setRawTransactions((prev) => [...prev, tx]);
       return tx;
     },
@@ -303,8 +341,13 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       setRawAccounts((prevAccs) => {
         const old = rawTransactions.find((t) => t.id === tx.id);
         let updated = prevAccs;
-        if (old) updated = applyTx(updated, old, -1);
-        return applyTx(updated, tx, 1);
+        if (old) {
+          updated = applyTx(updated, old, -1);
+          updated = applySubAccountTx(updated, old, -1);
+        }
+        updated = applyTx(updated, tx, 1);
+        updated = applySubAccountTx(updated, tx, 1);
+        return updated;
       });
       setRawTransactions((prev) => prev.map((t) => (t.id === tx.id ? tx : t)));
     },
@@ -316,7 +359,9 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       const tx = rawTransactions.find((t) => t.id === id);
       if (tx) {
         setLastDeletedTransaction(tx);
-        setRawAccounts((prev) => applyTx(prev, tx, -1));
+        setRawAccounts((prev) =>
+          applySubAccountTx(applyTx(prev, tx, -1), tx, -1),
+        );
       }
       setRawTransactions((prev) => prev.filter((t) => t.id !== id));
     },
@@ -326,7 +371,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const restoreLastDeleted = useCallback(async (): Promise<void> => {
     if (!lastDeletedTransaction) return;
     const tx = lastDeletedTransaction;
-    setRawAccounts((prev) => applyTx(prev, tx, 1));
+    setRawAccounts((prev) => applySubAccountTx(applyTx(prev, tx, 1), tx, 1));
     setRawTransactions((prev) => [...prev, tx]);
     setLastDeletedTransaction(null);
   }, [lastDeletedTransaction]);
@@ -347,7 +392,9 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         id: `tx_${Date.now()}`,
         date: todayStr,
       };
-      setRawAccounts((prev) => applyTx(prev, dup, 1));
+      setRawAccounts((prev) =>
+        applySubAccountTx(applyTx(prev, dup, 1), dup, 1),
+      );
       setRawTransactions((prev) => [...prev, dup]);
       return dup;
     },
@@ -418,7 +465,11 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   );
 
   const updateSubAccount = useCallback(
-    async (accountId: string, index: number, sub: SubAccount): Promise<void> => {
+    async (
+      accountId: string,
+      index: number,
+      sub: SubAccount,
+    ): Promise<void> => {
       setRawAccounts((prev) =>
         prev.map((a) => {
           if (a.id !== accountId) return a;

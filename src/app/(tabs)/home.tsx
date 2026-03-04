@@ -77,6 +77,13 @@ export default function HomeScreen() {
   const displayedSummary = quickStats[activePeriod];
   const monthLabel = formatMonthYear(new Date());
 
+  // All currencies available in the wallet (base + exchange rate froms)
+  const homeAvailableCurrencies = useMemo(() => {
+    const set = new Set<string>([baseCurrency]);
+    exchangeRates.forEach((r) => set.add(r.from));
+    return Array.from(set);
+  }, [baseCurrency, exchangeRates]);
+
   const styles = makeStyles(theme);
 
   const showEasterEgg = useCallback(() => {
@@ -228,7 +235,7 @@ export default function HomeScreen() {
           monthNet={displayMonthNet}
           baseCurrency={baseCurrency}
           displayCurrency={displayCurrency}
-          availableCurrencies={availableCurrencies}
+          availableCurrencies={homeAvailableCurrencies}
           onCurrencyChange={setDisplayCurrency}
         />
 

@@ -393,21 +393,7 @@ export default function AccountDetailScreen() {
         <Text style={styles.headerTitle} numberOfLines={1}>
           {account.name}
         </Text>
-        <Pressable
-          style={({ pressed }) => [
-            styles.headerBtn,
-            pressed && { opacity: 0.6 },
-          ]}
-          onPress={() =>
-            router.navigate(`/account/add?editId=${account.id}` as any)
-          }
-        >
-          <MaterialCommunityIcons
-            name="pencil-outline"
-            size={20}
-            color={theme.foreground.white}
-          />
-        </Pressable>
+        <View style={styles.headerBtn} />
       </View>
 
       <SectionList
@@ -943,14 +929,12 @@ function makeStyles(theme: Theme) {
       justifyContent: "space-between",
       paddingHorizontal: 16,
       paddingVertical: 14,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.background.accent,
     },
     headerBtn: {
       width: 36,
       height: 36,
       borderRadius: 10,
-      backgroundColor: theme.background.accent,
+      backgroundColor: "transparent",
       alignItems: "center",
       justifyContent: "center",
     },

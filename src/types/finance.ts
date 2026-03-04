@@ -19,6 +19,8 @@ export interface Transaction {
   accountId: string;
   /** Destination account — transfers only */
   toAccountId?: string;
+  /** Secondary account — charity expense (paid from) or loan income (deposit to) */
+  secondaryAccountId?: string;
   categoryId?: string;
   categoryName?: string;
   /** MaterialCommunityIcons icon name */
@@ -30,6 +32,8 @@ export interface Transaction {
   merchant?: string;
   tags?: string[];
   paymentMethod?: string;
+  /** For loan account transactions — which person this entry belongs to */
+  subAccountName?: string;
 }
 
 export type LoanDirection = "owe" | "owed";

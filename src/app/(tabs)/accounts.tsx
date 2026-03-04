@@ -92,7 +92,7 @@ function AccountCard({
         <Text
           style={[
             s.balanceNative,
-            { color: account.balance < 0 ? "#F14A6E" : theme.foreground.white },
+            { color: account.balance < 0 && account.type !== "loan" ? "#F14A6E" : theme.foreground.white },
           ]}
         >
           {formatAmount(account.balance, account.currency)}
