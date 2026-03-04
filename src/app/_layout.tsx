@@ -1,7 +1,12 @@
 import { Stack, usePathname } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { View } from "react-native";
-import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaProvider,
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { AuthProvider } from "../contexts/AuthContext";
 import { FinanceProvider } from "../contexts/FinanceContext";
 import { GetStartedProvider } from "../contexts/GetStartedContext";
@@ -10,17 +15,19 @@ import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider>
-        <AuthProvider>
-          <FinanceProvider>
-            <GetStartedProvider>
-              <SafeAreaProvider>
-                <RootLayoutWithTheme />
-              </SafeAreaProvider>
-            </GetStartedProvider>
-          </FinanceProvider>
-        </AuthProvider>
-      </ThemeProvider>
+      <BottomSheetModalProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <FinanceProvider>
+              <GetStartedProvider>
+                <SafeAreaProvider>
+                  <RootLayoutWithTheme />
+                </SafeAreaProvider>
+              </GetStartedProvider>
+            </FinanceProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </BottomSheetModalProvider>
     </GestureHandlerRootView>
   );
 }

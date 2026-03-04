@@ -125,33 +125,20 @@
 
 ## 9. SEARCH / FILTER / SORT
 
-- [ ] Search transactions by note/merchant
-- [ ] Filter by date range
-- [ ] Filter by category
-- [ ] Filter by account
-- [ ] Filter by type (expense/income/transfer)
-- [ ] Sort by date (newest/oldest)
-- [ ] Sort by amount (high/low)
-- [ ] Save filter presets (optional)
+- [x] Search transactions by note/merchant
+- [x] Filter by date range
+- [x] Filter by category
+- [x] Filter by account
+- [x] Filter by type (expense/income/transfer)
+- [x] Sort by date (newest/oldest)
+- [x] Sort by amount (high/low)
 
 ---
 
-## 10. RECURRING TRANSACTIONS
-
-- [ ] Create recurring transaction (expense/income)
-- [ ] Frequencies: daily / weekly / monthly / yearly
-- [ ] Custom interval (every N days/weeks/months)
-- [ ] Generate next occurrences
-- [ ] Mark generated occurrences as paid/confirmed (optional)
-- [ ] Skip a single occurrence
-- [ ] Edit series (apply to future vs all)
-- [ ] Prevent duplicate generation (idempotency)
-
----
 
 ## 11. DATA STORAGE & MIGRATIONS
 
-- [ ] Persist data locally (transactions, categories, accounts, budgets, settings)
+- [ ] Persist data locally (transactions, categories, accounts, settings)
 - [ ] Data versioning and migrations
 - [ ] Full recalculation utilities (rebuild balances/totals from transactions)
 - [ ] Safe delete rules + referential integrity (category/account references)
@@ -183,8 +170,6 @@
 
 ## 14. NOTIFICATIONS
 
-- [ ] Budget alerts (near limit / over limit)
-- [ ] Recurring transaction reminders
 - [ ] Notification settings per type (enable/disable)
 
 ---
@@ -196,8 +181,6 @@
 - [ ] Manage currencies + conversion rates (manual entry MVP)
 - [ ] Locale and number/date formatting
 - [ ] First day of week
-- [ ] Manage categories shortcut
-- [ ] Manage accounts shortcut
 - [ ] Data management (export/import/reset)
 - [ ] About screen (version, build)
 
@@ -220,22 +203,3 @@
 - [ ] Error boundary for screens
 - [ ] Robust empty states (no transactions/categories/accounts)
 - [ ] Offline-first behavior (no network dependency)
-
----
-
-## 18. TESTING
-
-- [ ] Unit tests for money math (minor units), totals, budgets
-- [ ] Tests for transfer logic and balance calculations
-- [ ] Storage adapter tests (CRUD + migrations)
-- [ ] Component tests for add/edit transaction form
-
----
-
-## 19. POLISH
-
-- [ ] First-launch setup (pick currency, create first account)
-- [ ] Sample/demo data toggle (optional)
-- [ ] Empty-state get started (CTA to add first transaction)
-- [ ] Haptics for key actions (optional)
-- [ ] App icon/splash polish

@@ -15,6 +15,11 @@ import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { Transaction, TransactionType } from "../../types/finance";
 import { formatAmount, formatDateLabel } from "../../utils/currency";
+import TransactionFilterSheet, {
+  countActiveFilters,
+  DEFAULT_TX_FILTERS,
+  TransactionFilters,
+} from "../../components/ui/TransactionFilterSheet";
 
 // -----------------------------------------------------------------------------
 
@@ -26,23 +31,39 @@ interface DayGroup {
   dayNet: number;
 }
 
-function groupByDate(txs: Transaction[]): DayGroup[] {
+function groupByDate(
+  txs: Transaction[],
+  sortBy: "date" | "amount" = "date",
+  sortDir: "asc" | "desc" = "desc",
+): DayGroup[] {
   const map = new Map<string, Transaction[]>();
   for (const tx of txs) {
     const arr = map.get(tx.date) ?? [];
     arr.push(tx);
     map.set(tx.date, arr);
   }
-  return [...map.entries()]
-    .sort(([a], [b]) => b.localeCompare(a))
-    .map(([date, items]) => {
-      const dayNet = items.reduce((sum, tx) => {
-        if (tx.type === "income") return sum + tx.amount;
-        if (tx.type === "expense") return sum - tx.amount;
-        return sum;
-      }, 0);
-      return { date, data: items, dayNet };
-    });
+  const groups: DayGroup[] = [...map.entries()].map(([date, items]) => {
+    // When sorting by amount, sort items within each day group
+    const sortedItems =
+      sortBy === "amount"
+        ? [...items].sort((a, b) =>
+            sortDir === "desc" ? b.amount - a.amount : a.amount - b.amount,
+          )
+        : items;
+    const dayNet = sortedItems.reduce((sum, tx) => {
+      if (tx.type === "income") return sum + tx.amount;
+      if (tx.type === "expense") return sum - tx.amount;
+      return sum;
+    }, 0);
+    return { date, data: sortedItems, dayNet };
+  });
+  // Groups are always ordered by date; direction applies for date sort
+  groups.sort((a, b) =>
+    sortBy === "amount" || sortDir === "desc"
+      ? b.date.localeCompare(a.date)
+      : a.date.localeCompare(b.date),
+  );
+  return groups;
 }
 
 const FILTER_CONFIG: {
@@ -76,12 +97,16 @@ export default function TransactionsTabScreen() {
   const { theme } = useTheme();
   const styles = makeStyles(theme);
   const searchParams = useLocalSearchParams<{ filter?: string }>();
-  const { allTransactions, isRefreshing, refresh } = useFinance();
+  const { allTransactions, isRefreshing, refresh, allAccounts } = useFinance();
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>(
     (searchParams.filter as FilterType) || "all",
   );
+  const [advFilters, setAdvFilters] =
+    useState<TransactionFilters>(DEFAULT_TX_FILTERS);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const activeFilterCount = countActiveFilters(advFilters);
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
   const lastTabPressRef = useRef<number>(0);
 
@@ -105,7 +130,9 @@ export default function TransactionsTabScreen() {
 
   const filtered = useMemo(() => {
     let txs = allTransactions;
+    // --- type filter (existing) ---
     if (filter !== "all") txs = txs.filter((t) => t.type === filter);
+    // --- text search (existing) ---
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       txs = txs.filter(
@@ -116,10 +143,39 @@ export default function TransactionsTabScreen() {
           t.tags?.some((tag) => tag.toLowerCase().includes(q)),
       );
     }
+    // --- date range filter ---
+    if (advFilters.dateFrom) {
+      txs = txs.filter((t) => t.date >= advFilters.dateFrom!);
+    }
+    if (advFilters.dateTo) {
+      txs = txs.filter((t) => t.date <= advFilters.dateTo!);
+    }
+    // --- category filter ---
+    if (advFilters.categoryIds.length > 0) {
+      txs = txs.filter(
+        (t) => t.categoryId && advFilters.categoryIds.includes(t.categoryId),
+      );
+    }
+    // --- account type filter ---
+    if (advFilters.accountTypes.length > 0) {
+      txs = txs.filter((t) => {
+        const accountType = allAccounts.find((a) => a.id === t.accountId)?.type;
+        const toAccountType = t.toAccountId
+          ? allAccounts.find((a) => a.id === t.toAccountId)?.type
+          : undefined;
+        return (
+          (accountType && advFilters.accountTypes.includes(accountType)) ||
+          (toAccountType && advFilters.accountTypes.includes(toAccountType))
+        );
+      });
+    }
     return txs;
-  }, [allTransactions, filter, search]);
+  }, [allTransactions, filter, search, advFilters, allAccounts]);
 
-  const groups = useMemo(() => groupByDate(filtered), [filtered]);
+  const groups = useMemo(
+    () => groupByDate(filtered, advFilters.sortBy, advFilters.sortDir),
+    [filtered, advFilters.sortBy, advFilters.sortDir],
+  );
 
   // Expand all cards whenever groups change (on first load or filter/search change)
   useEffect(() => {
@@ -155,29 +211,51 @@ export default function TransactionsTabScreen() {
         <Text style={styles.screenTitle}>Transactions</Text>
       </View>
 
-      <View style={styles.searchRow}>
-        <MaterialCommunityIcons
-          name="magnify"
-          size={18}
-          color={theme.foreground.gray}
-        />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search transactions..."
-          placeholderTextColor={theme.foreground.gray}
-          value={search}
-          onChangeText={setSearch}
-          returnKeyType="search"
-        />
-        {search.length > 0 && (
-          <Pressable onPress={() => setSearch("")} hitSlop={8}>
-            <MaterialCommunityIcons
-              name="close-circle"
-              size={16}
-              color={theme.foreground.gray}
-            />
-          </Pressable>
-        )}
+      <View style={styles.searchWrapper}>
+        <View style={styles.searchRow}>
+          <MaterialCommunityIcons
+            name="magnify"
+            size={18}
+            color={theme.foreground.gray}
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search transactions..."
+            placeholderTextColor={theme.foreground.gray}
+            value={search}
+            onChangeText={setSearch}
+            returnKeyType="search"
+          />
+          {search.length > 0 && (
+            <Pressable onPress={() => setSearch("")} hitSlop={8}>
+              <MaterialCommunityIcons
+                name="close-circle"
+                size={16}
+                color={theme.foreground.gray}
+              />
+            </Pressable>
+          )}
+        </View>
+        <Pressable
+          style={[
+            styles.filterBtn,
+            activeFilterCount > 0 && styles.filterBtnActive,
+          ]}
+          onPress={() => setFilterSheetOpen(true)}
+        >
+          <MaterialCommunityIcons
+            name="tune-variant"
+            size={18}
+            color={
+              activeFilterCount > 0 ? theme.primary.main : theme.foreground.gray
+            }
+          />
+          {activeFilterCount > 0 && (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+            </View>
+          )}
+        </Pressable>
       </View>
 
       <View style={styles.filterRow}>
@@ -275,6 +353,12 @@ export default function TransactionsTabScreen() {
           ))
         )}
       </ScrollView>
+      <TransactionFilterSheet
+        isOpen={filterSheetOpen}
+        onClose={() => setFilterSheetOpen(false)}
+        filters={advFilters}
+        onApply={setAdvFilters}
+      />
     </View>
   );
 }
@@ -404,12 +488,18 @@ function makeStyles(theme: Theme) {
     list: { flex: 1 },
     topBar: {
       flexDirection: "row",
-      alignItems: "flex-end",
-      justifyContent: "space-between",
+      alignItems: "center",
       paddingHorizontal: 20,
       paddingTop: 16,
       paddingBottom: 12,
       marginBottom: 16,
+    },
+    searchWrapper: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      paddingHorizontal: 16,
+      marginBottom: 14,
     },
     screenTitle: {
       fontSize: 26,
@@ -417,12 +507,42 @@ function makeStyles(theme: Theme) {
       color: theme.foreground.white,
       letterSpacing: -0.5,
     },
+    filterBtn: {
+      width: 43,
+      height: 43,
+      borderRadius: 12,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: theme.background.accent,
+      borderWidth: 1,
+      borderColor: `${theme.foreground.gray}22`,
+    },
+    filterBtnActive: {
+      borderColor: theme.primary.main,
+      backgroundColor: `${theme.primary.main}14`,
+    },
+    filterBadge: {
+      position: "absolute",
+      top: -4,
+      right: -4,
+      minWidth: 16,
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: theme.primary.main,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 3,
+    },
+    filterBadgeText: {
+      fontSize: 10,
+      fontWeight: "800",
+      color: theme.background.dark,
+    },
     searchRow: {
+      flex: 1,
       flexDirection: "row",
       alignItems: "center",
       gap: 8,
-      marginHorizontal: 16,
-      marginBottom: 14,
       paddingHorizontal: 14,
       paddingVertical: 11,
       backgroundColor: theme.background.accent,
