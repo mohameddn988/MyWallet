@@ -1,15 +1,19 @@
-import {
+import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetBackdropProps,
-  BottomSheetModal,
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "../../data/categories";
 import { ACCOUNT_TYPE_META } from "../../data/accounts";
-import { AccountWithBalance, AccountType } from "../../types/finance";
+import { AccountType } from "../../types/finance";
 import { formatDateLabel, toDateStr } from "../../utils/currency";
 import { DatePickerModal } from "./DatePickerModal";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -94,8 +98,6 @@ export interface TransactionFilterSheetProps {
   onApply: (filters: TransactionFilters) => void;
 }
 
-const ALL_CATEGORIES = [...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES];
-
 export default function TransactionFilterSheet({
   isOpen,
   onClose,
@@ -104,32 +106,33 @@ export default function TransactionFilterSheet({
 }: TransactionFilterSheetProps) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const styles = makeStyles(theme, insets.bottom);
-  const sheetRef = useRef<BottomSheetModal>(null);
+  const styles = useMemo(
+    () => makeStyles(theme, insets.bottom),
+    [theme, insets.bottom],
+  );
+
+  const sheetRef = useRef<BottomSheet>(null);
 
   // Local draft state — only committed on Apply
   const [draft, setDraft] = useState<TransactionFilters>(filters);
   const [showFromPicker, setShowFromPicker] = useState(false);
   const [showToPicker, setShowToPicker] = useState(false);
 
-  // Sync draft from external filters whenever the sheet opens
   useEffect(() => {
-    if (isOpen) setDraft(filters);
+    if (isOpen) {
+      setDraft(filters);
+      sheetRef.current?.snapToIndex(0);
+    } else {
+      sheetRef.current?.close();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  // Open / close the sheet reactively
-  useEffect(() => {
-    if (isOpen) {
-      sheetRef.current?.present();
-    } else {
-      sheetRef.current?.dismiss();
-    }
-  }, [isOpen]);
-
-  const handleChange = useCallback(
+  const handleSheetChange = useCallback(
     (index: number) => {
-      if (index === -1) onClose();
+      if (index === -1) {
+        onClose();
+      }
     },
     [onClose],
   );
@@ -146,16 +149,12 @@ export default function TransactionFilterSheet({
     [],
   );
 
-  // ── Sort ─────────────────────────────────────────────────────────────────
-
   const handleSortSelect = (
     sortBy: "date" | "amount",
     sortDir: "asc" | "desc",
   ) => {
     setDraft((d) => ({ ...d, sortBy, sortDir }));
   };
-
-  // ── Date range ────────────────────────────────────────────────────────────
 
   const today = toDateStr(new Date());
 
@@ -172,8 +171,6 @@ export default function TransactionFilterSheet({
   const clearDateRange = () =>
     setDraft((d) => ({ ...d, dateFrom: null, dateTo: null }));
 
-  // ── Categories ────────────────────────────────────────────────────────────
-
   const toggleCategory = (id: string) => {
     setDraft((d) => {
       const has = d.categoryIds.includes(id);
@@ -185,8 +182,6 @@ export default function TransactionFilterSheet({
       };
     });
   };
-
-  // ── Accounts ──────────────────────────────────────────────────────────────
 
   const toggleAccountType = (type: AccountType) => {
     setDraft((d) => {
@@ -200,8 +195,6 @@ export default function TransactionFilterSheet({
     });
   };
 
-  // ── Actions ───────────────────────────────────────────────────────────────
-
   const handleReset = () => setDraft(DEFAULT_TX_FILTERS);
 
   const handleApply = () => {
@@ -209,334 +202,338 @@ export default function TransactionFilterSheet({
     onClose();
   };
 
-  const isDefaultSort = draft.sortBy === "date" && draft.sortDir === "desc";
-
   return (
     <>
-      <BottomSheetModal
+      <BottomSheet
         ref={sheetRef}
+        index={-1}
         snapPoints={["100%"]}
-        topInset={insets.top}
         enablePanDownToClose
-        onChange={handleChange}
+        onChange={handleSheetChange}
         backdropComponent={renderBackdrop}
-        backgroundStyle={[
-          {
-            backgroundColor: theme.background.darker,
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-          },
-        ]}
+        backgroundStyle={{ backgroundColor: theme.background.darker }}
         handleIndicatorStyle={{
           backgroundColor: theme.foreground.gray,
+          opacity: 0.5,
           width: 40,
           height: 4,
           borderRadius: 2,
-          opacity: 0.5,
         }}
       >
-        {/* ── Fixed header ──────────────────────────────────────────────── */}
+        {/* Fixed header */}
         <View style={styles.header}>
-          <Pressable onPress={handleReset} hitSlop={8} style={styles.headerBtn}>
-            <Text style={styles.resetText}>Reset</Text>
-          </Pressable>
-          <Text style={styles.headerTitle}>Filter & Sort</Text>
-          <Pressable onPress={handleApply} hitSlop={8} style={styles.headerBtn}>
-            <Text style={styles.applyText}>Apply</Text>
-          </Pressable>
-        </View>
+            <Pressable
+              onPress={handleReset}
+              hitSlop={8}
+              style={styles.headerBtn}
+            >
+              <Text style={styles.resetText}>Reset</Text>
+            </Pressable>
+            <Text style={styles.headerTitle}>Filter & Sort</Text>
+            <Pressable
+              onPress={handleApply}
+              hitSlop={8}
+              style={styles.headerBtn}
+            >
+              <Text style={styles.applyText}>Apply</Text>
+            </Pressable>
+          </View>
 
-        {/* ── Scrollable content ────────────────────────────────────────── */}
+        {/* Scrollable content */}
         <BottomSheetScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {/* ── Sort ───────────────────────────────────────────────────── */}
-          <Section title="Sort by" theme={theme} styles={styles}>
-            <View style={styles.sortGrid}>
-              {SORT_OPTIONS.map((opt) => {
-                const active =
-                  draft.sortBy === opt.sortBy && draft.sortDir === opt.sortDir;
-                return (
-                  <Pressable
-                    key={`${opt.sortBy}-${opt.sortDir}`}
-                    style={[
-                      styles.sortChip,
-                      active && {
-                        backgroundColor: `${theme.primary.main}22`,
-                        borderColor: theme.primary.main,
-                      },
-                    ]}
-                    onPress={() => handleSortSelect(opt.sortBy, opt.sortDir)}
-                  >
-                    <MaterialCommunityIcons
-                      name={opt.icon as any}
-                      size={15}
-                      color={
-                        active ? theme.primary.main : theme.foreground.gray
-                      }
-                    />
-                    <Text
+            {/* Sort */}
+            <Section title="Sort by" theme={theme} styles={styles}>
+              <View style={styles.sortGrid}>
+                {SORT_OPTIONS.map((opt) => {
+                  const active =
+                    draft.sortBy === opt.sortBy &&
+                    draft.sortDir === opt.sortDir;
+                  return (
+                    <Pressable
+                      key={`${opt.sortBy}-${opt.sortDir}`}
                       style={[
-                        styles.sortChipText,
+                        styles.sortChip,
                         active && {
-                          color: theme.primary.main,
-                          fontWeight: "700",
+                          backgroundColor: `${theme.primary.main}22`,
+                          borderColor: theme.primary.main,
                         },
                       ]}
-                      numberOfLines={1}
+                      onPress={() => handleSortSelect(opt.sortBy, opt.sortDir)}
                     >
-                      {opt.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </Section>
+                      <MaterialCommunityIcons
+                        name={opt.icon as any}
+                        size={15}
+                        color={
+                          active ? theme.primary.main : theme.foreground.gray
+                        }
+                      />
+                      <Text
+                        style={[
+                          styles.sortChipText,
+                          active && {
+                            color: theme.primary.main,
+                            fontWeight: "700",
+                          },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {opt.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </Section>
 
-          {/* ── Date range ─────────────────────────────────────────────── */}
-          <Section title="Date range" theme={theme} styles={styles}>
-            <View style={styles.dateRow}>
-              <Pressable
-                style={[
-                  styles.dateBtnFrom,
-                  draft.dateFrom && {
-                    borderColor: theme.primary.main,
-                    backgroundColor: `${theme.primary.main}14`,
-                  },
-                ]}
-                onPress={() => setShowFromPicker(true)}
-              >
-                <MaterialCommunityIcons
-                  name="calendar-start"
-                  size={15}
-                  color={
-                    draft.dateFrom ? theme.primary.main : theme.foreground.gray
-                  }
-                />
-                <Text
-                  style={[
-                    styles.dateBtnText,
-                    draft.dateFrom && { color: theme.primary.main },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {draft.dateFrom
-                    ? formatDateLabel(draft.dateFrom)
-                    : "From date"}
-                </Text>
-              </Pressable>
-
-              <MaterialCommunityIcons
-                name="arrow-right"
-                size={14}
-                color={theme.foreground.gray}
-              />
-
-              <Pressable
-                style={[
-                  styles.dateBtnTo,
-                  draft.dateTo && {
-                    borderColor: theme.primary.main,
-                    backgroundColor: `${theme.primary.main}14`,
-                  },
-                ]}
-                onPress={() => setShowToPicker(true)}
-              >
-                <MaterialCommunityIcons
-                  name="calendar-end"
-                  size={15}
-                  color={
-                    draft.dateTo ? theme.primary.main : theme.foreground.gray
-                  }
-                />
-                <Text
-                  style={[
-                    styles.dateBtnText,
-                    draft.dateTo && { color: theme.primary.main },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {draft.dateTo ? formatDateLabel(draft.dateTo) : "To date"}
-                </Text>
-              </Pressable>
-
-              {(draft.dateFrom || draft.dateTo) && (
+            {/* Date range */}
+            <Section title="Date range" theme={theme} styles={styles}>
+              <View style={styles.dateRow}>
                 <Pressable
-                  onPress={clearDateRange}
-                  hitSlop={8}
-                  style={styles.clearDateBtn}
+                  style={[
+                    styles.dateBtnFrom,
+                    draft.dateFrom && {
+                      borderColor: theme.primary.main,
+                      backgroundColor: `${theme.primary.main}14`,
+                    },
+                  ]}
+                  onPress={() => setShowFromPicker(true)}
                 >
                   <MaterialCommunityIcons
-                    name="close-circle"
-                    size={18}
-                    color={theme.foreground.gray}
+                    name="calendar-start"
+                    size={15}
+                    color={
+                      draft.dateFrom
+                        ? theme.primary.main
+                        : theme.foreground.gray
+                    }
                   />
-                </Pressable>
-              )}
-            </View>
-          </Section>
-
-          {/* ── Category ───────────────────────────────────────────────── */}
-          <Section
-            title="Category"
-            theme={theme}
-            styles={styles}
-            count={draft.categoryIds.length}
-            onClear={
-              draft.categoryIds.length > 0
-                ? () => setDraft((d) => ({ ...d, categoryIds: [] }))
-                : undefined
-            }
-          >
-            {/* Expense Categories */}
-            <View style={{ marginBottom: 18 }}>
-              <Text
-                style={[
-                  styles.sectionLabel,
-                  { marginBottom: 10, color: theme.foreground.gray },
-                ]}
-              >
-                Expenses
-              </Text>
-              <View style={styles.categoryChipWrap}>
-                {EXPENSE_CATEGORIES.map((cat) => {
-                  const active = draft.categoryIds.includes(cat.id);
-                  return (
-                    <Pressable
-                      key={cat.id}
-                      style={[
-                        styles.categoryChip,
-                        active && {
-                          backgroundColor: `${cat.color}22`,
-                          borderColor: cat.color,
-                        },
-                      ]}
-                      onPress={() => toggleCategory(cat.id)}
-                    >
-                      <MaterialCommunityIcons
-                        name={cat.icon as any}
-                        size={14}
-                        color={active ? cat.color : theme.foreground.gray}
-                      />
-                      <Text
-                        style={[
-                          styles.chipText,
-                          active && { color: cat.color, fontWeight: "700" },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {cat.name}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* Income Categories */}
-            <View>
-              <Text
-                style={[
-                  styles.sectionLabel,
-                  { marginBottom: 10, color: theme.foreground.gray },
-                ]}
-              >
-                Income
-              </Text>
-              <View style={styles.categoryChipWrap}>
-                {INCOME_CATEGORIES.map((cat) => {
-                  const active = draft.categoryIds.includes(cat.id);
-                  return (
-                    <Pressable
-                      key={cat.id}
-                      style={[
-                        styles.categoryChip,
-                        active && {
-                          backgroundColor: `${cat.color}22`,
-                          borderColor: cat.color,
-                        },
-                      ]}
-                      onPress={() => toggleCategory(cat.id)}
-                    >
-                      <MaterialCommunityIcons
-                        name={cat.icon as any}
-                        size={14}
-                        color={active ? cat.color : theme.foreground.gray}
-                      />
-                      <Text
-                        style={[
-                          styles.chipText,
-                          active && { color: cat.color, fontWeight: "700" },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {cat.name}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-          </Section>
-
-          {/* ── Account type ────────────────────────────────────────────────── */}
-          <Section
-            title="Account Type"
-            theme={theme}
-            styles={styles}
-            count={draft.accountTypes.length}
-            onClear={
-              draft.accountTypes.length > 0
-                ? () => setDraft((d) => ({ ...d, accountTypes: [] }))
-                : undefined
-            }
-          >
-            <View style={styles.accountChipWrap}>
-              {ACCOUNT_TYPE_META.map((typeMeta) => {
-                const active = draft.accountTypes.includes(typeMeta.value);
-                return (
-                  <Pressable
-                    key={typeMeta.value}
+                  <Text
                     style={[
-                      styles.accountChip,
-                      active && {
-                        backgroundColor: `${typeMeta.defaultColor}22`,
-                        borderColor: typeMeta.defaultColor,
-                      },
+                      styles.dateBtnText,
+                      draft.dateFrom && { color: theme.primary.main },
                     ]}
-                    onPress={() => toggleAccountType(typeMeta.value)}
+                    numberOfLines={1}
                   >
-                    <View style={styles.accountChipContent}>
+                    {draft.dateFrom
+                      ? formatDateLabel(draft.dateFrom)
+                      : "From date"}
+                  </Text>
+                </Pressable>
+
+                <MaterialCommunityIcons
+                  name="arrow-right"
+                  size={14}
+                  color={theme.foreground.gray}
+                />
+
+                <Pressable
+                  style={[
+                    styles.dateBtnTo,
+                    draft.dateTo && {
+                      borderColor: theme.primary.main,
+                      backgroundColor: `${theme.primary.main}14`,
+                    },
+                  ]}
+                  onPress={() => setShowToPicker(true)}
+                >
+                  <MaterialCommunityIcons
+                    name="calendar-end"
+                    size={15}
+                    color={
+                      draft.dateTo ? theme.primary.main : theme.foreground.gray
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.dateBtnText,
+                      draft.dateTo && { color: theme.primary.main },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {draft.dateTo ? formatDateLabel(draft.dateTo) : "To date"}
+                  </Text>
+                </Pressable>
+
+                {(draft.dateFrom || draft.dateTo) && (
+                  <Pressable
+                    onPress={clearDateRange}
+                    hitSlop={8}
+                    style={styles.clearDateBtn}
+                  >
                     <MaterialCommunityIcons
-                      name={typeMeta.icon as any}
-                      size={16}
-                      color={
-                        active ? typeMeta.defaultColor : theme.foreground.gray
-                      }
+                      name="close-circle"
+                      size={18}
+                      color={theme.foreground.gray}
                     />
-                    <Text
+                  </Pressable>
+                )}
+              </View>
+            </Section>
+
+            {/* Category */}
+            <Section
+              title="Category"
+              theme={theme}
+              styles={styles}
+              count={draft.categoryIds.length}
+              onClear={
+                draft.categoryIds.length > 0
+                  ? () => setDraft((d) => ({ ...d, categoryIds: [] }))
+                  : undefined
+              }
+            >
+              <View style={{ marginBottom: 18 }}>
+                <Text
+                  style={[
+                    styles.sectionLabel,
+                    { marginBottom: 10, color: theme.foreground.gray },
+                  ]}
+                >
+                  Expenses
+                </Text>
+                <View style={styles.categoryChipWrap}>
+                  {EXPENSE_CATEGORIES.map((cat) => {
+                    const active = draft.categoryIds.includes(cat.id);
+                    return (
+                      <Pressable
+                        key={cat.id}
+                        style={[
+                          styles.categoryChip,
+                          active && {
+                            backgroundColor: `${cat.color}22`,
+                            borderColor: cat.color,
+                          },
+                        ]}
+                        onPress={() => toggleCategory(cat.id)}
+                      >
+                        <MaterialCommunityIcons
+                          name={cat.icon as any}
+                          size={14}
+                          color={active ? cat.color : theme.foreground.gray}
+                        />
+                        <Text
+                          style={[
+                            styles.chipText,
+                            active && { color: cat.color, fontWeight: "700" },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {cat.name}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View>
+                <Text
+                  style={[
+                    styles.sectionLabel,
+                    { marginBottom: 10, color: theme.foreground.gray },
+                  ]}
+                >
+                  Income
+                </Text>
+                <View style={styles.categoryChipWrap}>
+                  {INCOME_CATEGORIES.map((cat) => {
+                    const active = draft.categoryIds.includes(cat.id);
+                    return (
+                      <Pressable
+                        key={cat.id}
+                        style={[
+                          styles.categoryChip,
+                          active && {
+                            backgroundColor: `${cat.color}22`,
+                            borderColor: cat.color,
+                          },
+                        ]}
+                        onPress={() => toggleCategory(cat.id)}
+                      >
+                        <MaterialCommunityIcons
+                          name={cat.icon as any}
+                          size={14}
+                          color={active ? cat.color : theme.foreground.gray}
+                        />
+                        <Text
+                          style={[
+                            styles.chipText,
+                            active && { color: cat.color, fontWeight: "700" },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {cat.name}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            </Section>
+
+            {/* Account Type */}
+            <Section
+              title="Account Type"
+              theme={theme}
+              styles={styles}
+              count={draft.accountTypes.length}
+              onClear={
+                draft.accountTypes.length > 0
+                  ? () => setDraft((d) => ({ ...d, accountTypes: [] }))
+                  : undefined
+              }
+            >
+              <View style={styles.accountChipWrap}>
+                {ACCOUNT_TYPE_META.map((typeMeta) => {
+                  const active = draft.accountTypes.includes(typeMeta.value);
+                  return (
+                    <Pressable
+                      key={typeMeta.value}
                       style={[
-                        styles.accountChipText,
+                        styles.accountChip,
                         active && {
-                          color: typeMeta.defaultColor,
-                          fontWeight: "700",
+                          backgroundColor: `${typeMeta.defaultColor}22`,
+                          borderColor: typeMeta.defaultColor,
                         },
                       ]}
-                      numberOfLines={1}
+                      onPress={() => toggleAccountType(typeMeta.value)}
                     >
-                      {typeMeta.label}
-                    </Text>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </Section>
+                      <View style={styles.accountChipContent}>
+                        <MaterialCommunityIcons
+                          name={typeMeta.icon as any}
+                          size={16}
+                          color={
+                            active
+                              ? typeMeta.defaultColor
+                              : theme.foreground.gray
+                          }
+                        />
+                        <Text
+                          style={[
+                            styles.accountChipText,
+                            active && {
+                              color: typeMeta.defaultColor,
+                              fontWeight: "700",
+                            },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {typeMeta.label}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </Section>
         </BottomSheetScrollView>
-      </BottomSheetModal>
+      </BottomSheet>
 
-      {/* Date modals rendered outside the sheet to avoid z-index issues */}
+      {/* Date pickers rendered outside the sheet to avoid z-index issues */}
       <DatePickerModal
         visible={showFromPicker}
         value={draft.dateFrom ?? today}
@@ -598,6 +595,7 @@ function Section({
 
 function makeStyles(theme: Theme, bottomInset: number = 0) {
   return StyleSheet.create({
+    // Header
     header: {
       flexDirection: "row",
       alignItems: "center",
