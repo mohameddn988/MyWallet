@@ -1,9 +1,9 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
-import React, { useMemo, useState, useEffect } from "react";
+import { router, useLocalSearchParams, useNavigation } from "expo-router";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   RefreshControl,
-  SectionList,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -14,23 +14,19 @@ import { Theme } from "../../constants/themes";
 import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { Transaction, TransactionType } from "../../types/finance";
-import {
-  formatAmount,
-  formatDateLabel,
-  getCurrencySymbol,
-} from "../../utils/currency";
+import { formatAmount, formatDateLabel } from "../../utils/currency";
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 type FilterType = "all" | TransactionType;
 
-interface Section {
+interface DayGroup {
   date: string;
   data: Transaction[];
   dayNet: number;
 }
 
-function groupByDate(txs: Transaction[]): Section[] {
+function groupByDate(txs: Transaction[]): DayGroup[] {
   const map = new Map<string, Transaction[]>();
   for (const tx of txs) {
     const arr = map.get(tx.date) ?? [];
@@ -49,28 +45,64 @@ function groupByDate(txs: Transaction[]): Section[] {
     });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+const FILTER_CONFIG: {
+  key: FilterType;
+  label: string;
+  icon: string;
+  color: string;
+}[] = [
+  { key: "all", label: "All", icon: "format-list-bulleted", color: "" },
+  {
+    key: "expense",
+    label: "Expense",
+    icon: "arrow-up-circle-outline",
+    color: "#F14A6E",
+  },
+  {
+    key: "income",
+    label: "Income",
+    icon: "arrow-down-circle-outline",
+    color: "",
+  },
+  {
+    key: "transfer",
+    label: "Transfer",
+    icon: "swap-horizontal",
+    color: "#4A9FF1",
+  },
+];
 
 export default function TransactionsTabScreen() {
   const { theme } = useTheme();
   const styles = makeStyles(theme);
   const searchParams = useLocalSearchParams<{ filter?: string }>();
-
-  const { allTransactions, baseCurrency, isRefreshing, refresh } = useFinance();
+  const { allTransactions, isRefreshing, refresh } = useFinance();
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>(
     (searchParams.filter as FilterType) || "all",
   );
+  const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
+  const lastTabPressRef = useRef<number>(0);
 
-  // ── Update filter from URL params ──────────────────────────────────────────
+  const navigation = useNavigation();
+
+  const toggleDate = (date: string) => {
+    const newExpanded = new Set(expandedDates);
+    if (newExpanded.has(date)) {
+      newExpanded.delete(date);
+    } else {
+      newExpanded.add(date);
+    }
+    setExpandedDates(newExpanded);
+  };
+
   useEffect(() => {
     if (searchParams.filter) {
       setFilter((searchParams.filter as FilterType) || "all");
     }
   }, [searchParams.filter]);
 
-  // ── Filter & search ───────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     let txs = allTransactions;
     if (filter !== "all") txs = txs.filter((t) => t.type === filter);
@@ -87,28 +119,42 @@ export default function TransactionsTabScreen() {
     return txs;
   }, [allTransactions, filter, search]);
 
-  const sections = useMemo(() => groupByDate(filtered), [filtered]);
+  const groups = useMemo(() => groupByDate(filtered), [filtered]);
 
-  // ── Summary ───────────────────────────────────────────────────────────────
-  const { totalIncome, totalExpense } = useMemo(() => {
-    let totalIncome = 0;
-    let totalExpense = 0;
-    for (const tx of filtered) {
-      if (tx.type === "income") totalIncome += tx.amount;
-      if (tx.type === "expense") totalExpense += tx.amount;
-    }
-    return { totalIncome, totalExpense };
-  }, [filtered]);
+  // Expand all cards whenever groups change (on first load or filter/search change)
+  useEffect(() => {
+    setExpandedDates(new Set(groups.map((g) => g.date)));
+  }, [groups]);
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // Double-tap detection: collapse all if any expanded, else expand all
+  useEffect(() => {
+    const unsubscribe = (navigation as any).addListener("tabPress", () => {
+      const now = Date.now();
+      const timeSinceLastPress = now - lastTabPressRef.current;
+
+      // Double-tap window: 300ms
+      if (timeSinceLastPress < 300) {
+        // Double-tap detected
+        setExpandedDates((prev) =>
+          prev.size > 0
+            ? new Set<string>()
+            : new Set(groups.map((g) => g.date)),
+        );
+        lastTabPressRef.current = 0; // Reset
+      } else {
+        // Single tap or start of new double-tap sequence
+        lastTabPressRef.current = now;
+      }
+    });
+    return unsubscribe;
+  }, [navigation, groups]);
+
   return (
     <View style={styles.root}>
-      {/* ── Header ── */}
       <View style={styles.topBar}>
         <Text style={styles.screenTitle}>Transactions</Text>
       </View>
 
-      {/* ── Search bar ── */}
       <View style={styles.searchRow}>
         <MaterialCommunityIcons
           name="magnify"
@@ -117,14 +163,14 @@ export default function TransactionsTabScreen() {
         />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search by category, merchant, note…"
+          placeholder="Search transactions..."
           placeholderTextColor={theme.foreground.gray}
           value={search}
           onChangeText={setSearch}
           returnKeyType="search"
         />
         {search.length > 0 && (
-          <Pressable onPress={() => setSearch("")}>
+          <Pressable onPress={() => setSearch("")} hitSlop={8}>
             <MaterialCommunityIcons
               name="close-circle"
               size={16}
@@ -134,87 +180,45 @@ export default function TransactionsTabScreen() {
         )}
       </View>
 
-      {/* ── Filter chips ── */}
       <View style={styles.filterRow}>
-        {(["all", "expense", "income", "transfer"] as FilterType[]).map((f) => {
-          const active = filter === f;
+        {FILTER_CONFIG.map((f) => {
+          const active = filter === f.key;
           const color =
-            f === "income"
-              ? theme.primary.main
-              : f === "transfer"
-                ? "#4A9FF1"
-                : f === "expense"
-                  ? "#F14A6E"
-                  : theme.foreground.white;
+            f.color ||
+            (f.key === "income" ? theme.primary.main : theme.foreground.white);
           return (
             <Pressable
-              key={f}
+              key={f.key}
               style={[
                 styles.filterChip,
-                active && {
-                  backgroundColor: `${color}22`,
-                  borderColor: color,
-                },
+                active && { backgroundColor: `${color}22`, borderColor: color },
               ]}
-              onPress={() => setFilter(f)}
+              onPress={() => setFilter(f.key)}
             >
+              <MaterialCommunityIcons
+                name={f.icon as any}
+                size={13}
+                color={active ? color : theme.foreground.gray}
+              />
               <Text
                 style={[
                   styles.filterChipText,
                   active && { color, fontWeight: "700" },
                 ]}
               >
-                {f.charAt(0).toUpperCase() + f.slice(1)}
+                {f.label}
               </Text>
             </Pressable>
           );
         })}
       </View>
 
-      {/* ── Summary strip ── */}
-      {filtered.length > 0 && (
-        <View style={styles.summaryStrip}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryItemLabel}>Income</Text>
-            <Text
-              style={[styles.summaryItemValue, { color: theme.primary.main }]}
-            >
-              +{formatAmount(totalIncome, baseCurrency)}
-            </Text>
-          </View>
-          <View style={styles.summaryDivider} />
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryItemLabel}>Spent</Text>
-            <Text style={[styles.summaryItemValue, { color: "#F14A6E" }]}>
-              -{formatAmount(totalExpense, baseCurrency)}
-            </Text>
-          </View>
-          <View style={styles.summaryDivider} />
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryItemLabel}>Net</Text>
-            <Text
-              style={[
-                styles.summaryItemValue,
-                {
-                  color:
-                    totalIncome - totalExpense >= 0
-                      ? theme.primary.main
-                      : "#F14A6E",
-                },
-              ]}
-            >
-              {totalIncome - totalExpense >= 0 ? "+" : ""}
-              {formatAmount(totalIncome - totalExpense, baseCurrency)}
-            </Text>
-          </View>
-        </View>
-      )}
-
-      {/* ── Transactions list ── */}
-      <SectionList
-        sections={sections}
-        keyExtractor={(tx) => tx.id}
-        stickySectionHeadersEnabled
+      <ScrollView
+        style={styles.list}
+        contentContainerStyle={
+          groups.length === 0 ? styles.emptyContainer : styles.listContent
+        }
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -223,30 +227,17 @@ export default function TransactionsTabScreen() {
             colors={[theme.primary.main]}
           />
         }
-        renderSectionHeader={({ section }) => (
-          <SectionHeader
-            section={section}
-            theme={theme}
-            currency={baseCurrency}
-            styles={styles}
-          />
-        )}
-        renderItem={({ item: tx, index, section }) => (
-          <TxRow
-            tx={tx}
-            isLast={index === section.data.length - 1}
-            theme={theme}
-            styles={styles}
-            onPress={() => router.push(`/transaction/${tx.id}` as any)}
-          />
-        )}
-        ListEmptyComponent={
+      >
+        {groups.length === 0 ? (
           <View style={styles.emptyState}>
-            <MaterialCommunityIcons
-              name="receipt-outline"
-              size={48}
-              color={theme.foreground.gray}
-            />
+            <View style={styles.emptyIconWrap}>
+              <MaterialCommunityIcons
+                name="receipt-outline"
+                size={38}
+                color={theme.foreground.gray}
+                style={{ opacity: 0.4 }}
+              />
+            </View>
             <Text style={styles.emptyTitle}>
               {search || filter !== "all"
                 ? "No matching transactions"
@@ -271,53 +262,71 @@ export default function TransactionsTabScreen() {
               </Pressable>
             )}
           </View>
-        }
-        ListFooterComponent={
-          filtered.length > 0 ? <View style={styles.listFooter} /> : null
-        }
-        contentContainerStyle={
-          sections.length === 0 ? styles.emptyContainer : undefined
-        }
-      />
+        ) : (
+          groups.map((group) => (
+            <DayCard
+              key={group.date}
+              group={group}
+              theme={theme}
+              styles={styles}
+              isExpanded={expandedDates.has(group.date)}
+              onToggle={() => toggleDate(group.date)}
+            />
+          ))
+        )}
+      </ScrollView>
     </View>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Section header
-// ─────────────────────────────────────────────────────────────────────────────
-
-function SectionHeader({
-  section,
+function DayCard({
+  group,
   theme,
-  currency,
   styles,
+  isExpanded,
+  onToggle,
 }: {
-  section: Section;
+  group: DayGroup;
   theme: Theme;
-  currency: string;
   styles: ReturnType<typeof makeStyles>;
+  isExpanded: boolean;
+  onToggle: () => void;
 }) {
-  const net = section.dayNet;
-  const netStr = (net >= 0 ? "+" : "") + formatAmount(net, currency);
+  const net = group.dayNet;
   const netColor =
-    net > 0
-      ? theme.primary.main
-      : net < 0
-        ? "#F14A6E"
-        : theme.foreground.gray;
+    net > 0 ? theme.primary.main : net < 0 ? "#F14A6E" : theme.foreground.gray;
 
   return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionDate}>{formatDateLabel(section.date)}</Text>
-      <Text style={[styles.sectionNet, { color: netColor }]}>{netStr}</Text>
+    <View style={styles.dayCard}>
+      <Pressable style={styles.dayCardHeaderPress} onPress={onToggle}>
+        <View style={styles.dayCardHeaderContent}>
+          <Text style={styles.dayCardDate}>{formatDateLabel(group.date)}</Text>
+          <Text style={[styles.dayCardNet, { color: netColor }]}>
+            {net > 0 ? "+" : ""}
+            {group.data[0] ? formatAmount(net, group.data[0].currency) : ""}
+          </Text>
+        </View>
+        <MaterialCommunityIcons
+          name={isExpanded ? "chevron-up" : "chevron-down"}
+          size={20}
+          color={theme.foreground.gray}
+          style={styles.dayCardChevron}
+        />
+      </Pressable>
+      {isExpanded &&
+        group.data.map((tx, i) => (
+          <TxRow
+            key={tx.id}
+            tx={tx}
+            isLast={i === group.data.length - 1}
+            theme={theme}
+            styles={styles}
+            onPress={() => router.push(`/transaction/${tx.id}` as any)}
+          />
+        ))}
     </View>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Transaction row
-// ─────────────────────────────────────────────────────────────────────────────
 
 function TxRow({
   tx,
@@ -334,113 +343,92 @@ function TxRow({
 }) {
   const isIncome = tx.type === "income";
   const isTransfer = tx.type === "transfer";
-  const amountColor = isTransfer
+  const accentColor = isTransfer
     ? "#4A9FF1"
     : isIncome
       ? theme.primary.main
       : "#F14A6E";
   const amountStr = isTransfer
     ? formatAmount(tx.amount, tx.currency)
-    : (isIncome ? "+" : "−") + formatAmount(tx.amount, tx.currency);
+    : (isIncome ? "+" : "-") + formatAmount(tx.amount, tx.currency);
 
   return (
     <Pressable
       style={({ pressed }) => [
         styles.txRow,
-        !isLast && styles.txRowBorder,
+        !isLast && styles.txRowDivider,
         pressed && styles.txRowPressed,
       ]}
       onPress={onPress}
     >
-      {/* Icon */}
       <View
         style={[
           styles.txIcon,
           {
             backgroundColor: tx.categoryColor
-              ? `${tx.categoryColor}22`
-              : theme.background.accent,
+              ? `${tx.categoryColor}1A`
+              : `${accentColor}1A`,
           },
         ]}
       >
         <MaterialCommunityIcons
           name={(tx.categoryIcon ?? "circle-outline") as any}
-          size={18}
-          color={tx.categoryColor ?? theme.foreground.gray}
+          size={19}
+          color={tx.categoryColor ?? accentColor}
         />
       </View>
-
-      {/* Info */}
       <View style={styles.txInfo}>
         <Text style={styles.txCategory} numberOfLines={1}>
           {tx.categoryName ?? (isTransfer ? "Transfer" : "Uncategorized")}
         </Text>
-        {tx.merchant ? (
-          <Text style={styles.txMerchant} numberOfLines={1}>
-            {tx.merchant}
+        {tx.merchant || tx.note ? (
+          <Text style={styles.txSub} numberOfLines={1}>
+            {tx.merchant ?? tx.note}
           </Text>
-        ) : tx.note ? (
-          <Text style={styles.txMerchant} numberOfLines={1}>
-            {tx.note}
+        ) : tx.paymentMethod ? (
+          <Text style={styles.txSub} numberOfLines={1}>
+            {tx.paymentMethod.replace("_", " ")}
           </Text>
         ) : null}
       </View>
-
-      {/* Amount */}
-      <View style={styles.txRight}>
-        <Text style={[styles.txAmount, { color: amountColor }]}>
-          {amountStr}
-        </Text>
-        {tx.paymentMethod && (
-          <Text style={styles.txPayment}>
-            {tx.paymentMethod.replace("_", " ")}
-          </Text>
-        )}
-      </View>
-
-      <MaterialCommunityIcons
-        name="chevron-right"
-        size={16}
-        color={theme.foreground.gray}
-        style={styles.txChevron}
-      />
+      <Text style={[styles.txAmount, { color: accentColor }]} numberOfLines={1}>
+        {amountStr}
+      </Text>
     </Pressable>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-
 function makeStyles(theme: Theme) {
   return StyleSheet.create({
-    root: {
-      flex: 1,
-      backgroundColor: theme.background.dark,
-    },
+    root: { flex: 1, backgroundColor: theme.background.dark },
+    list: { flex: 1 },
     topBar: {
       flexDirection: "row",
-      alignItems: "center",
+      alignItems: "flex-end",
       justifyContent: "space-between",
       paddingHorizontal: 20,
       paddingTop: 16,
-      paddingBottom: 10,
+      paddingBottom: 12,
+      marginBottom: 16,
     },
     screenTitle: {
-      fontSize: 22,
+      fontSize: 26,
       fontWeight: "800",
       color: theme.foreground.white,
+      letterSpacing: -0.5,
     },
     searchRow: {
       flexDirection: "row",
       alignItems: "center",
       gap: 8,
       marginHorizontal: 16,
-      marginBottom: 10,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
+      marginBottom: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 11,
       backgroundColor: theme.background.accent,
-      borderRadius: 12,
+      borderRadius: 14,
       borderWidth: 1,
-      borderColor: "#2C3139",
+      borderColor: `${theme.foreground.gray}18`,
     },
     searchInput: {
       flex: 1,
@@ -452,89 +440,81 @@ function makeStyles(theme: Theme) {
       flexDirection: "row",
       gap: 8,
       paddingHorizontal: 16,
-      marginBottom: 10,
+      marginBottom: 16,
     },
     filterChip: {
       flex: 1,
-      paddingVertical: 7,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: "#2C3139",
-      backgroundColor: theme.background.accent,
+      flexDirection: "row",
       alignItems: "center",
+      justifyContent: "center",
+      gap: 4,
+      paddingVertical: 8,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: `${theme.foreground.gray}22`,
+      backgroundColor: theme.background.accent,
     },
     filterChipText: {
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: "500",
       color: theme.foreground.gray,
     },
-    summaryStrip: {
-      flexDirection: "row",
-      marginHorizontal: 16,
-      marginBottom: 12,
+    listContent: {
+      paddingHorizontal: 16,
+      paddingBottom: 110,
+      gap: 12,
+    },
+    dayCard: {
       backgroundColor: theme.background.accent,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: "#2C3139",
+      borderRadius: 18,
       overflow: "hidden",
+      borderWidth: 1,
+      borderColor: `${theme.foreground.gray}12`,
     },
-    summaryItem: {
-      flex: 1,
-      alignItems: "center",
-      paddingVertical: 10,
-      gap: 3,
-    },
-    summaryItemLabel: {
-      fontSize: 10,
-      fontWeight: "600",
-      color: theme.foreground.gray,
-      textTransform: "uppercase",
-      letterSpacing: 0.5,
-    },
-    summaryItemValue: {
-      fontSize: 13,
-      fontWeight: "700",
-    },
-    summaryDivider: {
-      width: 1,
-      backgroundColor: "#2C3139",
-      marginVertical: 8,
-    },
-    sectionHeader: {
+    dayCardHeaderPress: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingHorizontal: 20,
-      paddingVertical: 8,
-      backgroundColor: theme.background.dark,
+      paddingHorizontal: 16,
+      paddingTop: 13,
+      paddingBottom: 10,
       borderBottomWidth: 1,
-      borderBottomColor: "#2C3139",
+      borderBottomColor: `${theme.foreground.gray}10`,
     },
-    sectionDate: {
-      fontSize: 12,
-      fontWeight: "600",
+    dayCardHeaderContent: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      flex: 1,
+    },
+    dayCardChevron: {
+      marginLeft: 8,
+    },
+    dayCardDate: {
+      fontSize: 11,
+      fontWeight: "700",
       color: theme.foreground.gray,
+      letterSpacing: 0.8,
       textTransform: "uppercase",
-      letterSpacing: 0.5,
+      flex: 1,
     },
-    sectionNet: {
-      fontSize: 12,
+    dayCardNet: {
+      fontSize: 13,
       fontWeight: "700",
     },
     txRow: {
       flexDirection: "row",
       alignItems: "center",
+      paddingVertical: 13,
       paddingHorizontal: 16,
-      paddingVertical: 12,
-      backgroundColor: theme.background.darker,
       gap: 12,
     },
-    txRowBorder: {
-      borderBottomWidth: 1,
-      borderBottomColor: "#2C3139",
+    txRowDivider: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: `${theme.foreground.gray}14`,
     },
     txRowPressed: {
-      backgroundColor: theme.background.accent,
+      backgroundColor: `${theme.foreground.gray}08`,
     },
     txIcon: {
       width: 40,
@@ -543,55 +523,47 @@ function makeStyles(theme: Theme) {
       alignItems: "center",
       justifyContent: "center",
     },
-    txInfo: {
-      flex: 1,
-      gap: 2,
-    },
+    txInfo: { flex: 1, gap: 3 },
     txCategory: {
       fontSize: 14,
       fontWeight: "600",
       color: theme.foreground.white,
     },
-    txMerchant: {
+    txSub: {
       fontSize: 12,
-      color: theme.foreground.gray,
-    },
-    txRight: {
-      alignItems: "flex-end",
-      gap: 2,
-    },
-    txAmount: {
-      fontSize: 14,
-      fontWeight: "700",
-    },
-    txPayment: {
-      fontSize: 11,
       color: theme.foreground.gray,
       textTransform: "capitalize",
     },
-    txChevron: {
-      opacity: 0.5,
+    txAmount: {
+      fontSize: 15,
+      fontWeight: "700",
     },
-    emptyContainer: {
-      flex: 1,
-    },
+    emptyContainer: { flexGrow: 1 },
     emptyState: {
       flex: 1,
       alignItems: "center",
       justifyContent: "center",
-      paddingTop: 80,
       gap: 8,
       paddingHorizontal: 40,
+    },
+    emptyIconWrap: {
+      width: 72,
+      height: 72,
+      borderRadius: 20,
+      backgroundColor: theme.background.accent,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 4,
     },
     emptyTitle: {
       fontSize: 17,
       fontWeight: "700",
       color: theme.foreground.white,
-      marginTop: 8,
+      marginTop: 4,
       textAlign: "center",
     },
     emptySubtitle: {
-      fontSize: 14,
+      fontSize: 13,
       color: theme.foreground.gray,
       textAlign: "center",
       lineHeight: 20,
@@ -607,9 +579,6 @@ function makeStyles(theme: Theme) {
       fontSize: 14,
       fontWeight: "700",
       color: theme.background.dark,
-    },
-    listFooter: {
-      height: 40,
     },
   });
 }

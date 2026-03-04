@@ -23,7 +23,7 @@ import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getAccountTypeMeta } from "../../data/accounts";
 import { Account, AccountType, ExchangeRate } from "../../types/finance";
-import { convertToBase, formatAmount } from "../../utils/currency";
+import { convertFromBase, convertToBase, formatAmount } from "../../utils/currency";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Account card (redesigned)
@@ -413,12 +413,10 @@ export default function AccountsTabScreen() {
   }, [baseCurrency, exchangeRates]);
 
   // Net worth converted to the selected display currency
-  const displayNetWorth = useMemo(() => {
-    if (displayCurrency === baseCurrency) return netWorth;
-    const rate = rateMap[displayCurrency];
-    if (!rate || rate === 0) return null;
-    return netWorth / rate;
-  }, [netWorth, displayCurrency, baseCurrency, rateMap]);
+  const displayNetWorth = useMemo(
+    () => convertFromBase(netWorth, displayCurrency, baseCurrency, rateMap),
+    [netWorth, displayCurrency, baseCurrency, rateMap],
+  );
 
   const handleChangeBaseCurrency = useCallback(() => {
     const others = availableCurrencies.filter((c) => c !== baseCurrency);
@@ -527,9 +525,7 @@ export default function AccountsTabScreen() {
 
           {/* Display value */}
           <Text style={s.netWorthValue}>
-            {displayNetWorth !== null
-              ? formatAmount(displayNetWorth, displayCurrency)
-              : "—"}
+            {formatAmount(displayNetWorth, displayCurrency)}
           </Text>
 
           {/* Currency selector pills */}
@@ -728,20 +724,25 @@ function makeStyles(theme: Theme) {
     // Header
     screenHeader: {
       paddingHorizontal: 20,
-      paddingTop: 6,
-      paddingBottom: 16,
+      paddingTop: 16,
+      paddingBottom: 14,
+      marginBottom: 16,
     },
     screenTitle: {
-      fontSize: 24,
+      fontSize: 26,
       fontWeight: "800",
       color: theme.foreground.white,
+      letterSpacing: -0.5,
     },
 
     scroll: { flex: 1 },
     scrollContent: { paddingHorizontal: 16 },
 
-    // Section label
+    // Section label row
     sectionLabelRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       marginBottom: 10,
       marginTop: 4,
     },
@@ -758,15 +759,15 @@ function makeStyles(theme: Theme) {
       backgroundColor: theme.background.accent,
       borderRadius: 20,
       padding: 20,
-      marginBottom: 24,
+      marginBottom: 20,
       borderWidth: 1,
-      borderColor: `${theme.primary.main}33`,
+      borderColor: `${theme.primary.main}30`,
     },
     netWorthHeaderRow: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      marginBottom: 6,
+      marginBottom: 4,
     },
     netWorthLabel: {
       fontSize: 11,
@@ -780,11 +781,11 @@ function makeStyles(theme: Theme) {
       alignItems: "center",
       gap: 4,
       backgroundColor: theme.background.darker,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 8,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 10,
       borderWidth: 1,
-      borderColor: `${theme.foreground.gray}20`,
+      borderColor: `${theme.foreground.gray}22`,
     },
     baseCurrencyChipText: {
       fontSize: 11,
@@ -792,10 +793,12 @@ function makeStyles(theme: Theme) {
       color: theme.foreground.gray,
     },
     netWorthValue: {
-      fontSize: 34,
+      fontSize: 36,
       fontWeight: "800",
       color: theme.primary.main,
-      marginBottom: 10,
+      letterSpacing: -0.5,
+      marginBottom: 12,
+      marginTop: 2,
     },
     currencyPillsRow: {
       flexDirection: "row",
@@ -857,18 +860,18 @@ function makeStyles(theme: Theme) {
     // ── Group section ──
     groupList: { marginBottom: 8 },
     groupSection: {
-      marginBottom: 10,
+      marginBottom: 8,
       backgroundColor: theme.background.accent,
       borderRadius: 18,
       overflow: "hidden",
       borderWidth: 1,
-      borderColor: `${theme.foreground.gray}14`,
+      borderColor: `${theme.foreground.gray}12`,
     },
     groupHeader: {
       flexDirection: "row",
       alignItems: "center",
       paddingHorizontal: 14,
-      paddingVertical: 13,
+      paddingVertical: 14,
       gap: 10,
     },
     groupIconWrap: {
@@ -910,7 +913,7 @@ function makeStyles(theme: Theme) {
       flexDirection: "row",
       alignItems: "center",
       gap: 10,
-      paddingVertical: 12,
+      paddingVertical: 13,
       paddingRight: 12,
       paddingLeft: 10,
       backgroundColor: theme.background.darker,
@@ -926,9 +929,9 @@ function makeStyles(theme: Theme) {
       borderRadius: 2,
     },
     accountIcon: {
-      width: 38,
-      height: 38,
-      borderRadius: 11,
+      width: 40,
+      height: 40,
+      borderRadius: 12,
       alignItems: "center",
       justifyContent: "center",
       marginLeft: 6,

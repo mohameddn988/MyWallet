@@ -72,6 +72,9 @@ interface FinanceContextType {
   addTransaction: (tx: Omit<Transaction, "id">) => Promise<Transaction>;
   updateTransaction: (tx: Transaction) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
+  lastDeletedTransaction: Transaction | null;
+  restoreLastDeleted: () => Promise<void>;
+  clearLastDeleted: () => void;
   duplicateTransaction: (id: string) => Promise<Transaction>;
   // ── Account CRUD ──
   addAccount: (data: Omit<Account, "id">) => Promise<Account>;
@@ -228,6 +231,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   );
   const [rawTransactions, setRawTransactions] =
     useState<Transaction[]>(INITIAL_TRANSACTIONS);
+  const [lastDeletedTransaction, setLastDeletedTransaction] =
+    useState<Transaction | null>(null);
 
   /** The currency the user has chosen to view amounts in */
   const [displayCurrency, setDisplayCurrency] = useState<string>(BASE_CURRENCY);
@@ -292,11 +297,26 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const deleteTransaction = useCallback(
     async (id: string): Promise<void> => {
       const tx = rawTransactions.find((t) => t.id === id);
-      if (tx) setRawAccounts((prev) => applyTx(prev, tx, -1));
+      if (tx) {
+        setLastDeletedTransaction(tx);
+        setRawAccounts((prev) => applyTx(prev, tx, -1));
+      }
       setRawTransactions((prev) => prev.filter((t) => t.id !== id));
     },
     [rawTransactions],
   );
+
+  const restoreLastDeleted = useCallback(async (): Promise<void> => {
+    if (!lastDeletedTransaction) return;
+    const tx = lastDeletedTransaction;
+    setRawAccounts((prev) => applyTx(prev, tx, 1));
+    setRawTransactions((prev) => [...prev, tx]);
+    setLastDeletedTransaction(null);
+  }, [lastDeletedTransaction]);
+
+  const clearLastDeleted = useCallback(() => {
+    setLastDeletedTransaction(null);
+  }, []);
 
   const duplicateTransaction = useCallback(
     async (id: string): Promise<Transaction> => {
@@ -484,6 +504,9 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         updateTransaction,
         deleteTransaction,
         duplicateTransaction,
+        lastDeletedTransaction,
+        restoreLastDeleted,
+        clearLastDeleted,
         addAccount,
         updateAccount,
         deleteAccount,

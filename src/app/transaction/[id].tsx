@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
-  Alert,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -18,50 +18,29 @@ export default function TransactionDetailScreen() {
   const { theme } = useTheme();
   const styles = makeStyles(theme);
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { allTransactions, accounts, deleteTransaction, duplicateTransaction } =
-    useFinance();
+  const { allTransactions, accounts, deleteTransaction } = useFinance();
 
   const [busy, setBusy] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const tx = allTransactions.find((t) => t.id === id);
 
   // ── Handlers — all hooks must be declared before any early return ──────────
-  const handleDuplicate = useCallback(async () => {
+  const handleDelete = useCallback(() => {
     if (!tx || busy) return;
+    setShowDeleteConfirm(true);
+  }, [tx, busy]);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!tx) return;
+    setShowDeleteConfirm(false);
     setBusy(true);
     try {
-      const dup = await duplicateTransaction(tx.id);
-      router.replace(`/transaction/${dup.id}` as any);
+      await deleteTransaction(tx.id);
+      router.back();
     } catch {
-      Alert.alert("Error", "Failed to duplicate transaction.");
-    } finally {
       setBusy(false);
     }
-  }, [tx, duplicateTransaction, busy]);
-
-  const handleDelete = useCallback(() => {
-    if (!tx) return;
-    Alert.alert(
-      "Delete Transaction",
-      `Are you sure you want to delete this ${tx.type}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            setBusy(true);
-            try {
-              await deleteTransaction(tx.id);
-              router.back();
-            } catch {
-              Alert.alert("Error", "Failed to delete transaction.");
-              setBusy(false);
-            }
-          },
-        },
-      ],
-    );
   }, [tx, deleteTransaction]);
 
   const handleEdit = useCallback(() => {
@@ -114,19 +93,7 @@ export default function TransactionDetailScreen() {
           />
         </Pressable>
         <Text style={styles.headerTitle}>Transaction</Text>
-        <Pressable
-          style={({ pressed }) => [
-            styles.headerBtn,
-            pressed && { opacity: 0.6 },
-          ]}
-          onPress={handleEdit}
-        >
-          <MaterialCommunityIcons
-            name="pencil-outline"
-            size={20}
-            color={theme.primary.main}
-          />
-        </Pressable>
+        <View style={styles.headerBtn} />
       </View>
 
       <ScrollView
@@ -230,10 +197,10 @@ export default function TransactionDetailScreen() {
         {/* ── Actions ── */}
         <View style={styles.actionsCard}>
           <ActionButton
-            icon="content-copy"
-            label="Duplicate"
-            onPress={handleDuplicate}
-            color="#4A9FF1"
+            icon="pencil-outline"
+            label="Edit"
+            onPress={handleEdit}
+            color={theme.primary.main}
             theme={theme}
             disabled={busy}
           />
@@ -250,6 +217,57 @@ export default function TransactionDetailScreen() {
 
         <View style={styles.bottomPad} />
       </ScrollView>
+
+      <Modal
+        visible={showDeleteConfirm}
+        animationType="fade"
+        transparent
+        onRequestClose={() => !busy && setShowDeleteConfirm(false)}
+      >
+        <View style={styles.confirmOverlay}>
+          <View style={styles.confirmModal}>
+            <View style={styles.confirmIconWrap}>
+              <MaterialCommunityIcons
+                name="trash-can-outline"
+                size={36}
+                color="#F14A6E"
+              />
+            </View>
+            <Text style={styles.confirmTitle}>Delete Transaction</Text>
+            <Text style={styles.confirmText}>
+              Are you sure you want to delete this {tx.type}?{"\n"}This action
+              cannot be undone.
+            </Text>
+            <View style={styles.confirmActions}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.confirmBtn,
+                  styles.confirmBtnCancel,
+                  pressed && { opacity: 0.7 },
+                ]}
+                onPress={() => setShowDeleteConfirm(false)}
+                disabled={busy}
+              >
+                <Text style={styles.confirmBtnCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.confirmBtn,
+                  styles.confirmBtnDelete,
+                  pressed && { opacity: 0.7 },
+                  busy && { opacity: 0.5 },
+                ]}
+                onPress={handleConfirmDelete}
+                disabled={busy}
+              >
+                <Text style={styles.confirmBtnDeleteText}>
+                  {busy ? "Deleting..." : "Delete"}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -374,14 +392,12 @@ function makeStyles(theme: Theme) {
       justifyContent: "space-between",
       paddingHorizontal: 16,
       paddingVertical: 14,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.background.accent,
     },
     headerBtn: {
       width: 36,
       height: 36,
       borderRadius: 10,
-      backgroundColor: theme.background.accent,
+      backgroundColor: "transparent",
       alignItems: "center",
       justifyContent: "center",
     },
@@ -396,6 +412,8 @@ function makeStyles(theme: Theme) {
     scrollContent: {
       paddingHorizontal: 16,
       paddingTop: 20,
+      flexGrow: 1,
+      justifyContent: "center",
     },
     heroCard: {
       alignItems: "center",
@@ -504,6 +522,74 @@ function makeStyles(theme: Theme) {
     },
     bottomPad: {
       height: 40,
+    },
+    confirmOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 20,
+    },
+    confirmModal: {
+      backgroundColor: theme.background.accent,
+      borderRadius: 20,
+      paddingVertical: 28,
+      paddingHorizontal: 24,
+      alignItems: "center",
+      gap: 16,
+      maxWidth: 320,
+    },
+    confirmIconWrap: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      backgroundColor: `${theme.foreground.white}10`,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    confirmTitle: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: theme.foreground.white,
+      textAlign: "center",
+    },
+    confirmText: {
+      fontSize: 14,
+      color: theme.foreground.gray,
+      textAlign: "center",
+      lineHeight: 20,
+      marginBottom: 8,
+    },
+    confirmActions: {
+      flexDirection: "row",
+      gap: 12,
+      marginTop: 16,
+      width: "100%",
+    },
+    confirmBtn: {
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    confirmBtnCancel: {
+      backgroundColor: theme.background.dark,
+      borderWidth: 1,
+      borderColor: `${theme.foreground.gray}22`,
+    },
+    confirmBtnCancelText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: theme.foreground.white,
+    },
+    confirmBtnDelete: {
+      backgroundColor: "#F14A6E",
+    },
+    confirmBtnDeleteText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: theme.foreground.white,
     },
   });
 }
