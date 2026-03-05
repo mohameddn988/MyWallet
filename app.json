@@ -7,10 +7,7 @@
     "icon": "./assets/images/Logo.png",
     "scheme": "mywallet",
     "userInterfaceStyle": "automatic",
-    "platforms": [
-      "ios",
-      "android"
-    ],
+    "platforms": ["ios", "android"],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
@@ -26,7 +23,7 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/Logo.png"
+        "foregroundImage": "./assets/images/adaptive-icon.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.anonymous.mywallet"
@@ -38,8 +35,18 @@
     "plugins": [
       [
         "expo-router",
+        { "root": "./src/app" }
+      ],
+      [
+        "expo-splash-screen",
         {
-          "root": "./src/app"
+          "backgroundColor": "#F5F5F5",
+          "image": "./assets/images/Logo.png",
+          "imageWidth": 120,
+          "dark": {
+            "backgroundColor": "#0B0D0E",
+            "image": "./assets/images/Logo.png"
+          }
         }
       ]
     ]

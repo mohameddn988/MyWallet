@@ -1,4 +1,6 @@
 import { Stack, usePathname } from "expo-router";
+import * as NativeSplash from "expo-splash-screen";
+import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { View } from "react-native";
 import {
@@ -10,6 +12,9 @@ import { AuthProvider } from "../contexts/AuthContext";
 import { FinanceProvider } from "../contexts/FinanceContext";
 import { GetStartedProvider } from "../contexts/GetStartedContext";
 import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
+
+NativeSplash.preventAutoHideAsync();
+NativeSplash.setOptions({ duration: 700, fade: true });
 
 export default function RootLayout() {
   return (
@@ -33,6 +38,10 @@ function RootLayoutWithTheme() {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
+
+  useEffect(() => {
+    NativeSplash.hideAsync();
+  }, []);
 
   // Splash screen lives at the root index — exclude it from safe area
   const isSplash = pathname === "/";
