@@ -7,7 +7,6 @@
     "icon": "./assets/images/Logo.png",
     "scheme": "mywallet",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "platforms": [
       "ios",
       "android"
@@ -29,13 +28,7 @@
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/Logo.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "config": {
-        "googleMaps": {
-          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
-        }
-      },
       "package": "com.anonymous.mywallet"
     },
     "web": {
@@ -47,18 +40,6 @@
         "expo-router",
         {
           "root": "./src/app"
-        }
-      ],
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/Logo.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
-          }
         }
       ]
     ]

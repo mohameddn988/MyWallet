@@ -81,7 +81,7 @@ function RootLayoutWithTheme() {
             name="get-started/done"
             options={{ animation: "fade" }}
           />
-          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(tabs)" options={{ animation: "fade" }} />
           <Stack.Screen
             name="transaction/add"
             options={{ presentation: "modal", animation: "slide_from_bottom" }}
