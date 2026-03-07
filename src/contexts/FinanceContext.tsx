@@ -2,7 +2,9 @@ import React, {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 const DEFAULT_BASE_CURRENCY = "DZD";
@@ -18,6 +20,9 @@ import {
   SubAccount,
   Transaction,
 } from "../types/finance";
+import { apiUrl } from "../lib/apiUrl";
+import { auth } from "../utils/auth";
+import { useAuth } from "./AuthContext";
 import { convertToBase, toDateStr } from "../utils/currency";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -30,6 +35,14 @@ export interface FinanceSetup {
   exchangeRates: ExchangeRate[];
   transactions: Transaction[];
   useSampleData: boolean;
+}
+
+interface WalletStatePayload {
+  hasCompleted: boolean;
+  baseCurrency: string;
+  accounts: Account[];
+  exchangeRates: ExchangeRate[];
+  transactions: Transaction[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -227,9 +240,10 @@ function computeQuickStats(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function FinanceProvider({ children }: { children: React.ReactNode }) {
+  const { authMode, user } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [isLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [hasCompleted, setHasCompleted] = useState(false);
 
   // Raw data — populated via completeOnboarding() after the user finishes setup
@@ -241,19 +255,199 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     useState<Transaction | null>(null);
   const [eggZeroMode, setEggZeroMode] = useState(false);
   const triggerEggZero = useCallback(() => setEggZeroMode(true), []);
+  const hasBootstrappedCloud = useRef(false);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /** The currency the user has chosen to view amounts in */
-  const [displayCurrency, setDisplayCurrency] = useState<string>(DEFAULT_BASE_CURRENCY);
+  const [displayCurrency, setDisplayCurrency] = useState<string>(
+    DEFAULT_BASE_CURRENCY,
+  );
 
-  const completeOnboarding = useCallback(async (setup: FinanceSetup) => {
-    if (setup.baseCurrency) setRawBase(setup.baseCurrency);
-    if (Array.isArray(setup.accounts) && setup.accounts.length > 0)
-      setRawAccounts(setup.accounts);
-    if (Array.isArray(setup.exchangeRates)) setRawRates(setup.exchangeRates);
-    if (Array.isArray(setup.transactions))
-      setRawTransactions(setup.transactions);
-    setHasCompleted(true);
-  }, []);
+  const authedFetchJSON = useCallback(
+    async <T,>(path: string, init: RequestInit = {}): Promise<T> => {
+      const token = await auth.getToken();
+      if (!token) {
+        throw new Error("Missing auth token");
+      }
+
+      const headers = new Headers(init.headers ?? {});
+      headers.set("Authorization", `Bearer ${token}`);
+      if (!headers.has("Content-Type")) {
+        headers.set("Content-Type", "application/json");
+      }
+
+      const response = await fetch(apiUrl(path), {
+        ...init,
+        headers,
+      });
+
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        const message =
+          data && typeof data.error === "string"
+            ? data.error
+            : `Request failed (${response.status})`;
+        throw new Error(message);
+      }
+
+      return data as T;
+    },
+    [],
+  );
+
+  const syncCloudState = useCallback(
+    async (payload: WalletStatePayload) => {
+      await authedFetchJSON<WalletStatePayload>("/api/finance/state", {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
+    },
+    [authedFetchJSON],
+  );
+
+  const loadCloudState = useCallback(async () => {
+    const cloudState = await authedFetchJSON<WalletStatePayload>(
+      "/api/finance/state",
+      { method: "GET" },
+    );
+
+    setRawBase(cloudState.baseCurrency || DEFAULT_BASE_CURRENCY);
+    setDisplayCurrency(cloudState.baseCurrency || DEFAULT_BASE_CURRENCY);
+    setRawAccounts(
+      Array.isArray(cloudState.accounts) ? cloudState.accounts : [],
+    );
+    setRawRates(
+      Array.isArray(cloudState.exchangeRates) ? cloudState.exchangeRates : [],
+    );
+    setRawTransactions(
+      Array.isArray(cloudState.transactions) ? cloudState.transactions : [],
+    );
+    setHasCompleted(Boolean(cloudState.hasCompleted));
+
+    if (cloudState.hasCompleted) {
+      await auth.setSetupCompleted();
+    } else {
+      await auth.resetSetup();
+    }
+  }, [authedFetchJSON]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const bootstrap = async () => {
+      if (authMode === "online" && user) {
+        setIsLoading(true);
+        hasBootstrappedCloud.current = false;
+        try {
+          await loadCloudState();
+          if (!cancelled) {
+            hasBootstrappedCloud.current = true;
+          }
+        } catch (error) {
+          console.error("[Finance] Failed to bootstrap cloud state:", error);
+        } finally {
+          if (!cancelled) {
+            setIsLoading(false);
+          }
+        }
+        return;
+      }
+
+      hasBootstrappedCloud.current = false;
+
+      if (authMode === "offline") {
+        setIsLoading(false);
+        return;
+      }
+
+      setRawBase(DEFAULT_BASE_CURRENCY);
+      setDisplayCurrency(DEFAULT_BASE_CURRENCY);
+      setRawAccounts([]);
+      setRawRates([]);
+      setRawTransactions([]);
+      setHasCompleted(false);
+      setIsLoading(false);
+    };
+
+    void bootstrap();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authMode, user?.id, loadCloudState]);
+
+  useEffect(() => {
+    if (authMode !== "online" || !user || !hasBootstrappedCloud.current) {
+      return;
+    }
+
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current);
+    }
+
+    const payload: WalletStatePayload = {
+      hasCompleted,
+      baseCurrency: rawBase,
+      accounts: rawAccounts,
+      exchangeRates: rawRates,
+      transactions: rawTransactions,
+    };
+
+    syncTimerRef.current = setTimeout(() => {
+      void syncCloudState(payload).catch((error) => {
+        console.error("[Finance] Failed to sync cloud state:", error);
+      });
+    }, 350);
+
+    return () => {
+      if (syncTimerRef.current) {
+        clearTimeout(syncTimerRef.current);
+        syncTimerRef.current = null;
+      }
+    };
+  }, [
+    authMode,
+    user?.id,
+    hasCompleted,
+    rawBase,
+    rawAccounts,
+    rawRates,
+    rawTransactions,
+    syncCloudState,
+  ]);
+
+  const completeOnboarding = useCallback(
+    async (setup: FinanceSetup) => {
+      const payload: WalletStatePayload = {
+        hasCompleted: true,
+        baseCurrency: setup.baseCurrency || DEFAULT_BASE_CURRENCY,
+        accounts: Array.isArray(setup.accounts) ? setup.accounts : [],
+        exchangeRates: Array.isArray(setup.exchangeRates)
+          ? setup.exchangeRates
+          : [],
+        transactions: Array.isArray(setup.transactions)
+          ? setup.transactions
+          : [],
+      };
+
+      setRawBase(payload.baseCurrency);
+      setDisplayCurrency(payload.baseCurrency);
+      setRawAccounts(payload.accounts);
+      setRawRates(payload.exchangeRates);
+      setRawTransactions(payload.transactions);
+      setHasCompleted(true);
+      await auth.setSetupCompleted();
+
+      if (authMode === "online" && user?.id) {
+        try {
+          await syncCloudState(payload);
+        } catch (error) {
+          console.error("[Finance] Failed to save onboarding to cloud:", error);
+        }
+      }
+    },
+    [authMode, user?.id, syncCloudState],
+  );
 
   // ─────────────────────────────────────────────────────────────────────────
   // Balance helpers
@@ -546,12 +740,30 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   );
 
   const resetOnboarding = useCallback(async () => {
+    const payload: WalletStatePayload = {
+      hasCompleted: false,
+      baseCurrency: DEFAULT_BASE_CURRENCY,
+      accounts: [],
+      exchangeRates: [],
+      transactions: [],
+    };
+
     setHasCompleted(false);
     setRawBase(DEFAULT_BASE_CURRENCY);
+    setDisplayCurrency(DEFAULT_BASE_CURRENCY);
     setRawAccounts([]);
     setRawRates([]);
     setRawTransactions([]);
-  }, []);
+    await auth.resetSetup();
+
+    if (authMode === "online" && user?.id) {
+      try {
+        await syncCloudState(payload);
+      } catch (error) {
+        console.error("[Finance] Failed to reset cloud state:", error);
+      }
+    }
+  }, [authMode, user?.id, syncCloudState]);
 
   const refresh = useCallback(() => {
     setIsRefreshing(true);

@@ -14,6 +14,16 @@ export const auth = {
       const stored = await AsyncStorage.getItem(AUTH_KEY);
       if (!stored) return null;
       const { mode, user } = JSON.parse(stored);
+
+      // Cloud/account sessions are valid only when a JWT token exists.
+      if (mode === "online") {
+        const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+        if (!token) {
+          await AsyncStorage.removeItem(AUTH_KEY);
+          return null;
+        }
+      }
+
       return { mode: mode ?? null, user: user ?? null };
     } catch (error) {
       console.error("[Auth] Failed to load session:", error);

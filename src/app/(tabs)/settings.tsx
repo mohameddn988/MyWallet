@@ -18,7 +18,6 @@ export default function SettingsTabScreen() {
   };
 
   const handleSignOut = async () => {
-    await resetOnboarding();
     await signOut();
     router.navigate("/auth" as any);
   };
