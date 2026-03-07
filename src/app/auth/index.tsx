@@ -12,8 +12,8 @@ export default function AuthScreen() {
   const router = useRouter();
   const styles = makeStyles(theme);
 
-  const handleGoogle = () => {
-    signInWithGoogle();
+  const handleGoogle = async () => {
+    await signInWithGoogle();
     if (hasCompleted) {
       router.navigate("/(tabs)/home" as any);
     } else {
