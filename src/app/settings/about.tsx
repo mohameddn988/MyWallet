@@ -42,7 +42,6 @@ export default function AboutScreen() {
         </Pressable>
         <View style={styles.headerText}>
           <Text style={styles.title}>About</Text>
-          <Text style={styles.subtitle}>App information and credits</Text>
         </View>
       </View>
 

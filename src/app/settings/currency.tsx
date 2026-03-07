@@ -96,9 +96,6 @@ export default function CurrencySettingsScreen() {
         </Pressable>
         <View style={styles.headerText}>
           <Text style={styles.title}>Currency Settings</Text>
-          <Text style={styles.subtitle}>
-            Manage your base currency and exchange rates
-          </Text>
         </View>
       </View>
 

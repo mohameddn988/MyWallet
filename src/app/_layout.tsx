@@ -56,6 +56,7 @@ function RootLayoutWithTheme() {
           screenOptions={{
             headerShown: false,
             contentStyle: { backgroundColor: theme.background.dark },
+            animation: "fade_from_bottom",
           }}
         >
           <Stack.Screen name="index" />
@@ -91,7 +92,7 @@ function RootLayoutWithTheme() {
           />
           <Stack.Screen
             name="transaction/[id]"
-            options={{ animation: "slide_from_right" }}
+            options={{ animation: "fade_from_bottom" }}
           />
           <Stack.Screen
             name="account/add"
@@ -99,7 +100,7 @@ function RootLayoutWithTheme() {
           />
           <Stack.Screen
             name="account/[id]"
-            options={{ animation: "slide_from_right" }}
+            options={{ animation: "fade_from_bottom" }}
           />
         </Stack>
       </SafeAreaView>

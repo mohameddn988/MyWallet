@@ -166,7 +166,7 @@ function PhoneListItem({
             borderRadius: 3,
             opacity: 0.4,
             backgroundColor: theme.foreground.gray,
-            width: widths[0],
+            width: widths[0] as any,
           }}
         />
         <View
@@ -174,7 +174,7 @@ function PhoneListItem({
             height: 5,
             borderRadius: 3,
             backgroundColor: theme.foreground.gray,
-            width: widths[1],
+            width: widths[1] as any,
             marginTop: 4,
             opacity: 0.5,
           }}
@@ -200,7 +200,6 @@ function PhoneBottomBar({ theme }: { theme: Theme }) {
 const styles = StyleSheet.create({
   previewItem: {
     alignItems: "center",
-    flex: 1,
   },
   phoneMockup: {
     width: 130,

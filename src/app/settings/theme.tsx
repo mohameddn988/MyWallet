@@ -52,9 +52,6 @@ export default function ThemeSettingsScreen() {
         </Pressable>
         <View style={styles.headerText}>
           <Text style={styles.title}>Theme</Text>
-          <Text style={styles.subtitle}>
-            Choose how you want the app to look
-          </Text>
         </View>
       </View>
 
@@ -157,7 +154,9 @@ function makeStyles(theme: Theme) {
     },
     previewScrollContent: {
       paddingVertical: 8,
+      paddingLeft: 4,
       paddingRight: 24,
+      gap: 16,
     },
     pressed: {
       opacity: 0.7,

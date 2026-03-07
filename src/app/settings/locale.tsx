@@ -35,7 +35,7 @@ interface PickerOption {
 }
 
 interface PickerSheetProps {
-  sheetRef: React.RefObject<AppBottomSheetRef>;
+  sheetRef: React.RefObject<AppBottomSheetRef | null>;
   title: string;
   subtitle?: string;
   options: PickerOption[];
@@ -304,9 +304,6 @@ export default function LocaleSettingsScreen() {
         </Pressable>
         <View style={styles.headerText}>
           <Text style={styles.title}>Locale & Format</Text>
-          <Text style={styles.subtitle}>
-            Customize regional and display preferences
-          </Text>
         </View>
       </View>
 
@@ -366,7 +363,6 @@ export default function LocaleSettingsScreen() {
           <SettingRow
             icon="calendar"
             label="Date Format"
-            description="How dates are displayed across the app"
             value={selectedDateOption.label}
             onPress={() => openPicker("date")}
             theme={theme}
@@ -374,7 +370,6 @@ export default function LocaleSettingsScreen() {
           <SettingRow
             icon="calendar-week-begin"
             label="First Day of Week"
-            description="Sets the start of your weekly view"
             value={selectedFirstDayOption.label}
             onPress={() => openPicker("firstDay")}
             theme={theme}
@@ -387,7 +382,6 @@ export default function LocaleSettingsScreen() {
           <SettingRow
             icon="numeric"
             label="Number Format"
-            description="Decimal and thousands separator style"
             value={selectedNumberOption.label}
             onPress={() => openPicker("number")}
             theme={theme}

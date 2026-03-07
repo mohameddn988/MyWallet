@@ -142,9 +142,6 @@ export default function DataManagementScreen() {
         </Pressable>
         <View style={styles.headerText}>
           <Text style={styles.title}>Data Management</Text>
-          <Text style={styles.subtitle}>
-            Export, import, and manage your data
-          </Text>
         </View>
       </View>
 
