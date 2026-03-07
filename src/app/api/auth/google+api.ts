@@ -1,9 +1,10 @@
 import { SignJWT } from "jose";
 import { connectDB } from "../../../lib/db";
 import type { UserDocument } from "../../../lib/models/User";
+import { ensureWallet, toWalletStatePayload } from "../../../lib/server/wallet";
 
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET ?? "dev-secret-change-in-production"
+  process.env.JWT_SECRET ?? "dev-secret-change-in-production",
 );
 
 /**
@@ -16,16 +17,30 @@ const JWT_SECRET = new TextEncoder().encode(
  */
 export async function POST(request: Request) {
   try {
+    const body = (await request.json().catch(() => ({}))) as {
+      googleId?: string;
+      email?: string;
+      name?: string;
+      givenName?: string;
+      familyName?: string;
+      picture?: string;
+    };
+
     // ── Mock Google OAuth payload ──────────────────────────────────────
     // In production this will come from verifying a real Google ID token.
-    const now = Date.now();
+    const normalizedEmail =
+      body.email?.trim().toLowerCase() || "mockuser@gmail.com";
+    const normalizedGoogleId = body.googleId?.trim() || "google_mock_default";
+
     const mockPayload = {
-      googleId: `google_mock_${now}`,
-      email: "mockuser@gmail.com",
-      name: "Mock User",
-      givenName: "Mock",
-      familyName: "User",
-      picture: `https://ui-avatars.com/api/?name=Mock+User&background=4285F4&color=fff&size=96`,
+      googleId: normalizedGoogleId,
+      email: normalizedEmail,
+      name: body.name?.trim() || "Mock User",
+      givenName: body.givenName?.trim() || "Mock",
+      familyName: body.familyName?.trim() || "User",
+      picture:
+        body.picture?.trim() ||
+        "https://ui-avatars.com/api/?name=Mock+User&background=4285F4&color=fff&size=96",
       provider: "google" as const,
     };
 
@@ -35,12 +50,14 @@ export async function POST(request: Request) {
     const timestamp = new Date();
 
     const user = await users.findOneAndUpdate(
-      { email: mockPayload.email },
+      {
+        $or: [{ email: mockPayload.email }, { googleId: mockPayload.googleId }],
+      },
       {
         $set: { ...mockPayload, updatedAt: timestamp },
         $setOnInsert: { createdAt: timestamp },
       },
-      { upsert: true, returnDocument: "after" }
+      { upsert: true, returnDocument: "after" },
     );
 
     if (!user) {
@@ -58,8 +75,12 @@ export async function POST(request: Request) {
       .setExpirationTime("30d")
       .sign(JWT_SECRET);
 
+    const wallet = await ensureWallet(user._id!.toString());
+    const walletState = toWalletStatePayload(wallet);
+
     return Response.json({
       token,
+      hasCompleted: walletState.hasCompleted,
       user: {
         id: user._id!.toString(),
         email: user.email,

@@ -8,13 +8,13 @@ import { useTheme } from "../../contexts/ThemeContext";
 export default function AuthScreen() {
   const { theme } = useTheme();
   const { signInWithGoogle, continueOffline } = useAuth();
-  const { hasCompleted, completeOnboarding } = useFinance();
+  const { hasCompleted } = useFinance();
   const router = useRouter();
   const styles = makeStyles(theme);
 
   const handleGoogle = async () => {
-    await signInWithGoogle();
-    if (hasCompleted) {
+    const isSetupDone = await signInWithGoogle();
+    if (isSetupDone) {
       router.navigate("/(tabs)/home" as any);
     } else {
       router.navigate("/get-started/theme" as any);
@@ -42,18 +42,34 @@ export default function AuthScreen() {
       {/* ── Buttons ── */}
       <View style={styles.buttonsSection}>
         <Pressable
-          style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.primaryButton,
+            pressed && styles.pressed,
+          ]}
           onPress={handleGoogle}
         >
-          <AntDesign name="google" size={18} color={theme.background.dark} style={styles.icon} />
+          <AntDesign
+            name="google"
+            size={18}
+            color={theme.background.dark}
+            style={styles.icon}
+          />
           <Text style={styles.primaryButtonText}>Continue with Google</Text>
         </Pressable>
 
         <Pressable
-          style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.secondaryButton,
+            pressed && styles.pressed,
+          ]}
           onPress={handleOffline}
         >
-          <Feather name="smartphone" size={18} color={theme.foreground.white} style={styles.icon} />
+          <Feather
+            name="smartphone"
+            size={18}
+            color={theme.foreground.white}
+            style={styles.icon}
+          />
           <Text style={styles.secondaryButtonText}>Continue Local</Text>
         </Pressable>
       </View>

@@ -15,7 +15,7 @@ interface AuthContextType {
   isLoading: boolean;
   authMode: AuthMode;
   user: AuthUser | null;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: () => Promise<boolean>;
   signInLocal: (email: string, password: string) => Promise<void>;
   continueOffline: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -44,14 +44,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     load();
   }, []);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (): Promise<boolean> => {
     try {
       const res = await fetch(apiUrl("/api/auth/google"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
       });
       if (!res.ok) throw new Error(`Auth API returned ${res.status}`);
-      const { token, user: serverUser } = await res.json();
+      const { token, user: serverUser, hasCompleted } = await res.json();
       const u: AuthUser = {
         id: serverUser.id,
         email: serverUser.email,
@@ -61,8 +62,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(u);
       setAuthMode("online");
       await auth.saveSession("online", u, token);
+      if (hasCompleted) {
+        await auth.setSetupCompleted();
+      } else {
+        await auth.resetSetup();
+      }
+      return Boolean(hasCompleted);
     } catch (err) {
       console.error("[Auth] Google sign-in failed:", err);
+      return false;
     }
   };
 
