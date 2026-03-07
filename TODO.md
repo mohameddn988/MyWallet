@@ -113,12 +113,12 @@
 
 ## 8. REPORTS / ANALYTICS
 
-- [ ] Spending by category (pie/bar)
-- [ ] Income vs expenses chart
-- [ ] Trend over time (daily/weekly/monthly)
-- [ ] Period selector (week / month / year / custom)
+- [x] Spending by category (pie/bar)
+- [x] Income vs expenses chart
+- [x] Trend over time (daily/weekly/monthly)
+- [x] Period selector (week / month / year / custom)
 - [ ] Top merchants (if merchant field enabled)
-- [ ] Top categories and largest transactions
+- [x] Top categories and largest transactions
 - [ ] Export a report snapshot (image/PDF optional)
 
 ---
@@ -176,13 +176,13 @@
 
 ## 15. SETTINGS
 
-- [ ] Theme: light/dark/system (wired to existing ThemeContext)
-- [ ] Base currency (default currency) used for totals
-- [ ] Manage currencies + conversion rates (manual entry MVP)
-- [ ] Locale and number/date formatting
-- [ ] First day of week
-- [ ] Data management (export/import/reset)
-- [ ] About screen (version, build)
+- [x] Theme: light/dark/system (wired to existing ThemeContext)
+- [x] Base currency (default currency) used for totals
+- [x] Manage currencies + conversion rates (manual entry MVP)
+- [x] Locale and number/date formatting
+- [x] First day of week
+- [x] Data management (export/import/reset)
+- [x] About screen (version, build)
 
 ---
 
