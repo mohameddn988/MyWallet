@@ -1,4 +1,4 @@
-﻿import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, {
   useCallback,
@@ -302,10 +302,11 @@ export default function AddTransactionScreen() {
         : null,
     category:
       txType !== "transfer" && !categoryId ? "Please select a category" : null,
+    noAccounts: accounts.length === 0 ? "You need to create an account first" : null,
   };
 
   const canSave =
-    !errors.amount && !errors.account && !errors.toAccount && !errors.category;
+    !errors.amount && !errors.account && !errors.toAccount && !errors.category && !errors.noAccounts;
 
   // â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleAmountChange = (raw: string) => {
@@ -541,6 +542,13 @@ export default function AddTransactionScreen() {
                 : `Stored as minor units â€” e.g. 12.50 = 1250 cents`}
             </Text>
           </View>
+
+          {/* No accounts error */}
+          {errors.noAccounts && (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorBannerText}>{errors.noAccounts}</Text>
+            </View>
+          )}
 
           {/* â”€â”€ Account picker â”€â”€ */}
           <View style={styles.section}>
@@ -1203,6 +1211,21 @@ function makeStyles(theme: Theme) {
       fontSize: 12,
       color: "#F14A6E",
       marginTop: 5,
+    },
+    errorBanner: {
+      backgroundColor: "#F14A6E20",
+      borderWidth: 1,
+      borderColor: "#F14A6E",
+      borderRadius: 10,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      marginVertical: 16,
+    },
+    errorBannerText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: "#F14A6E",
+      textAlign: "center",
     },
     // â”€â”€ Chips â”€â”€
     chipsRow: {

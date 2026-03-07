@@ -1,4 +1,6 @@
 import { Stack, usePathname } from "expo-router";
+import * as NativeSplash from "expo-splash-screen";
+import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { View } from "react-native";
 import {
@@ -11,6 +13,9 @@ import { FinanceProvider } from "../contexts/FinanceContext";
 import { GetStartedProvider } from "../contexts/GetStartedContext";
 import { LocaleProvider } from "../contexts/LocaleContext";
 import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
+
+NativeSplash.preventAutoHideAsync();
+NativeSplash.setOptions({ duration: 700, fade: true });
 
 export default function RootLayout() {
   return (
@@ -37,6 +42,10 @@ function RootLayoutWithTheme() {
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
 
+  useEffect(() => {
+    NativeSplash.hideAsync();
+  }, []);
+
   // Splash screen lives at the root index — exclude it from safe area
   const isSplash = pathname === "/";
 
@@ -59,49 +68,46 @@ function RootLayoutWithTheme() {
             animation: "fade_from_bottom",
           }}
         >
-          <Stack.Screen name="index" />
-          <Stack.Screen name="auth/index" />
+          <Stack.Screen name="index" options={{ animation: "fade" }} />
+          <Stack.Screen name="auth/index" options={{ animation: "fade" }} />
           <Stack.Screen
             name="get-started/welcome"
-            options={{ animation: "none" }}
+            options={{ animation: "fade" }}
           />
           <Stack.Screen
             name="get-started/currency"
-            options={{ animation: "none" }}
+            options={{ animation: "fade" }}
           />
           <Stack.Screen
             name="get-started/accounts"
-            options={{ animation: "none" }}
+            options={{ animation: "fade" }}
           />
           <Stack.Screen
             name="get-started/exchange-rates"
-            options={{ animation: "none" }}
+            options={{ animation: "fade" }}
           />
           <Stack.Screen
             name="get-started/first-transaction"
-            options={{ animation: "none" }}
+            options={{ animation: "fade" }}
           />
           <Stack.Screen
             name="get-started/done"
-            options={{ animation: "none" }}
+            options={{ animation: "fade" }}
           />
-          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(tabs)" options={{ animation: "fade" }} />
           <Stack.Screen
             name="transaction/add"
             options={{ presentation: "modal", animation: "slide_from_bottom" }}
           />
           <Stack.Screen
             name="transaction/[id]"
-            options={{ animation: "fade_from_bottom" }}
+            options={{ animation: "fade" }}
           />
           <Stack.Screen
             name="account/add"
             options={{ presentation: "modal", animation: "slide_from_bottom" }}
           />
-          <Stack.Screen
-            name="account/[id]"
-            options={{ animation: "fade_from_bottom" }}
-          />
+          <Stack.Screen name="account/[id]" options={{ animation: "fade" }} />
         </Stack>
       </SafeAreaView>
     </View>

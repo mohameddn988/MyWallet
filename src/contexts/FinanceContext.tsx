@@ -2,16 +2,10 @@ import React, {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
 } from "react";
-import {
-  BASE_CURRENCY,
-  INITIAL_ACCOUNTS,
-  INITIAL_EXCHANGE_RATES,
-  INITIAL_TRANSACTIONS,
-} from "../data/financeData";
+const DEFAULT_BASE_CURRENCY = "DZD";
 import {
   Account,
   AccountWithBalance,
@@ -236,23 +230,20 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isLoading] = useState(false);
-  const [hasCompleted, setHasCompleted] = useState(true);
+  const [hasCompleted, setHasCompleted] = useState(false);
 
-  // Raw data — loaded from AsyncStorage (onboarding setup) or falls back to seed data
-  const [rawBase, setRawBase] = useState<string>(BASE_CURRENCY);
-  const [rawAccounts, setRawAccounts] = useState<Account[]>(INITIAL_ACCOUNTS);
-  const [rawRates, setRawRates] = useState<ExchangeRate[]>(
-    INITIAL_EXCHANGE_RATES,
-  );
-  const [rawTransactions, setRawTransactions] =
-    useState<Transaction[]>(INITIAL_TRANSACTIONS);
+  // Raw data — populated via completeOnboarding() after the user finishes setup
+  const [rawBase, setRawBase] = useState<string>(DEFAULT_BASE_CURRENCY);
+  const [rawAccounts, setRawAccounts] = useState<Account[]>([]);
+  const [rawRates, setRawRates] = useState<ExchangeRate[]>([]);
+  const [rawTransactions, setRawTransactions] = useState<Transaction[]>([]);
   const [lastDeletedTransaction, setLastDeletedTransaction] =
     useState<Transaction | null>(null);
   const [eggZeroMode, setEggZeroMode] = useState(false);
   const triggerEggZero = useCallback(() => setEggZeroMode(true), []);
 
   /** The currency the user has chosen to view amounts in */
-  const [displayCurrency, setDisplayCurrency] = useState<string>(BASE_CURRENCY);
+  const [displayCurrency, setDisplayCurrency] = useState<string>(DEFAULT_BASE_CURRENCY);
 
   const completeOnboarding = useCallback(async (setup: FinanceSetup) => {
     if (setup.baseCurrency) setRawBase(setup.baseCurrency);
@@ -556,10 +547,10 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
 
   const resetOnboarding = useCallback(async () => {
     setHasCompleted(false);
-    setRawBase(BASE_CURRENCY);
-    setRawAccounts(INITIAL_ACCOUNTS);
-    setRawRates(INITIAL_EXCHANGE_RATES);
-    setRawTransactions(INITIAL_TRANSACTIONS);
+    setRawBase(DEFAULT_BASE_CURRENCY);
+    setRawAccounts([]);
+    setRawRates([]);
+    setRawTransactions([]);
   }, []);
 
   const refresh = useCallback(() => {

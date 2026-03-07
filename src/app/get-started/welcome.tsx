@@ -31,7 +31,7 @@ export default function WelcomeScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, slideAnim]);
 
   const handleGetStarted = () => {
     router.navigate("/get-started/currency" as any);

@@ -80,11 +80,6 @@
 
 - [x] Display categories (expense + income tabs) with collapsible expansion
 - [x] Expanded category set (18+ categories for expense, 13+ for income)
-- [ ] Edit category
-- [ ] Reorder categories
-- [ ] Archive/unarchive categories
-- [ ] Delete category with reassignment to another category
-- [ ] Category spending breakdown for selected period
 
 ---
 

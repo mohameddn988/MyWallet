@@ -1,4 +1,4 @@
-﻿import { useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Theme } from "../../constants/themes";
 import { useGetStarted } from "../../contexts/GetStartedContext";

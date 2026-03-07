@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { auth } from "../utils/auth";
+import { apiUrl } from "../lib/apiUrl";
 
 export type AuthMode = "online" | "offline" | null;
 
@@ -7,13 +8,14 @@ export interface AuthUser {
   id: string;
   email: string;
   name?: string;
+  picture?: string;
 }
 
 interface AuthContextType {
   isLoading: boolean;
   authMode: AuthMode;
   user: AuthUser | null;
-  signInWithGoogle: () => void;
+  signInWithGoogle: () => Promise<void>;
   signInLocal: (email: string, password: string) => Promise<void>;
   continueOffline: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -42,9 +44,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     load();
   }, []);
 
-  const signInWithGoogle = () => {
-    // TODO: integrate Google OAuth (expo-auth-session + Google provider)
-    console.log("[Auth] Google sign-in pressed — not yet implemented");
+  const signInWithGoogle = async () => {
+    try {
+      const res = await fetch(apiUrl("/api/auth/google"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) throw new Error(`Auth API returned ${res.status}`);
+      const { token, user: serverUser } = await res.json();
+      const u: AuthUser = {
+        id: serverUser.id,
+        email: serverUser.email,
+        name: serverUser.name,
+        picture: serverUser.picture,
+      };
+      setUser(u);
+      setAuthMode("online");
+      await auth.saveSession("online", u, token);
+    } catch (err) {
+      console.error("[Auth] Google sign-in failed:", err);
+    }
   };
 
   const signInLocal = async (email: string, password: string) => {

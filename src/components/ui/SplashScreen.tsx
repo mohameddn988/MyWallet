@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useRef } from "react";
-import { Animated, Image, StyleSheet } from "react-native";
+import React, { useEffect } from "react";
+import { Image, StyleSheet, View } from "react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 
 interface SplashScreenProps {
@@ -11,61 +11,32 @@ export default function SplashScreen({
   onAnimationComplete,
 }: SplashScreenProps) {
   const { theme } = useTheme();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
-    // Animation sequence: fade in + scale up, hold, then fade out
-    Animated.sequence([
-      // Fade in and scale up
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ]),
-      // Hold for a moment
-      Animated.delay(1000),
-      // Fade out
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      // Animation complete, trigger callback
+    const timer = setTimeout(() => {
       onAnimationComplete();
-    });
-  }, [fadeAnim, scaleAnim, onAnimationComplete]);
+    }, 1800);
+    return () => clearTimeout(timer);
+  }, [onAnimationComplete]);
 
   return (
     <LinearGradient
-      colors={[theme.background.dark, theme.background.accent, theme.background.dark]}
+      colors={[
+        theme.background.dark,
+        theme.background.accent,
+        theme.background.dark,
+      ]}
       style={styles.container}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
     >
-      <Animated.View
-        style={[
-          styles.logoContainer,
-          {
-            opacity: fadeAnim,
-            transform: [{ scale: scaleAnim }],
-          },
-        ]}
-      >
+      <View style={styles.logoContainer}>
         <Image
           source={require("../../../assets/images/Logo.png")}
           style={styles.logo}
           resizeMode="contain"
         />
-      </Animated.View>
+      </View>
     </LinearGradient>
   );
 }

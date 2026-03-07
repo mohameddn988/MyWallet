@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthMode, AuthUser } from "../contexts/AuthContext";
 
 const AUTH_KEY = "@mywallet_auth";
+const AUTH_TOKEN_KEY = "@mywallet_token";
 const GET_STARTED_KEY = "@mywallet_onboarding_complete";
 
 export const auth = {
@@ -20,9 +21,16 @@ export const auth = {
     }
   },
 
-  saveSession: async (mode: AuthMode, user: AuthUser | null): Promise<void> => {
+  saveSession: async (
+    mode: AuthMode,
+    user: AuthUser | null,
+    token?: string,
+  ): Promise<void> => {
     try {
       await AsyncStorage.setItem(AUTH_KEY, JSON.stringify({ mode, user }));
+      if (token) {
+        await AsyncStorage.setItem(AUTH_TOKEN_KEY, token);
+      }
     } catch (error) {
       console.error("[Auth] Failed to save session:", error);
     }
@@ -30,9 +38,17 @@ export const auth = {
 
   clearSession: async (): Promise<void> => {
     try {
-      await AsyncStorage.removeItem(AUTH_KEY);
+      await AsyncStorage.multiRemove([AUTH_KEY, AUTH_TOKEN_KEY]);
     } catch (error) {
       console.error("[Auth] Failed to clear session:", error);
+    }
+  },
+
+  getToken: async (): Promise<string | null> => {
+    try {
+      return await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+    } catch {
+      return null;
     }
   },
 
