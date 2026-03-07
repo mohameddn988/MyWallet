@@ -11,6 +11,7 @@ import {
 import { AuthProvider } from "../contexts/AuthContext";
 import { FinanceProvider } from "../contexts/FinanceContext";
 import { GetStartedProvider } from "../contexts/GetStartedContext";
+import { LocaleProvider } from "../contexts/LocaleContext";
 import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
 
 NativeSplash.preventAutoHideAsync();
@@ -20,15 +21,17 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
-        <AuthProvider>
-          <FinanceProvider>
-            <GetStartedProvider>
-              <SafeAreaProvider>
-                <RootLayoutWithTheme />
-              </SafeAreaProvider>
-            </GetStartedProvider>
-          </FinanceProvider>
-        </AuthProvider>
+        <LocaleProvider>
+          <AuthProvider>
+            <FinanceProvider>
+              <GetStartedProvider>
+                <SafeAreaProvider>
+                  <RootLayoutWithTheme />
+                </SafeAreaProvider>
+              </GetStartedProvider>
+            </FinanceProvider>
+          </AuthProvider>
+        </LocaleProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );
@@ -62,6 +65,7 @@ function RootLayoutWithTheme() {
           screenOptions={{
             headerShown: false,
             contentStyle: { backgroundColor: theme.background.dark },
+            animation: "fade_from_bottom",
           }}
         >
           <Stack.Screen name="index" options={{ animation: "fade" }} />
