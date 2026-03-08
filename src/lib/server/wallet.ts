@@ -94,5 +94,6 @@ export function toWalletStatePayload(
     accounts,
     exchangeRates,
     transactions,
+    settings: wallet.settings,
   };
 }

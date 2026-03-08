@@ -164,7 +164,7 @@ function DataActionTile({ icon, label, color, onPress, theme }: DataTileProps) {
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
 export default function SettingsIndexScreen() {
-  const { theme, themeMode, variantId } = useTheme();
+  const { theme, themeMode, variantId, setThemeMode, setVariantId } = useTheme();
   const {
     baseCurrency,
     availableCurrencies,
@@ -175,7 +175,7 @@ export default function SettingsIndexScreen() {
     resetOnboarding,
   } = useFinance();
   const { signOut, authMode, user, signInWithGoogle } = useAuth();
-  const { dateFormat, numberFormat } = useLocale();
+  const { dateFormat, numberFormat, firstDayOfWeek, setDateFormat, setNumberFormat, setFirstDayOfWeek } = useLocale();
   const router = useRouter();
   const s = makeStyles(theme);
 
@@ -200,6 +200,7 @@ export default function SettingsIndexScreen() {
         accounts: allAccounts,
         transactions: allTransactions,
         exchangeRates,
+        settings: { themeMode, themeVariant: variantId, dateFormat, firstDayOfWeek, numberFormat },
       };
       const json = JSON.stringify(exportData, null, 2);
       const date = new Date().toISOString().slice(0, 10);
@@ -221,7 +222,7 @@ export default function SettingsIndexScreen() {
     } finally {
       setIsExporting(false);
     }
-  }, [baseCurrency, allAccounts, allTransactions, exchangeRates]);
+  }, [baseCurrency, allAccounts, allTransactions, exchangeRates, themeMode, variantId, dateFormat, firstDayOfWeek, numberFormat]);
 
   const handleImportJSON = useCallback(async () => {
     try {
@@ -247,6 +248,14 @@ export default function SettingsIndexScreen() {
         transactions: parsed.transactions ?? [],
         useSampleData: false,
       });
+      if (parsed.settings) {
+        const s = parsed.settings;
+        if (s.themeMode) await setThemeMode(s.themeMode);
+        if (s.themeVariant) await setVariantId(s.themeVariant);
+        if (s.dateFormat) await setDateFormat(s.dateFormat);
+        if (s.firstDayOfWeek) await setFirstDayOfWeek(s.firstDayOfWeek);
+        if (s.numberFormat) await setNumberFormat(s.numberFormat);
+      }
       setImportOpen(false);
       setImportSuccessData({
         transactions: parsed.transactions.length,
@@ -258,7 +267,7 @@ export default function SettingsIndexScreen() {
         "Could not read the backup file. Make sure it's a valid MyWallet JSON export.",
       );
     }
-  }, [completeOnboarding]);
+  }, [completeOnboarding, setThemeMode, setVariantId, setDateFormat, setFirstDayOfWeek, setNumberFormat]);
 
   const handleReset = useCallback(async () => {
     try {

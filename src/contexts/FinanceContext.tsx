@@ -23,6 +23,8 @@ import {
 import { apiUrl } from "../lib/apiUrl";
 import { auth } from "../utils/auth";
 import { useAuth } from "./AuthContext";
+import { useTheme } from "./ThemeContext";
+import { useLocale } from "./LocaleContext";
 import { convertToBase, toDateStr } from "../utils/currency";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -43,6 +45,13 @@ interface WalletStatePayload {
   accounts: Account[];
   exchangeRates: ExchangeRate[];
   transactions: Transaction[];
+  settings?: {
+    themeMode?: string;
+    themeVariant?: string;
+    dateFormat?: string;
+    firstDayOfWeek?: string;
+    numberFormat?: string;
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -241,6 +250,8 @@ function computeQuickStats(
 
 export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const { authMode, user } = useAuth();
+  const { themeMode, variantId, setThemeMode, setVariantId } = useTheme();
+  const { dateFormat, firstDayOfWeek, numberFormat, setDateFormat, setFirstDayOfWeek, setNumberFormat } = useLocale();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -324,12 +335,21 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     );
     setHasCompleted(Boolean(cloudState.hasCompleted));
 
+    if (cloudState.settings) {
+      const s = cloudState.settings;
+      if (s.themeMode) void setThemeMode(s.themeMode as any);
+      if (s.themeVariant) void setVariantId(s.themeVariant);
+      if (s.dateFormat) void setDateFormat(s.dateFormat as any);
+      if (s.firstDayOfWeek) void setFirstDayOfWeek(s.firstDayOfWeek as any);
+      if (s.numberFormat) void setNumberFormat(s.numberFormat as any);
+    }
+
     if (cloudState.hasCompleted) {
       await auth.setSetupCompleted();
     } else {
       await auth.resetSetup();
     }
-  }, [authedFetchJSON]);
+  }, [authedFetchJSON, setThemeMode, setVariantId, setDateFormat, setFirstDayOfWeek, setNumberFormat]);
 
   useEffect(() => {
     let cancelled = false;
@@ -391,6 +411,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       accounts: rawAccounts,
       exchangeRates: rawRates,
       transactions: rawTransactions,
+      settings: { themeMode, themeVariant: variantId, dateFormat, firstDayOfWeek, numberFormat },
     };
 
     syncTimerRef.current = setTimeout(() => {
@@ -413,6 +434,11 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     rawAccounts,
     rawRates,
     rawTransactions,
+    themeMode,
+    variantId,
+    dateFormat,
+    firstDayOfWeek,
+    numberFormat,
     syncCloudState,
   ]);
 
