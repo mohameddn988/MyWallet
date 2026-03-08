@@ -14,7 +14,7 @@ import { Theme } from "../../constants/themes";
 import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getAccountTypeMeta, LOAN_DIRECTIONS } from "../../data/accounts";
-import { ConfirmDeleteModal } from "../../components/ui/ConfirmDeleteModal";
+import { AppModal } from "../../components/ui/AppModal";
 import { Transaction } from "../../types/finance";
 import {
   convertToBase,
@@ -329,16 +329,8 @@ export default function AccountDetailScreen() {
   }, [account, archiving, updateAccount]);
 
   const handleDelete = useCallback(() => {
-    if (accountTxs.length > 0) {
-      Alert.alert(
-        "Delete Account",
-        `This account has ${accountTxs.length} transaction(s). You must delete all of them first, or archive the account instead.`,
-        [{ text: "OK" }],
-      );
-    } else {
-      setShowDeleteConfirm(true);
-    }
-  }, [accountTxs.length]);
+    setShowDeleteConfirm(true);
+  }, []);
 
   const handleConfirmDelete = useCallback(async () => {
     setShowDeleteConfirm(false);
@@ -864,18 +856,31 @@ export default function AccountDetailScreen() {
         }
         contentContainerStyle={{ paddingBottom: 40 }}
       />
-      <ConfirmDeleteModal
+      <AppModal
         visible={showDeleteConfirm}
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setShowDeleteConfirm(false)}
-        busy={deleting}
         title="Delete Account"
         description="Are you sure you want to permanently delete this account? This cannot be undone."
+        icon="trash-can-outline"
+        variant="destructive"
+        onClose={() => !deleting && setShowDeleteConfirm(false)}
+        busy={deleting}
+        actions={[
+          {
+            label: "Cancel",
+            onPress: () => setShowDeleteConfirm(false),
+            disabled: deleting,
+          },
+          {
+            label: "Delete",
+            busyLabel: "Deleting…",
+            onPress: handleConfirmDelete,
+            destructive: true,
+            busy: deleting,
+          },
+        ]}
       />
-      <ConfirmDeleteModal
+      <AppModal
         visible={pendingRemoveIndex !== null}
-        onConfirm={handleConfirmRemovePerson}
-        onCancel={() => setPendingRemoveIndex(null)}
         title="Remove Entry"
         description={
           pendingRemoveIndex !== null &&
@@ -883,9 +888,18 @@ export default function AccountDetailScreen() {
             ? `Remove "${account.subAccounts[pendingRemoveIndex].name}" (${getCurrencySymbol(account.currency)} ${(account.subAccounts[pendingRemoveIndex].balance / 100).toLocaleString()}) from this list?`
             : "Remove this entry from the list?"
         }
-        confirmLabel="Remove"
-        busyLabel="Removing…"
         icon="account-remove-outline"
+        variant="destructive"
+        onClose={() => setPendingRemoveIndex(null)}
+        actions={[
+          { label: "Cancel", onPress: () => setPendingRemoveIndex(null) },
+          {
+            label: "Remove",
+            busyLabel: "Removing…",
+            onPress: handleConfirmRemovePerson,
+            destructive: true,
+          },
+        ]}
       />
     </View>
   );

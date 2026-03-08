@@ -618,20 +618,12 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
-  const deleteAccount = useCallback(
-    async (id: string): Promise<void> => {
-      const hasTransactions = rawTransactions.some(
-        (t) => t.accountId === id || t.toAccountId === id,
-      );
-      if (hasTransactions) {
-        throw new Error(
-          "Cannot delete an account that has transactions. Archive it instead.",
-        );
-      }
-      setRawAccounts((prev) => prev.filter((a) => a.id !== id));
-    },
-    [rawTransactions],
-  );
+  const deleteAccount = useCallback(async (id: string): Promise<void> => {
+    setRawTransactions((prev) =>
+      prev.filter((t) => t.accountId !== id && t.toAccountId !== id),
+    );
+    setRawAccounts((prev) => prev.filter((a) => a.id !== id));
+  }, []);
 
   // ── Sub-account CRUD (for loan person entries) ──
 

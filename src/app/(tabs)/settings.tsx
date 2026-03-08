@@ -1,8 +1,9 @@
 import Constants from "expo-constants";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useState, useCallback } from "react";
 import {
+  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -12,9 +13,13 @@ import {
 } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
 import { useFinance } from "../../contexts/FinanceContext";
-import { useLocale, FIRST_DAY_OPTIONS } from "../../contexts/LocaleContext";
+import { useLocale } from "../../contexts/LocaleContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getCurrencySymbol } from "../../utils/currency";
+import { AppModal } from "../../components/ui/AppModal";
+import * as Sharing from "expo-sharing";
+import * as DocumentPicker from "expo-document-picker";
+import { File, Paths } from "expo-file-system";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -160,11 +165,113 @@ function DataActionTile({ icon, label, color, onPress, theme }: DataTileProps) {
 
 export default function SettingsIndexScreen() {
   const { theme, themeMode, variantId } = useTheme();
-  const { baseCurrency, availableCurrencies } = useFinance();
+  const {
+    baseCurrency,
+    availableCurrencies,
+    allTransactions,
+    allAccounts,
+    exchangeRates,
+    completeOnboarding,
+    resetOnboarding,
+  } = useFinance();
   const { signOut, authMode, user, signInWithGoogle } = useAuth();
-  const { dateFormat, numberFormat, firstDayOfWeek } = useLocale();
+  const { dateFormat, numberFormat } = useLocale();
   const router = useRouter();
   const s = makeStyles(theme);
+
+  // ── Data management modal state ───────────────
+  const [exportOpen, setExportOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [importSuccessData, setImportSuccessData] = useState<{
+    transactions: number;
+    accounts: number;
+  } | null>(null);
+
+  const handleExportJSON = useCallback(async () => {
+    try {
+      setIsExporting(true);
+      const exportData = {
+        version: "1.0.0",
+        exportDate: new Date().toISOString(),
+        baseCurrency,
+        accounts: allAccounts,
+        transactions: allTransactions,
+        exchangeRates,
+      };
+      const json = JSON.stringify(exportData, null, 2);
+      const date = new Date().toISOString().slice(0, 10);
+      const fileName = `mywallet-backup-${date}.json`;
+      const file = new File(Paths.cache, fileName);
+      file.write(json);
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(file.uri, {
+          mimeType: "application/json",
+          dialogTitle: "Save MyWallet Backup",
+          UTI: "public.json",
+        });
+      } else {
+        Alert.alert("Exported", `Backup saved to: ${file.uri}`);
+      }
+    } catch {
+      Alert.alert("Export Failed", "Could not export data. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
+  }, [baseCurrency, allAccounts, allTransactions, exchangeRates]);
+
+  const handleImportJSON = useCallback(async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "application/json",
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      const content = await new File(asset.uri).text();
+      const parsed = JSON.parse(content);
+      if (!parsed.accounts || !parsed.transactions || !parsed.baseCurrency) {
+        Alert.alert(
+          "Invalid File",
+          "This file doesn't look like a valid MyWallet backup.",
+        );
+        return;
+      }
+      await completeOnboarding({
+        baseCurrency: parsed.baseCurrency,
+        accounts: parsed.accounts ?? [],
+        exchangeRates: parsed.exchangeRates ?? [],
+        transactions: parsed.transactions ?? [],
+        useSampleData: false,
+      });
+      setImportOpen(false);
+      setImportSuccessData({
+        transactions: parsed.transactions.length,
+        accounts: parsed.accounts.length,
+      });
+    } catch (e) {
+      Alert.alert(
+        "Import Failed",
+        "Could not read the backup file. Make sure it's a valid MyWallet JSON export.",
+      );
+    }
+  }, [completeOnboarding]);
+
+  const handleReset = useCallback(async () => {
+    try {
+      setIsResetting(true);
+      await resetOnboarding();
+      setResetOpen(false);
+      router.navigate("/get-started/welcome" as any);
+    } catch {
+      Alert.alert("Error", "Could not reset data. Please try again.");
+    } finally {
+      setIsResetting(false);
+    }
+  }, [resetOnboarding, router]);
 
   const appVersion = Constants.expoConfig?.version ?? "1.0.0";
   const buildNumber = Constants.expoConfig?.ios?.buildNumber ?? "1";
@@ -172,10 +279,6 @@ export default function SettingsIndexScreen() {
   const nonBaseCurrencies = availableCurrencies.filter(
     (c) => c !== baseCurrency,
   );
-
-  const firstDayLabel =
-    FIRST_DAY_OPTIONS.find((o) => o.id === firstDayOfWeek)?.label.slice(0, 3) ??
-    "Sun";
 
   const getThemeDisplayValue = () => {
     const modeLabel =
@@ -297,13 +400,6 @@ export default function SettingsIndexScreen() {
             label="Number & Date Format"
             onPress={() => router.navigate("/settings/locale" as any)}
             theme={theme}
-          />
-          <SettingRow
-            icon="calendar-week"
-            label="First Day of Week"
-            badge={firstDayLabel}
-            onPress={() => router.navigate("/settings/locale" as any)}
-            theme={theme}
             isLast
           />
         </SectionCard>
@@ -315,7 +411,7 @@ export default function SettingsIndexScreen() {
               icon="database-export-outline"
               label="Export"
               color={theme.primary.main}
-              onPress={() => router.navigate("/settings/data" as any)}
+              onPress={() => setExportOpen(true)}
               theme={theme}
             />
             <View style={s.dataRowDividerV} />
@@ -323,7 +419,7 @@ export default function SettingsIndexScreen() {
               icon="database-import-outline"
               label="Import"
               color={theme.foreground.gray}
-              onPress={() => router.navigate("/settings/data" as any)}
+              onPress={() => setImportOpen(true)}
               theme={theme}
             />
             <View style={s.dataRowDividerV} />
@@ -331,7 +427,7 @@ export default function SettingsIndexScreen() {
               icon="delete-sweep-outline"
               label="Reset"
               color="#F44336"
-              onPress={() => router.navigate("/settings/data" as any)}
+              onPress={() => setResetOpen(true)}
               theme={theme}
             />
           </View>
@@ -379,6 +475,158 @@ export default function SettingsIndexScreen() {
           />
         </SectionCard>
       </ScrollView>
+
+      {/* ── EXPORT MODAL ─────────────────────────── */}
+      <AppModal
+        visible={exportOpen}
+        title="Export Data"
+        icon="database-export-outline"
+        variant="info"
+        onClose={() => !isExporting && setExportOpen(false)}
+        busy={isExporting}
+        actions={[
+          {
+            label: "Cancel",
+            onPress: () => setExportOpen(false),
+            disabled: isExporting,
+          },
+        ]}
+      >
+        {/* Stats */}
+        <View style={s.modalStatsRow}>
+          <View style={s.modalStat}>
+            <Text style={s.modalStatValue}>{allTransactions.length}</Text>
+            <Text style={s.modalStatLabel}>Transactions</Text>
+          </View>
+          <View style={s.modalStat}>
+            <Text style={s.modalStatValue}>{allAccounts.length}</Text>
+            <Text style={s.modalStatLabel}>Accounts</Text>
+          </View>
+          <View style={s.modalStat}>
+            <Text style={s.modalStatValue}>
+              {new Set(allAccounts.map((a) => a.currency)).size}
+            </Text>
+            <Text style={s.modalStatLabel}>Currencies</Text>
+          </View>
+        </View>
+
+        <Pressable
+          style={({ pressed }) => [s.modalRow, pressed && s.rowPressed]}
+          onPress={handleExportJSON}
+          disabled={isExporting}
+        >
+          <View
+            style={[
+              s.modalRowIcon,
+              { backgroundColor: `${theme.primary.main}18` },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="file-export"
+              size={20}
+              color={theme.primary.main}
+            />
+          </View>
+          <View style={s.modalRowText}>
+            <Text style={s.modalRowLabel}>Export as JSON</Text>
+            <Text style={s.modalRowDesc}>Full backup with all data</Text>
+          </View>
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={16}
+            color={theme.foreground.gray}
+          />
+        </Pressable>
+      </AppModal>
+
+      {/* ── IMPORT MODAL ─────────────────────────── */}
+      <AppModal
+        visible={importOpen}
+        title="Import Data"
+        description="Restore your wallet from a previously exported backup file."
+        icon="database-import-outline"
+        variant="info"
+        onClose={() => setImportOpen(false)}
+        actions={[
+          {
+            label: "Cancel",
+            onPress: () => setImportOpen(false),
+          },
+        ]}
+      >
+        <Pressable
+          style={({ pressed }) => [s.modalRow, pressed && s.rowPressed]}
+          onPress={handleImportJSON}
+        >
+          <View
+            style={[
+              s.modalRowIcon,
+              { backgroundColor: `${theme.foreground.gray}18` },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="file-import"
+              size={20}
+              color={theme.foreground.white}
+            />
+          </View>
+          <View style={s.modalRowText}>
+            <Text style={s.modalRowLabel}>Import from JSON</Text>
+            <Text style={s.modalRowDesc}>Restore from a backup file</Text>
+          </View>
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={16}
+            color={theme.foreground.gray}
+          />
+        </Pressable>
+      </AppModal>
+
+      {/* ── IMPORT SUCCESS MODAL ───────────────── */}
+      <AppModal
+        visible={importSuccessData !== null}
+        title="Import Successful"
+        description={
+          importSuccessData
+            ? `Restored ${importSuccessData.transactions} transactions and ${importSuccessData.accounts} accounts.`
+            : ""
+        }
+        icon="check-circle-outline"
+        variant="success"
+        onClose={() => setImportSuccessData(null)}
+        actions={[
+          {
+            label: "Done",
+            onPress: () => setImportSuccessData(null),
+            primary: true,
+          },
+        ]}
+      />
+
+      {/* ── RESET MODAL ──────────────────────────── */}
+      <AppModal
+        visible={resetOpen}
+        title="Reset All Data"
+        description="This will permanently delete all your accounts, transactions, and settings. This action cannot be undone."
+        icon="delete-sweep-outline"
+        variant="destructive"
+        onClose={() => !isResetting && setResetOpen(false)}
+        busy={isResetting}
+        actions={[
+          {
+            label: "Cancel",
+            onPress: () => setResetOpen(false),
+            disabled: isResetting,
+          },
+          {
+            label: "Reset All",
+            busyLabel: "Resetting…",
+            onPress: handleReset,
+            destructive: true,
+            busy: isResetting,
+          },
+        ]}
+      />
     </View>
   );
 }
@@ -534,6 +782,63 @@ function makeStyles(theme: AppTheme) {
       width: 1,
       backgroundColor: `${theme.foreground.gray}12`,
       marginVertical: 10,
+    },
+
+    // ── Data modals ───────────────────────────────
+    modalStatsRow: {
+      flexDirection: "row",
+      gap: 8,
+      marginBottom: 12,
+    },
+    modalStat: {
+      flex: 1,
+      backgroundColor: `${theme.foreground.gray}10`,
+      borderRadius: 12,
+      paddingVertical: 10,
+      paddingHorizontal: 6,
+      alignItems: "center",
+    },
+    modalStatValue: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: theme.foreground.white,
+      marginBottom: 2,
+    },
+    modalStatLabel: {
+      fontSize: 11,
+      color: theme.foreground.gray,
+    },
+    modalRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: 12,
+      paddingHorizontal: 4,
+      gap: 12,
+      borderRadius: 10,
+    },
+    modalRowIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    modalRowText: {
+      flex: 1,
+      gap: 2,
+    },
+    modalRowLabel: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: theme.foreground.white,
+    },
+    modalRowDesc: {
+      fontSize: 12,
+      color: theme.foreground.gray,
+    },
+    modalDivider: {
+      height: 1,
+      backgroundColor: `${theme.foreground.gray}15`,
     },
 
     // ── Google sign-in banner ──────────────────────

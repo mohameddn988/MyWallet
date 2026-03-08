@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { ConfirmDeleteModal } from "../../components/ui/ConfirmDeleteModal";
+import { AppModal } from "../../components/ui/AppModal";
 import { Theme } from "../../constants/themes";
 import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -212,13 +212,28 @@ export default function TransactionDetailScreen() {
         <View style={styles.bottomPad} />
       </ScrollView>
 
-      <ConfirmDeleteModal
+      <AppModal
         visible={showDeleteConfirm}
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setShowDeleteConfirm(false)}
-        busy={busy}
         title="Delete Transaction"
         description={`Are you sure you want to delete this ${tx.type}?\nThis action cannot be undone.`}
+        icon="trash-can-outline"
+        variant="destructive"
+        onClose={() => !busy && setShowDeleteConfirm(false)}
+        busy={busy}
+        actions={[
+          {
+            label: "Cancel",
+            onPress: () => setShowDeleteConfirm(false),
+            disabled: busy,
+          },
+          {
+            label: "Delete",
+            busyLabel: "Deleting…",
+            onPress: handleConfirmDelete,
+            destructive: true,
+            busy,
+          },
+        ]}
       />
     </View>
   );
