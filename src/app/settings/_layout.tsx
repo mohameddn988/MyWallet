@@ -12,7 +12,6 @@ export default function SettingsLayout() {
       <Stack.Screen name="theme" />
       <Stack.Screen name="currency" />
       <Stack.Screen name="locale" />
-      <Stack.Screen name="data" />
       <Stack.Screen name="about" />
     </Stack>
   );

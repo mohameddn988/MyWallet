@@ -2,8 +2,6 @@ import { ObjectId } from "mongodb";
 import { Account, ExchangeRate, Transaction } from "../../types/finance";
 
 export interface AppSettings {
-  themeMode?: string;
-  themeVariant?: string;
   dateFormat?: string;
   firstDayOfWeek?: string;
   numberFormat?: string;

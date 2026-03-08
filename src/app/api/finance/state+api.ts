@@ -36,7 +36,9 @@ export async function PUT(request: Request) {
       accounts: Array.isArray(body.accounts) ? body.accounts : [],
       exchangeRates: Array.isArray(body.exchangeRates) ? body.exchangeRates : [],
       transactions: Array.isArray(body.transactions) ? body.transactions : [],
-      settings: body.settings && typeof body.settings === "object" ? body.settings : undefined,
+      settings: body.settings && typeof body.settings === "object"
+        ? { dateFormat: body.settings.dateFormat, firstDayOfWeek: body.settings.firstDayOfWeek, numberFormat: body.settings.numberFormat }
+        : undefined,
     };
 
     const updated = await saveWalletState(authUser.userId, nextState);
