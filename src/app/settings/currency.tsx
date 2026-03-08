@@ -11,11 +11,152 @@ import {
   TextInput,
   View,
 } from "react-native";
+import AppBottomSheet from "../../components/ui/AppBottomSheet";
+import { BottomSheetScrollView, BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { COMMON_CURRENCIES } from "../../constants/getStarted";
 import { Theme } from "../../constants/themes";
 import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getCurrencySymbol } from "../../utils/currency";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Currency picker modal (bottom sheet style like add account)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function CurrencyPickerSheet({
+  visible,
+  selected,
+  onSelect,
+  onClose,
+  theme,
+}: {
+  visible: boolean;
+  selected: string;
+  onSelect: (code: string) => void;
+  onClose: () => void;
+  theme: Theme;
+}) {
+  const [search, setSearch] = useState("");
+  const filtered = COMMON_CURRENCIES.filter(
+    (c) =>
+      c.code.toLowerCase().includes(search.toLowerCase()) ||
+      c.name.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  return (
+    <AppBottomSheet
+      snapPoints={["70%"]}
+      isOpen={visible}
+      onClose={onClose}
+      noWrapper
+    >
+      <View style={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: 12 }}>
+        <Text
+          style={{
+            fontSize: 17,
+            fontWeight: "700",
+            color: theme.foreground.white,
+            marginBottom: 14,
+          }}
+        >
+          Select Base Currency
+        </Text>
+        <BottomSheetTextInput
+          style={{
+            backgroundColor: theme.background.accent,
+            borderRadius: 10,
+            borderWidth: 1,
+            borderColor: "#2C3139",
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+            color: theme.foreground.white,
+            fontSize: 14,
+            marginBottom: 12,
+          }}
+          placeholder="Search currencies…"
+          placeholderTextColor={theme.foreground.gray}
+          value={search}
+          onChangeText={setSearch}
+        />
+      </View>
+      <BottomSheetScrollView
+        style={{ flex: 1 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+      >
+        {filtered.map((c) => {
+          const active = selected === c.code;
+          const symbol = getCurrencySymbol(c.code);
+          return (
+            <Pressable
+              key={c.code}
+              style={({ pressed }) => ({
+                flexDirection: "row",
+                alignItems: "center",
+                paddingVertical: 13,
+                paddingHorizontal: 12,
+                borderRadius: 10,
+                marginBottom: 4,
+                backgroundColor: active
+                  ? `${theme.primary.main}22`
+                  : pressed
+                    ? theme.background.accent
+                    : "transparent",
+                borderWidth: active ? 1 : 0,
+                borderColor: theme.primary.main,
+              })}
+              onPress={() => {
+                onSelect(c.code);
+                onClose();
+              }}
+            >
+              <Text
+                style={{
+                  width: 38,
+                  fontSize: 16,
+                  fontWeight: "700",
+                  color: active ? theme.primary.main : theme.foreground.gray,
+                }}
+              >
+                {symbol}
+              </Text>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: active ? "700" : "500",
+                    color: active
+                      ? theme.primary.main
+                      : theme.foreground.white,
+                  }}
+                >
+                  {c.code}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: theme.foreground.gray,
+                    marginTop: 1,
+                  }}
+                >
+                  {c.name}
+                </Text>
+              </View>
+              {active && (
+                <MaterialCommunityIcons
+                  name="check-circle"
+                  size={18}
+                  color={theme.primary.main}
+                />
+              )}
+            </Pressable>
+          );
+        })}
+      </BottomSheetScrollView>
+    </AppBottomSheet>
+  );
+}
 
 export default function CurrencySettingsScreen() {
   const { theme } = useTheme();
@@ -83,7 +224,7 @@ export default function CurrencySettingsScreen() {
       <View style={styles.header}>
         <Pressable
           style={({ pressed }) => [
-            styles.backBtn,
+            styles.headerBtn,
             pressed && { opacity: 0.6 },
           ]}
           onPress={() => router.back()}
@@ -94,9 +235,8 @@ export default function CurrencySettingsScreen() {
             color={theme.foreground.white}
           />
         </Pressable>
-        <View style={styles.headerText}>
-          <Text style={styles.title}>Currency Settings</Text>
-        </View>
+        <Text style={styles.headerTitle} numberOfLines={1}>Currency Settings</Text>
+        <View style={styles.headerBtn} />
       </View>
 
       <ScrollView
@@ -198,57 +338,13 @@ export default function CurrencySettingsScreen() {
       </ScrollView>
 
       {/* Base Currency Selection Modal */}
-      <Modal
+      <CurrencyPickerSheet
         visible={isBaseCurrencyModalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setBaseCurrencyModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Select Base Currency</Text>
-            <Pressable
-              onPress={() => setBaseCurrencyModalVisible(false)}
-              style={styles.modalCloseButton}
-            >
-              <MaterialCommunityIcons
-                name="close"
-                size={24}
-                color={theme.foreground.white}
-              />
-            </Pressable>
-          </View>
-          <ScrollView style={styles.modalScroll}>
-            {COMMON_CURRENCIES.map((cur) => (
-              <Pressable
-                key={cur.code}
-                style={({ pressed }) => [
-                  styles.modalCurrencyItem,
-                  baseCurrency === cur.code && styles.modalCurrencyItemSelected,
-                  pressed && styles.pressed,
-                ]}
-                onPress={() => handleUpdateBaseCurrency(cur.code)}
-              >
-                <View style={styles.currencyLeft}>
-                  <Text
-                    style={[
-                      styles.currencyCode,
-                      baseCurrency === cur.code &&
-                        styles.currencyCodeSelected,
-                    ]}
-                  >
-                    {cur.code}
-                  </Text>
-                  <Text style={styles.currencyName}>{cur.name}</Text>
-                </View>
-                <Text style={styles.currencySymbol}>
-                  {getCurrencySymbol(cur.code)}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-      </Modal>
+        selected={baseCurrency}
+        onSelect={handleUpdateBaseCurrency}
+        onClose={() => setBaseCurrencyModalVisible(false)}
+        theme={theme}
+      />
 
       {/* Edit Rate Modal */}
       <Modal
@@ -311,29 +407,31 @@ function makeStyles(theme: Theme) {
     },
     header: {
       flexDirection: "row",
-      alignItems: "flex-start",
+      alignItems: "center",
+      justifyContent: "space-between",
       paddingHorizontal: 16,
-      paddingTop: 16,
-      paddingBottom: 20,
-      gap: 14,
+      paddingVertical: 14,
     },
-    backBtn: {
+    headerBtn: {
       width: 36,
       height: 36,
       borderRadius: 10,
-      backgroundColor: theme.background.accent,
+      backgroundColor: "transparent",
       alignItems: "center",
       justifyContent: "center",
-      marginTop: 4,
     },
-    headerText: {
+    headerTitle: {
+      fontSize: 16,
+      fontWeight: "700",
+      color: theme.foreground.white,
       flex: 1,
+      textAlign: "center",
+      marginHorizontal: 8,
     },
     title: {
-      fontSize: 22,
-      fontWeight: "bold",
+      fontSize: 20,
+      fontWeight: "700",
       color: theme.foreground.white,
-      marginBottom: 3,
     },
     subtitle: {
       fontSize: 15,
@@ -341,25 +439,27 @@ function makeStyles(theme: Theme) {
     },
     scrollView: {
       flex: 1,
-      paddingHorizontal: 24,
+      paddingHorizontal: 16,
     },
     section: {
-      marginBottom: 32,
+      marginBottom: 28,
     },
     sectionHeader: {
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: "700",
       color: theme.foreground.gray,
       letterSpacing: 1.2,
       marginBottom: 12,
       paddingHorizontal: 4,
+      opacity: 0.7,
+      textTransform: "uppercase",
     },
     currencyItem: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       backgroundColor: theme.background.accent,
-      borderRadius: 12,
+      borderRadius: 14,
       paddingVertical: 16,
       paddingHorizontal: 16,
       borderWidth: 2,
@@ -403,7 +503,9 @@ function makeStyles(theme: Theme) {
       alignItems: "center",
       justifyContent: "space-between",
       backgroundColor: theme.background.accent,
-      borderRadius: 12,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: `${theme.foreground.gray}12`,
       paddingVertical: 16,
       paddingHorizontal: 16,
       marginBottom: 8,
@@ -452,49 +554,7 @@ function makeStyles(theme: Theme) {
     pressed: {
       opacity: 0.7,
     },
-    // Modal Styles
-    modalContainer: {
-      flex: 1,
-      backgroundColor: theme.background.dark,
-    },
-    modalHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: 24,
-      paddingVertical: 20,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.background.accent,
-    },
-    modalTitle: {
-      fontSize: 20,
-      fontWeight: "bold",
-      color: theme.foreground.white,
-    },
-    modalCloseButton: {
-      padding: 4,
-    },
-    modalScroll: {
-      flex: 1,
-      paddingHorizontal: 24,
-      paddingTop: 16,
-    },
-    modalCurrencyItem: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      backgroundColor: theme.background.accent,
-      borderRadius: 12,
-      paddingVertical: 14,
-      paddingHorizontal: 16,
-      marginBottom: 8,
-      borderWidth: 1,
-      borderColor: "transparent",
-    },
-    modalCurrencyItemSelected: {
-      borderColor: theme.primary.main,
-      backgroundColor: `${theme.primary.main}14`,
-    },
+    // Modal Styles (Edit Rate Modal only)
     modalOverlay: {
       flex: 1,
       backgroundColor: "rgba(0, 0, 0, 0.7)",

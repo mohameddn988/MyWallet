@@ -22,7 +22,6 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { convertToBase, formatAmount } from "../../utils/currency";
 
 type Period = "day" | "week" | "month" | "quarter" | "year";
-type TypeFilter = "all" | "expense" | "income";
 
 const INCOME_COLOR = "#4DD68C";
 const EXPENSE_COLOR = "#F14A6E";
@@ -306,6 +305,7 @@ interface MonthBucket {
   year: number;
   label: string;
   expense: number;
+  income: number;
   isCurrent: boolean;
 }
 
@@ -318,26 +318,33 @@ function MonthlyBars({
   theme: Theme;
   styles: ReturnType<typeof makeStyles>;
 }) {
-  const maxExpense = Math.max(...data.map((d) => d.expense), 1);
+  const maxVal = Math.max(...data.map((d) => Math.max(d.expense, d.income)), 1);
   const BAR_H = 88;
   return (
     <View style={styles.barChartWrap}>
       {data.map((item) => {
-        const barH = item.expense > 0 ? Math.max((item.expense / maxExpense) * BAR_H, 4) : 0;
+        const expBarH = item.expense > 0 ? Math.max((item.expense / maxVal) * BAR_H, 4) : 0;
+        const incBarH = item.income > 0 ? Math.max((item.income / maxVal) * BAR_H, 4) : 0;
         return (
           <View key={`${item.year}-${item.month}`} style={styles.barCol}>
-            <View style={styles.barColInner}>
+            <View style={{ flex: 1, flexDirection: "row", alignItems: "flex-end", gap: 2 }}>
               <View
-                style={[
-                  styles.bar,
-                  {
-                    height: barH,
-                    backgroundColor: item.isCurrent
-                      ? theme.primary.main
-                      : theme.background.darker,
-                    borderRadius: 4,
-                  },
-                ]}
+                style={{
+                  flex: 1,
+                  height: incBarH,
+                  backgroundColor: `${INCOME_COLOR}55`,
+                  borderRadius: 4,
+                }}
+              />
+              <View
+                style={{
+                  flex: 1,
+                  height: expBarH,
+                  backgroundColor: item.isCurrent
+                    ? theme.primary.main
+                    : theme.background.darker,
+                  borderRadius: 4,
+                }}
               />
             </View>
             <Text
@@ -438,7 +445,6 @@ export default function AnalyticsScreen() {
   const router = useRouter();
   const styles = useMemo(() => makeStyles(theme), [theme]);
   const [selectedPeriod, setSelectedPeriod] = useState<Period>("month");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
 
   const rateMap = useMemo(
     () => Object.fromEntries(exchangeRates.map((r) => [r.from, r.rate])),
@@ -494,11 +500,6 @@ export default function AnalyticsScreen() {
   const expenseChangePct =
     priorExpense > 0 ? ((totals.expense - priorExpense) / priorExpense) * 100 : null;
 
-  const savingsRate =
-    totals.income > 0
-      ? Math.max(0, Math.min(100, (totals.net / totals.income) * 100))
-      : null;
-
   const avgDailyExpense = useMemo(() => {
     const daysMap: Record<Period, number> = {
       day: 1,
@@ -538,19 +539,19 @@ export default function AnalyticsScreen() {
       const offset = now.getMonth() - 5 + i;
       const yr = now.getFullYear() + Math.floor(offset / 12);
       const mo = ((offset % 12) + 12) % 12;
-      const expense = allTransactions
-        .filter((tx) => {
-          if (tx.type !== "expense") return false;
-          const d = new Date(tx.date);
-          return d.getMonth() === mo && d.getFullYear() === yr;
-        })
-        .reduce(
-          (s, tx) => s + convertToBase(tx.amount, tx.currency, baseCurrency, rateMap),
-          0,
-        );
+      const txsInMonth = allTransactions.filter((tx) => {
+        const d = new Date(tx.date);
+        return d.getMonth() === mo && d.getFullYear() === yr;
+      });
+      const expense = txsInMonth
+        .filter((tx) => tx.type === "expense")
+        .reduce((s, tx) => s + convertToBase(tx.amount, tx.currency, baseCurrency, rateMap), 0);
+      const income = txsInMonth
+        .filter((tx) => tx.type === "income")
+        .reduce((s, tx) => s + convertToBase(tx.amount, tx.currency, baseCurrency, rateMap), 0);
       const label = new Date(yr, mo, 1).toLocaleDateString("en-US", { month: "short" });
       const isCurrent = mo === now.getMonth() && yr === now.getFullYear();
-      return { month: mo, year: yr, label, expense, isCurrent };
+      return { month: mo, year: yr, label, expense, income, isCurrent };
     });
   }, [allTransactions, baseCurrency, rateMap]);
 
@@ -568,18 +569,15 @@ export default function AnalyticsScreen() {
   );
 
   const topTransactions = useMemo(() => {
-    const filtered =
-      typeFilter === "all"
-        ? periodTxs.filter((tx) => tx.type !== "transfer")
-        : periodTxs.filter((tx) => tx.type === typeFilter);
-    return filtered
+    return periodTxs
+      .filter((tx) => tx.type !== "transfer")
       .map((tx) => ({
         ...tx,
         baseAmount: convertToBase(tx.amount, tx.currency, baseCurrency, rateMap),
       }))
       .sort((a, b) => b.baseAmount - a.baseAmount)
       .slice(0, 7);
-  }, [periodTxs, typeFilter, baseCurrency, rateMap]);
+  }, [periodTxs, baseCurrency, rateMap]);
 
   const hasData = periodTxs.filter((tx) => tx.type !== "transfer").length > 0;
 
@@ -589,10 +587,6 @@ export default function AnalyticsScreen() {
     () => buildSparkline(sparklineData, sparklineW, sparklineH),
     [sparklineData, sparklineW],
   );
-
-  const cycleFilter = () => {
-    setTypeFilter((f) => (f === "all" ? "expense" : f === "expense" ? "income" : "all"));
-  };
 
   return (
     <View style={styles.root}>
@@ -604,16 +598,8 @@ export default function AnalyticsScreen() {
         >
           <MaterialCommunityIcons name="arrow-left" size={22} color={theme.foreground.white} />
         </Pressable>
-        <Text style={styles.headerTitle}>Analytics</Text>
-        <Pressable
-          style={({ pressed }) => [styles.headerBtn, pressed && { opacity: 0.6 }]}
-          onPress={cycleFilter}
-        >
-          <MaterialCommunityIcons name="tune-variant" size={20} color={theme.foreground.white} />
-          {typeFilter !== "all" && (
-            <View style={[styles.filterDot, { backgroundColor: theme.primary.main }]} />
-          )}
-        </Pressable>
+        <Text style={styles.headerTitle} numberOfLines={1}>Analytics</Text>
+        <View style={styles.headerBtn} />
       </View>
 
       <ScrollView
@@ -651,44 +637,37 @@ export default function AnalyticsScreen() {
             <View style={styles.heroPeriodPill}>
               <Text style={styles.heroPeriodText}>{getPeriodLabel(selectedPeriod)}</Text>
             </View>
-            {expenseChangePct !== null && (
+            {(totals.income > 0 || totals.expense > 0) && (
               <View
                 style={[
                   styles.heroBadge,
                   {
                     backgroundColor:
-                      expenseChangePct <= 0 ? `${INCOME_COLOR}22` : `${EXPENSE_COLOR}22`,
+                      totals.net >= 0 ? `${INCOME_COLOR}22` : `${EXPENSE_COLOR}22`,
                   },
                 ]}
               >
-                <MaterialCommunityIcons
-                  name={expenseChangePct <= 0 ? "trending-down" : "trending-up"}
-                  size={12}
-                  color={expenseChangePct <= 0 ? INCOME_COLOR : EXPENSE_COLOR}
-                />
                 <Text
                   style={[
                     styles.heroBadgeText,
-                    { color: expenseChangePct <= 0 ? INCOME_COLOR : EXPENSE_COLOR },
+                    { color: totals.net >= 0 ? INCOME_COLOR : EXPENSE_COLOR },
                   ]}
                 >
-                  {Math.abs(expenseChangePct).toFixed(1)}%
+                  {totals.net >= 0 ? "+" : ""}{formatAmount(Math.abs(totals.net), baseCurrency, { compact: true })} net
                 </Text>
               </View>
             )}
           </View>
 
           <HeroAmount
-            amount={totals.expense}
+            amount={totals.income}
             currency={baseCurrency}
-            accentColor={theme.primary.main}
+            accentColor={INCOME_COLOR}
             foreColor={theme.foreground.white}
           />
 
           <Text style={styles.heroCompare}>
-            {expenseChangePct !== null
-              ? `vs ${formatAmount(priorExpense, baseCurrency, { compact: true })} prior period`
-              : "No prior period data"}
+            Spent {formatAmount(totals.expense, baseCurrency, { compact: true })}
           </Text>
 
           {/* Sparkline */}
@@ -755,13 +734,9 @@ export default function AnalyticsScreen() {
             styles={styles}
           />
           <StatCard
-            label={savingsRate !== null ? "Savings Rate" : "Daily Avg"}
-            value={
-              savingsRate !== null
-                ? `${savingsRate.toFixed(0)}%`
-                : formatAmount(avgDailyExpense, baseCurrency, { compact: true })
-            }
-            icon={savingsRate !== null ? "piggy-bank-outline" : "calendar-today"}
+            label="Daily Avg"
+            value={formatAmount(avgDailyExpense, baseCurrency, { compact: true })}
+            icon="calendar-today"
             iconColor={theme.primary.main}
             badge={null}
             theme={theme}
@@ -776,7 +751,7 @@ export default function AnalyticsScreen() {
               <View style={styles.cardHeaderRow}>
                 <View>
                   <Text style={styles.cardTitle}>Monthly Trend</Text>
-                  <Text style={styles.cardSubtitle}>Last 6 months spending</Text>
+                  <Text style={styles.cardSubtitle}>Last 6 months income & expenses</Text>
                 </View>
                 {trendChangePct !== null && (
                   <View
@@ -868,23 +843,6 @@ export default function AnalyticsScreen() {
               <View style={styles.card}>
                 <View style={styles.cardHeaderRow}>
                   <Text style={styles.sectionLabel}>TOP TRANSACTIONS</Text>
-                  {typeFilter !== "all" && (
-                    <View
-                      style={[
-                        styles.filterActivePill,
-                        { backgroundColor: `${theme.primary.main}22` },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.filterActivePillText,
-                          { color: theme.primary.main },
-                        ]}
-                      >
-                        {typeFilter === "expense" ? "Expenses" : "Income"}
-                      </Text>
-                    </View>
-                  )}
                 </View>
                 {topTransactions.map((tx, idx) => {
                   const isLast = idx === topTransactions.length - 1;
@@ -959,35 +917,26 @@ function makeStyles(theme: Theme) {
     header: {
       flexDirection: "row",
       alignItems: "center",
+      justifyContent: "space-between",
       paddingHorizontal: H_PAD,
-      paddingTop: 16,
-      paddingBottom: 10,
-      gap: 12,
+      paddingVertical: 14,
     },
     headerBtn: {
       width: 36,
       height: 36,
       borderRadius: 10,
-      backgroundColor: theme.background.accent,
+      backgroundColor: "transparent",
       alignItems: "center",
       justifyContent: "center",
     },
     headerTitle: {
       flex: 1,
-      fontSize: 22,
-      fontWeight: "bold",
+      fontSize: 16,
+      fontWeight: "700",
       color: theme.foreground.white,
-      letterSpacing: 0.2,
+      textAlign: "center",
+      marginHorizontal: 8,
     },
-    filterDot: {
-      position: "absolute",
-      top: 5,
-      right: 5,
-      width: 7,
-      height: 7,
-      borderRadius: 4,
-    },
-
     // Scroll
     scroll: { flex: 1 },
     scrollContent: {
@@ -1321,15 +1270,6 @@ function makeStyles(theme: Theme) {
     },
     txAmount: {
       fontSize: 13,
-      fontWeight: "700",
-    },
-    filterActivePill: {
-      borderRadius: 7,
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-    },
-    filterActivePillText: {
-      fontSize: 11,
       fontWeight: "700",
     },
 

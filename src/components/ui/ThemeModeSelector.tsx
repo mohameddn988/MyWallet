@@ -61,10 +61,7 @@ export function ThemeModeSelector({
 
 function makeStyles(theme: Theme) {
   return StyleSheet.create({
-    container: {
-      marginBottom: 24,
-      paddingHorizontal: 24,
-    },
+    container: {},
     segmentedControl: {
       flexDirection: "row",
       backgroundColor: theme.background.accent,

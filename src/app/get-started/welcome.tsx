@@ -1,7 +1,6 @@
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import {
-  Animated,
   Image,
   Pressable,
   StyleSheet,
@@ -15,24 +14,6 @@ export default function WelcomeScreen() {
   const router = useRouter();
   const styles = makeStyles(theme);
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [fadeAnim, slideAnim]);
-
   const handleGetStarted = () => {
     router.navigate("/get-started/currency" as any);
   };
@@ -45,43 +26,21 @@ export default function WelcomeScreen() {
     <View style={styles.container}>
       <View style={styles.content}>
         {/* Top Section - Logo */}
-        <Animated.View
-          style={[
-            styles.logoSection,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
+        <View style={styles.logoSection}>
           <Image source={theme.logo} style={styles.logo} resizeMode="contain" />
-        </Animated.View>
+        </View>
 
         {/* Middle Section - Text */}
-        <Animated.View
-          style={[
-            styles.textSection,
-            {
-              opacity: fadeAnim,
-            },
-          ]}
-        >
+        <View style={styles.textSection}>
           <Text style={styles.headline}>Welcome to My wallet</Text>
           <Text style={styles.description}>
             Your financial data will be stored securely on your device. You have
             complete control and privacy.
           </Text>
-        </Animated.View>
+        </View>
 
         {/* Bottom Section - Buttons */}
-        <Animated.View
-          style={[
-            styles.buttonSection,
-            {
-              opacity: fadeAnim,
-            },
-          ]}
-        >
+        <View style={styles.buttonSection}>
           <Pressable
             style={({ pressed }) => [
               styles.primaryButton,
@@ -101,7 +60,7 @@ export default function WelcomeScreen() {
           >
             <Text style={styles.secondaryButtonText}>Skip</Text>
           </Pressable>
-        </Animated.View>
+        </View>
       </View>
     </View>
   );

@@ -9,7 +9,6 @@ export default function SettingsLayout() {
         animation: "fade_from_bottom",
       }}
     >
-      <Stack.Screen name="index" />
       <Stack.Screen name="theme" />
       <Stack.Screen name="currency" />
       <Stack.Screen name="locale" />

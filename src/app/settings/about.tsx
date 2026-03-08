@@ -29,7 +29,7 @@ export default function AboutScreen() {
       <View style={styles.header}>
         <Pressable
           style={({ pressed }) => [
-            styles.backBtn,
+            styles.headerBtn,
             pressed && { opacity: 0.6 },
           ]}
           onPress={() => router.back()}
@@ -40,9 +40,8 @@ export default function AboutScreen() {
             color={theme.foreground.white}
           />
         </Pressable>
-        <View style={styles.headerText}>
-          <Text style={styles.title}>About</Text>
-        </View>
+        <Text style={styles.headerTitle} numberOfLines={1}>About</Text>
+        <View style={styles.headerBtn} />
       </View>
 
       <ScrollView
@@ -193,29 +192,31 @@ function makeStyles(theme: Theme) {
     },
     header: {
       flexDirection: "row",
-      alignItems: "flex-start",
+      alignItems: "center",
+      justifyContent: "space-between",
       paddingHorizontal: 16,
-      paddingTop: 16,
-      paddingBottom: 20,
-      gap: 14,
+      paddingVertical: 14,
     },
-    backBtn: {
+    headerBtn: {
       width: 36,
       height: 36,
       borderRadius: 10,
-      backgroundColor: theme.background.accent,
+      backgroundColor: "transparent",
       alignItems: "center",
       justifyContent: "center",
-      marginTop: 4,
     },
-    headerText: {
+    headerTitle: {
+      fontSize: 16,
+      fontWeight: "700",
+      color: theme.foreground.white,
       flex: 1,
+      textAlign: "center",
+      marginHorizontal: 8,
     },
     title: {
-      fontSize: 22,
-      fontWeight: "bold",
+      fontSize: 20,
+      fontWeight: "700",
       color: theme.foreground.white,
-      marginBottom: 3,
     },
     subtitle: {
       fontSize: 15,
@@ -223,7 +224,7 @@ function makeStyles(theme: Theme) {
     },
     scrollView: {
       flex: 1,
-      paddingHorizontal: 24,
+      paddingHorizontal: 16,
     },
     appInfoContainer: {
       alignItems: "center",
@@ -260,19 +261,23 @@ function makeStyles(theme: Theme) {
       marginBottom: 32,
     },
     sectionHeader: {
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: "700",
       color: theme.foreground.gray,
       letterSpacing: 1.2,
       marginBottom: 12,
       paddingHorizontal: 4,
+      opacity: 0.7,
+      textTransform: "uppercase",
     },
     infoItem: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       backgroundColor: theme.background.accent,
-      borderRadius: 12,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: `${theme.foreground.gray}12`,
       paddingVertical: 14,
       paddingHorizontal: 16,
       marginBottom: 8,
@@ -294,7 +299,9 @@ function makeStyles(theme: Theme) {
       alignItems: "center",
       justifyContent: "space-between",
       backgroundColor: theme.background.accent,
-      borderRadius: 12,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: `${theme.foreground.gray}12`,
       paddingVertical: 14,
       paddingHorizontal: 16,
     },
@@ -313,7 +320,9 @@ function makeStyles(theme: Theme) {
       alignItems: "center",
       justifyContent: "space-between",
       backgroundColor: theme.background.accent,
-      borderRadius: 12,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: `${theme.foreground.gray}12`,
       paddingVertical: 16,
       paddingHorizontal: 16,
       marginBottom: 8,

@@ -28,12 +28,11 @@ export interface AppBottomSheetProps {
   /**
    * Snap points that control the sheet height.
    * Can be numbers (pixels) or strings (percentages), sorted from shortest to tallest.
-   * Defaults to ["85%"].
    *
    * @example snapPoints={["50%", "85%"]}
    * @example snapPoints={[300, 600]}
    */
-  snapPoints?: (string | number)[];
+  snapPoints: (string | number)[];
   /**
    * Initial snap point index. Defaults to the last (tallest) snap point.
    * Ignored when `isOpen` is provided.
@@ -71,7 +70,7 @@ export interface AppBottomSheetProps {
 const AppBottomSheet = forwardRef<AppBottomSheetRef, AppBottomSheetProps>(
   (
     {
-      snapPoints = ["85%"],
+      snapPoints,
       initialSnapIndex,
       isOpen,
       onClose,
