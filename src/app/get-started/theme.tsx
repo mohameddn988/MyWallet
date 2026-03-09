@@ -14,7 +14,8 @@ import { Theme, themeVariants, getThemeByVariantAndMode } from "../../constants/
 import { useTheme } from "../../contexts/ThemeContext";
 
 export default function ThemeSelectionScreen() {
-  const { theme, themeMode, variantId, setThemeMode, setVariantId } = useTheme();
+  const { theme, themeMode, variantId, setThemeMode, setVariantId } =
+    useTheme();
   const router = useRouter();
   const styles = makeStyles(theme);
 
@@ -45,11 +46,13 @@ export default function ThemeSelectionScreen() {
       </View>
 
       {/* Theme Mode Selector */}
-      <ThemeModeSelector
-        theme={theme}
-        selectedMode={themeMode}
-        onModeChange={setThemeMode}
-      />
+      <View style={styles.modeSelectorContainer}>
+        <ThemeModeSelector
+          theme={theme}
+          selectedMode={themeMode}
+          onModeChange={setThemeMode}
+        />
+      </View>
 
       {/* Theme Preview Section */}
       <View style={styles.previewSection}>
@@ -60,7 +63,10 @@ export default function ThemeSelectionScreen() {
           contentContainerStyle={styles.previewScrollContent}
         >
           {themeVariants.map((variant) => {
-            const variantTheme = getThemeByVariantAndMode(variant.id, effectiveMode);
+            const variantTheme = getThemeByVariantAndMode(
+              variant.id,
+              effectiveMode,
+            );
             const isSelected = variantId === variant.id;
 
             return (
@@ -117,6 +123,11 @@ function makeStyles(theme: Theme) {
       color: theme.foreground.gray,
       lineHeight: 20,
       marginTop: 4,
+    },
+    // Mode Selector
+    modeSelectorContainer: {
+      paddingHorizontal: 24,
+      marginBottom: 16,
     },
     // Preview Section
     previewSection: {

@@ -1,5 +1,6 @@
 import { AntDesign, Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useEffect } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
 import { useFinance } from "../../contexts/FinanceContext";
@@ -7,18 +8,19 @@ import { useTheme } from "../../contexts/ThemeContext";
 
 export default function AuthScreen() {
   const { theme } = useTheme();
-  const { signInWithGoogle, continueOffline } = useAuth();
+  const { signInWithGoogle, continueOffline, authMode } = useAuth();
   const { hasCompleted } = useFinance();
   const router = useRouter();
   const styles = makeStyles(theme);
 
+  useEffect(() => {
+    if (authMode !== "online") return;
+
+    router.replace((hasCompleted ? "/(tabs)/home" : "/get-started/theme") as any);
+  }, [authMode, hasCompleted, router]);
+
   const handleGoogle = async () => {
-    const isSetupDone = await signInWithGoogle();
-    if (isSetupDone) {
-      router.navigate("/(tabs)/home" as any);
-    } else {
-      router.navigate("/get-started/theme" as any);
-    }
+    await signInWithGoogle();
   };
 
   const handleOffline = async () => {

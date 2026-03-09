@@ -282,6 +282,7 @@ export default function SettingsIndexScreen() {
 
   const appVersion = Constants.expoConfig?.version ?? "1.0.0";
   const buildNumber = Constants.expoConfig?.ios?.buildNumber ?? "1";
+  const isGooglePending = authMode === "pending-online";
 
   const nonBaseCurrencies = availableCurrencies.filter(
     (c) => c !== baseCurrency,
@@ -343,6 +344,38 @@ export default function SettingsIndexScreen() {
               color={theme.primary.main}
             />
           </Pressable>
+        ) : isGooglePending && user ? (
+          <View style={s.accountBanner}>
+            <View style={s.googleBannerLeft}>
+              {user.picture ? (
+                <Image source={{ uri: user.picture }} style={s.accountAvatar} />
+              ) : (
+                <View style={s.accountAvatarFallback}>
+                  <Text style={s.accountAvatarInitial}>
+                    {(user.name ?? user.email).charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
+              <View style={s.googleBannerText}>
+                <Text style={s.accountBannerName} numberOfLines={1}>
+                  {user.name ?? "Google Account"}
+                </Text>
+                <Text style={s.accountBannerEmail} numberOfLines={2}>
+                  Confirm the data choice
+                </Text>
+              </View>
+            </View>
+            <View style={[s.accountBannerBadge, s.accountBannerBadgePending]}>
+              <Text
+                style={[
+                  s.accountBannerBadgeText,
+                  s.accountBannerBadgeTextPending,
+                ]}
+              >
+                Pending
+              </Text>
+            </View>
+          </View>
         ) : authMode === "online" && user ? (
           <View style={s.accountBanner}>
             <View style={s.googleBannerLeft}>
@@ -471,6 +504,7 @@ export default function SettingsIndexScreen() {
         </SectionCard>
 
         {/* ── ACCOUNT ──────────────────────────────── */}
+        {authMode === "online" ? (
         <SectionCard label="ACCOUNT" theme={theme}>
           <SettingRow
             icon="logout"
@@ -481,6 +515,7 @@ export default function SettingsIndexScreen() {
             isLast
           />
         </SectionCard>
+        ) : null}
       </ScrollView>
 
       {/* ── EXPORT MODAL ─────────────────────────── */}
@@ -944,10 +979,16 @@ function makeStyles(theme: AppTheme) {
       paddingHorizontal: 10,
       paddingVertical: 4,
     },
+    accountBannerBadgePending: {
+      backgroundColor: "rgba(245,158,11,0.18)",
+    },
     accountBannerBadgeText: {
       fontSize: 12,
       fontWeight: "600",
       color: theme.primary.main,
+    },
+    accountBannerBadgeTextPending: {
+      color: "#F59E0B",
     },
 
     // ── About row ─────────────────────────────────

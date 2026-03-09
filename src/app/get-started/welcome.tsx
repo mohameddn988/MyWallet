@@ -17,7 +17,7 @@ export default function WelcomeScreen() {
   const styles = makeStyles(theme);
 
   const handleGetStarted = () => {
-    router.navigate("/get-started/currency" as any);
+    router.navigate("/(tabs)/home" as any);
   };
 
   const handleSkip = async () => {

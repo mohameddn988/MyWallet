@@ -254,7 +254,13 @@ function computeQuickStats(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function FinanceProvider({ children }: { children: React.ReactNode }) {
-  const { authMode, user } = useAuth();
+  const {
+    authMode,
+    user,
+    getAccessToken,
+    commitPendingGoogleSignIn,
+    cancelPendingGoogleSignIn,
+  } = useAuth();
   const {
     dateFormat,
     firstDayOfWeek,
@@ -295,7 +301,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
 
   const authedFetchJSON = useCallback(
     async <T,>(path: string, init: RequestInit = {}): Promise<T> => {
-      const token = await auth.getToken();
+      const token = await getAccessToken();
       if (!token) {
         throw new Error("Missing auth token");
       }
@@ -322,7 +328,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
 
       return data as T;
     },
-    [],
+    [getAccessToken],
   );
 
   const syncCloudState = useCallback(
@@ -402,11 +408,34 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           setHasCompleted(cachedCloud.hasCompleted);
         }
 
+        try {
+          const cloudState = await loadCloudState();
+          if (cancelled) return;
+
+          await applyCloudState(cloudState);
+
+          if (!cancelled) {
+            hasBootstrappedCloud.current = true;
+          }
+        } catch (error) {
+          console.error("[Finance] Failed to bootstrap cloud state:", error);
+        } finally {
+          if (!cancelled) {
+            isBootstrapping.current = false;
+            setIsLoading(false);
+          }
+        }
+        return;
+      }
+
+      if (authMode === "pending-online" && user) {
+        setIsLoading(true);
+        hasBootstrappedCloud.current = false;
+
         // Check if there is local offline data that could be migrated
         const localOffline = readLocalWallet(realm, "local");
         const localHasData =
           localOffline &&
-          localOffline.hasCompleted &&
           (localOffline.accounts.length > 0 ||
             localOffline.transactions.length > 0);
 
@@ -415,11 +444,10 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           if (cancelled) return;
 
           const cloudHasData =
-            cloudState.hasCompleted &&
-            ((Array.isArray(cloudState.accounts) &&
+            (Array.isArray(cloudState.accounts) &&
               cloudState.accounts.length > 0) ||
-              (Array.isArray(cloudState.transactions) &&
-                cloudState.transactions.length > 0));
+            (Array.isArray(cloudState.transactions) &&
+              cloudState.transactions.length > 0);
 
           if (localHasData && !cloudHasData) {
             // Local has data, cloud is empty → push local to cloud
@@ -433,14 +461,15 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
             };
             await applyCloudState(payload);
             await syncCloudState(payload);
+            await commitPendingGoogleSignIn();
             // Clean up local offline entry
             deleteLocalWallet(realm, "local");
           } else if (!localHasData && cloudHasData) {
             // Cloud has data, local is empty → use cloud (normal)
             await applyCloudState(cloudState);
+            await commitPendingGoogleSignIn();
           } else if (localHasData && cloudHasData) {
-            // Both have data → show conflict modal, apply cloud for now
-            await applyCloudState(cloudState);
+            // Both have data → wait for explicit user confirmation before connecting
             setMigrationConflict({
               localData: localOffline!,
               cloudData: cloudState,
@@ -448,6 +477,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           } else {
             // Neither has data → apply cloud defaults
             await applyCloudState(cloudState);
+            await commitPendingGoogleSignIn();
           }
 
           if (!cancelled) {
@@ -516,6 +546,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     loadCloudState,
     applyCloudState,
     syncCloudState,
+    commitPendingGoogleSignIn,
     setDateFormat,
     setFirstDayOfWeek,
     setNumberFormat,
@@ -540,9 +571,11 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         await applyCloudState(payload);
         await syncCloudState(payload);
       } else {
-        // Keep cloud data (already applied during bootstrap)
+        // Keep cloud data after the user explicitly confirms it
         await applyCloudState(cloudData);
       }
+
+      await commitPendingGoogleSignIn();
 
       // Clean up local offline entry
       if (realmRef.current) {
@@ -551,19 +584,17 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
 
       setMigrationConflict(null);
     },
-    [migrationConflict, applyCloudState, syncCloudState],
+    [migrationConflict, applyCloudState, syncCloudState, commitPendingGoogleSignIn],
   );
 
   // Persist all state to Realm whenever it changes (after initial load)
   useEffect(() => {
-    if (
-      isLoading ||
-      isBootstrapping.current ||
-      !realmRef.current ||
-      authMode === null
-    )
-      return;
-    const userId = authMode === "offline" ? "local" : (user?.id ?? null);
+    if (isLoading || isBootstrapping.current || !realmRef.current || authMode === null) return;
+    const userId = authMode === "offline"
+      ? "local"
+      : authMode === "online"
+        ? (user?.id ?? null)
+        : null;
     if (!userId) return;
 
     const state: LocalWalletState = {
@@ -1126,6 +1157,10 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           migrationConflict?.cloudData.transactions.length ?? 0
         }
         onChoose={resolveMigrationConflict}
+        onCancel={async () => {
+          setMigrationConflict(null);
+          await cancelPendingGoogleSignIn();
+        }}
       />
     </FinanceContext.Provider>
   );

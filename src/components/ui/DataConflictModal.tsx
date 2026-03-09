@@ -11,6 +11,7 @@ interface DataConflictModalProps {
   cloudAccountCount: number;
   cloudTransactionCount: number;
   onChoose: (choice: "local" | "cloud") => Promise<void>;
+  onCancel?: () => Promise<void> | void;
 }
 
 export function DataConflictModal({
@@ -20,6 +21,7 @@ export function DataConflictModal({
   cloudAccountCount,
   cloudTransactionCount,
   onChoose,
+  onCancel,
 }: DataConflictModalProps) {
   const { theme } = useTheme();
   const styles = makeStyles(theme);
@@ -36,18 +38,35 @@ export function DataConflictModal({
     }
   };
 
+  const handleCancel = async () => {
+    if (busy) return;
+
+    setBusy(true);
+    try {
+      setSelected(null);
+      await onCancel?.();
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Modal visible={visible} animationType="fade" transparent>
       <View style={styles.overlay}>
         <View style={styles.card}>
-          {/* Icon */}
-          <View style={styles.iconWrap}>
+          {/* Close button */}
+          <Pressable
+            style={styles.closeBtn}
+            onPress={handleCancel}
+            disabled={busy}
+            hitSlop={8}
+          >
             <MaterialCommunityIcons
-              name="swap-horizontal-circle"
-              size={40}
-              color="#F59E0B"
+              name="close"
+              size={22}
+              color={theme.foreground.gray}
             />
-          </View>
+          </Pressable>
 
           {/* Title */}
           <Text style={styles.title}>Data Conflict</Text>
@@ -67,23 +86,27 @@ export function DataConflictModal({
               onPress={() => !busy && setSelected("local")}
               disabled={busy}
             >
-              <MaterialCommunityIcons
-                name="cellphone"
-                size={28}
-                color={
-                  selected === "local"
-                    ? theme.primary.main
-                    : theme.foreground.gray
-                }
-              />
-              <Text style={styles.optionTitle}>Local Device</Text>
-              <Text style={styles.optionStat}>
-                {localAccountCount} account{localAccountCount !== 1 ? "s" : ""}
-              </Text>
-              <Text style={styles.optionStat}>
-                {localTransactionCount} transaction
-                {localTransactionCount !== 1 ? "s" : ""}
-              </Text>
+              <View style={styles.optionIconWrap}>
+                <MaterialCommunityIcons
+                  name="cellphone"
+                  size={24}
+                  color={
+                    selected === "local"
+                      ? theme.primary.main
+                      : theme.foreground.gray
+                  }
+                />
+              </View>
+              <View style={styles.optionText}>
+                <Text style={styles.optionTitle}>Local Device</Text>
+                <Text style={styles.optionStat}>
+                  {localAccountCount} account
+                  {localAccountCount !== 1 ? "s" : ""}
+                  {" · "}
+                  {localTransactionCount} transaction
+                  {localTransactionCount !== 1 ? "s" : ""}
+                </Text>
+              </View>
             </Pressable>
 
             {/* Cloud card */}
@@ -95,23 +118,27 @@ export function DataConflictModal({
               onPress={() => !busy && setSelected("cloud")}
               disabled={busy}
             >
-              <MaterialCommunityIcons
-                name="cloud"
-                size={28}
-                color={
-                  selected === "cloud"
-                    ? theme.primary.main
-                    : theme.foreground.gray
-                }
-              />
-              <Text style={styles.optionTitle}>Cloud Account</Text>
-              <Text style={styles.optionStat}>
-                {cloudAccountCount} account{cloudAccountCount !== 1 ? "s" : ""}
-              </Text>
-              <Text style={styles.optionStat}>
-                {cloudTransactionCount} transaction
-                {cloudTransactionCount !== 1 ? "s" : ""}
-              </Text>
+              <View style={styles.optionIconWrap}>
+                <MaterialCommunityIcons
+                  name="cloud"
+                  size={24}
+                  color={
+                    selected === "cloud"
+                      ? theme.primary.main
+                      : theme.foreground.gray
+                  }
+                />
+              </View>
+              <View style={styles.optionText}>
+                <Text style={styles.optionTitle}>Cloud Account</Text>
+                <Text style={styles.optionStat}>
+                  {cloudAccountCount} account
+                  {cloudAccountCount !== 1 ? "s" : ""}
+                  {" · "}
+                  {cloudTransactionCount} transaction
+                  {cloudTransactionCount !== 1 ? "s" : ""}
+                </Text>
+              </View>
             </Pressable>
           </View>
 
@@ -155,14 +182,11 @@ function makeStyles(theme: Theme) {
       padding: 24,
       alignItems: "center",
     },
-    iconWrap: {
-      width: 64,
-      height: 64,
-      borderRadius: 32,
-      backgroundColor: "rgba(245,158,11,0.12)",
-      justifyContent: "center",
-      alignItems: "center",
-      marginBottom: 16,
+    closeBtn: {
+      position: "absolute",
+      top: 16,
+      right: 16,
+      zIndex: 1,
     },
     title: {
       fontSize: 20,
@@ -178,29 +202,40 @@ function makeStyles(theme: Theme) {
       marginBottom: 20,
     },
     options: {
-      flexDirection: "row",
-      gap: 12,
+      flexDirection: "column",
+      gap: 10,
       width: "100%",
       marginBottom: 20,
     },
     optionCard: {
-      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 14,
       backgroundColor: theme.background.accent,
       borderRadius: 14,
-      padding: 16,
-      alignItems: "center",
-      gap: 6,
+      padding: 14,
       borderWidth: 2,
       borderColor: "transparent",
     },
     optionSelected: {
       borderColor: theme.primary.main,
     },
+    optionIconWrap: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      backgroundColor: theme.background.darker,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    optionText: {
+      flex: 1,
+    },
     optionTitle: {
       fontSize: 14,
       fontWeight: "600",
       color: theme.foreground.white,
-      marginTop: 4,
+      marginBottom: 3,
     },
     optionStat: {
       fontSize: 12,
