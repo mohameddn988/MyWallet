@@ -22,6 +22,13 @@ import {
 } from "../types/finance";
 import { apiUrl } from "../lib/apiUrl";
 import { auth } from "../utils/auth";
+import {
+  deleteLocalWallet,
+  getRealm,
+  readLocalWallet,
+  writeLocalWallet,
+  type LocalWalletState,
+} from "../lib/realm";
 import { useAuth } from "./AuthContext";
 import { useLocale } from "./LocaleContext";
 import { convertToBase, toDateStr } from "../utils/currency";
@@ -270,7 +277,9 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const [eggZeroMode, setEggZeroMode] = useState(false);
   const triggerEggZero = useCallback(() => setEggZeroMode(true), []);
   const hasBootstrappedCloud = useRef(false);
+  const isBootstrapping = useRef(true);
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const realmRef = useRef<Awaited<ReturnType<typeof getRealm>> | null>(null);
 
   /** The currency the user has chosen to view amounts in */
   const [displayCurrency, setDisplayCurrency] = useState<string>(
@@ -356,9 +365,30 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     const bootstrap = async () => {
+      // Block the persist effect until bootstrap finishes reading from Realm
+      isBootstrapping.current = true;
+
+      // Always open Realm first so we have local data available
+      const realm = await getRealm();
+      if (cancelled) return;
+      realmRef.current = realm;
+
       if (authMode === "online" && user) {
         setIsLoading(true);
         hasBootstrappedCloud.current = false;
+
+        // Load from Realm first for instant startup
+        const local = readLocalWallet(realm, user.id);
+        if (local && !cancelled) {
+          setRawBase(local.baseCurrency);
+          setDisplayCurrency(local.baseCurrency);
+          setRawAccounts(local.accounts);
+          setRawRates(local.exchangeRates);
+          setRawTransactions(local.transactions);
+          setHasCompleted(local.hasCompleted);
+        }
+
+        // Then sync from cloud (cloud is the source of truth)
         try {
           await loadCloudState();
           if (!cancelled) {
@@ -368,6 +398,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           console.error("[Finance] Failed to bootstrap cloud state:", error);
         } finally {
           if (!cancelled) {
+            isBootstrapping.current = false;
             setIsLoading(false);
           }
         }
@@ -377,7 +408,31 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       hasBootstrappedCloud.current = false;
 
       if (authMode === "offline") {
-        setIsLoading(false);
+        // Load from Realm for full offline persistence
+        const local = readLocalWallet(realm, "local");
+        console.log("[Realm]", JSON.stringify(local, null, 2));
+        if (local && !cancelled) {
+          setRawBase(local.baseCurrency);
+          setDisplayCurrency(local.baseCurrency);
+          setRawAccounts(local.accounts);
+          setRawRates(local.exchangeRates);
+          setRawTransactions(local.transactions);
+          setHasCompleted(local.hasCompleted);
+          if (local.settings) {
+            const s = local.settings;
+            if (s.dateFormat) void setDateFormat(s.dateFormat as any);
+            if (s.firstDayOfWeek)
+              void setFirstDayOfWeek(s.firstDayOfWeek as any);
+            if (s.numberFormat) void setNumberFormat(s.numberFormat as any);
+          }
+          if (local.hasCompleted) {
+            await auth.setSetupCompleted();
+          }
+        }
+        if (!cancelled) {
+          isBootstrapping.current = false;
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -387,6 +442,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       setRawRates([]);
       setRawTransactions([]);
       setHasCompleted(false);
+      isBootstrapping.current = false;
       setIsLoading(false);
     };
 
@@ -395,7 +451,44 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [authMode, user?.id, loadCloudState]);
+  }, [
+    authMode,
+    user?.id,
+    loadCloudState,
+    setDateFormat,
+    setFirstDayOfWeek,
+    setNumberFormat,
+  ]);
+
+  // Persist all state to Realm whenever it changes (after initial load)
+  useEffect(() => {
+    if (isLoading || isBootstrapping.current || !realmRef.current || authMode === null) return;
+    const userId = authMode === "offline" ? "local" : (user?.id ?? null);
+    if (!userId) return;
+
+    const state: LocalWalletState = {
+      hasCompleted,
+      baseCurrency: rawBase,
+      accounts: rawAccounts,
+      exchangeRates: rawRates,
+      transactions: rawTransactions,
+      settings: { dateFormat, firstDayOfWeek, numberFormat },
+    };
+
+    writeLocalWallet(realmRef.current, userId, state);
+  }, [
+    isLoading,
+    authMode,
+    user?.id,
+    hasCompleted,
+    rawBase,
+    rawAccounts,
+    rawRates,
+    rawTransactions,
+    dateFormat,
+    firstDayOfWeek,
+    numberFormat,
+  ]);
 
   useEffect(() => {
     if (authMode !== "online" || !user || !hasBootstrappedCloud.current) {
@@ -772,6 +865,12 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     setRawRates([]);
     setRawTransactions([]);
     await auth.resetSetup();
+
+    // Clear the local Realm wallet document
+    if (realmRef.current) {
+      const localId = authMode === "offline" ? "local" : (user?.id ?? null);
+      if (localId) deleteLocalWallet(realmRef.current, localId);
+    }
 
     if (authMode === "online" && user?.id) {
       try {

@@ -7,18 +7,27 @@ import {
   Text,
   View,
 } from "react-native";
+import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
 
 export default function WelcomeScreen() {
   const { theme } = useTheme();
   const router = useRouter();
+  const { completeOnboarding } = useFinance();
   const styles = makeStyles(theme);
 
   const handleGetStarted = () => {
     router.navigate("/get-started/currency" as any);
   };
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
+    await completeOnboarding({
+      baseCurrency: "DZD",
+      accounts: [],
+      exchangeRates: [],
+      transactions: [],
+      useSampleData: false,
+    });
     router.navigate("/(tabs)/home" as any);
   };
 

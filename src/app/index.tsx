@@ -13,13 +13,16 @@ export default function Index() {
       try {
         const session = await auth.loadSession();
         const hasCompleted = await auth.hasCompletedSetup();
-        // 1. Setup not done → go to auth
-        // 2. Setup done but no valid session → go to auth
-        // 3. Setup done + valid session → go to home
-        if (!hasCompleted || !session || session.mode === null) {
+
+        if (!session || session.mode === null) {
+          // No session at all → must authenticate
           authRouteRef.current = "/auth";
-        } else {
+        } else if (hasCompleted) {
+          // Setup done + valid session → go straight to home
           authRouteRef.current = "/(tabs)/home";
+        } else {
+          // Has a valid session but setup not done → resume onboarding
+          authRouteRef.current = "/get-started/theme";
         }
       } catch (error) {
         console.error("[Index] Error checking app state:", error);

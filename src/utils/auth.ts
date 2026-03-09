@@ -1,9 +1,10 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthMode, AuthUser } from "../contexts/AuthContext";
-
-const AUTH_KEY = "@mywallet_auth";
-const AUTH_TOKEN_KEY = "@mywallet_token";
-const GET_STARTED_KEY = "@mywallet_onboarding_complete";
+import {
+  clearAuthSession,
+  getRealm,
+  readAuthSession,
+  writeAuthSession,
+} from "../lib/realm";
 
 export const auth = {
   loadSession: async (): Promise<{
@@ -11,20 +12,17 @@ export const auth = {
     user: AuthUser | null;
   } | null> => {
     try {
-      const stored = await AsyncStorage.getItem(AUTH_KEY);
-      if (!stored) return null;
-      const { mode, user } = JSON.parse(stored);
+      const realm = await getRealm();
+      const session = readAuthSession(realm);
+      if (!session?.mode) return null;
 
-      // Cloud/account sessions are valid only when a JWT token exists.
-      if (mode === "online") {
-        const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
-        if (!token) {
-          await AsyncStorage.removeItem(AUTH_KEY);
-          return null;
-        }
-      }
+      // Cloud sessions are only valid when a JWT token exists.
+      if (session.mode === "online" && !session.token) return null;
 
-      return { mode: mode ?? null, user: user ?? null };
+      const user = session.userJSON
+        ? (JSON.parse(session.userJSON) as AuthUser)
+        : null;
+      return { mode: session.mode as AuthMode, user };
     } catch (error) {
       console.error("[Auth] Failed to load session:", error);
       return null;
@@ -37,10 +35,13 @@ export const auth = {
     token?: string,
   ): Promise<void> => {
     try {
-      await AsyncStorage.setItem(AUTH_KEY, JSON.stringify({ mode, user }));
-      if (token) {
-        await AsyncStorage.setItem(AUTH_TOKEN_KEY, token);
-      }
+      const realm = await getRealm();
+      const patch: Parameters<typeof writeAuthSession>[1] = {
+        mode: mode ?? undefined,
+        userJSON: user ? JSON.stringify(user) : undefined,
+      };
+      if (token !== undefined) patch.token = token;
+      writeAuthSession(realm, patch);
     } catch (error) {
       console.error("[Auth] Failed to save session:", error);
     }
@@ -48,7 +49,8 @@ export const auth = {
 
   clearSession: async (): Promise<void> => {
     try {
-      await AsyncStorage.multiRemove([AUTH_KEY, AUTH_TOKEN_KEY]);
+      const realm = await getRealm();
+      clearAuthSession(realm);
     } catch (error) {
       console.error("[Auth] Failed to clear session:", error);
     }
@@ -56,7 +58,9 @@ export const auth = {
 
   getToken: async (): Promise<string | null> => {
     try {
-      return await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+      const realm = await getRealm();
+      const session = readAuthSession(realm);
+      return session?.token ?? null;
     } catch {
       return null;
     }
@@ -64,17 +68,18 @@ export const auth = {
 
   hasCompletedSetup: async (): Promise<boolean> => {
     try {
-      const value = await AsyncStorage.getItem(GET_STARTED_KEY);
-      return value === "true";
-    } catch (error) {
-      console.error("[Auth] Failed to check setup status:", error);
+      const realm = await getRealm();
+      const session = readAuthSession(realm);
+      return session?.setupCompleted ?? false;
+    } catch {
       return false;
     }
   },
 
   setSetupCompleted: async (): Promise<void> => {
     try {
-      await AsyncStorage.setItem(GET_STARTED_KEY, "true");
+      const realm = await getRealm();
+      writeAuthSession(realm, { setupCompleted: true });
     } catch (error) {
       console.error("[Auth] Failed to set setup status:", error);
     }
@@ -82,7 +87,8 @@ export const auth = {
 
   resetSetup: async (): Promise<void> => {
     try {
-      await AsyncStorage.removeItem(GET_STARTED_KEY);
+      const realm = await getRealm();
+      writeAuthSession(realm, { setupCompleted: false });
     } catch (error) {
       console.error("[Auth] Failed to reset setup status:", error);
     }

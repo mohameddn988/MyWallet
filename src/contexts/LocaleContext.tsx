@@ -1,5 +1,11 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { getRealm, readAppPrefs, writeAppPref } from "../lib/realm";
 import { parseDate, toDateStr } from "../utils/currency";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -54,18 +60,38 @@ function buildDateExample(id: DateFormatId): string {
   const yyyy = String(d.getFullYear());
   const monthShort = d.toLocaleDateString("en-US", { month: "short" });
   switch (id) {
-    case "MM/DD/YYYY": return `${mm}/${dd}/${yyyy}`;
-    case "DD/MM/YYYY": return `${dd}/${mm}/${yyyy}`;
-    case "YYYY-MM-DD": return `${yyyy}-${mm}-${dd}`;
-    case "D MMM YYYY": return `${d.getDate()} ${monthShort} ${yyyy}`;
+    case "MM/DD/YYYY":
+      return `${mm}/${dd}/${yyyy}`;
+    case "DD/MM/YYYY":
+      return `${dd}/${mm}/${yyyy}`;
+    case "YYYY-MM-DD":
+      return `${yyyy}-${mm}-${dd}`;
+    case "D MMM YYYY":
+      return `${d.getDate()} ${monthShort} ${yyyy}`;
   }
 }
 
 export const DATE_FORMAT_OPTIONS: DateFormatOption[] = [
-  { id: "MM/DD/YYYY", label: "MM/DD/YYYY", example: buildDateExample("MM/DD/YYYY") },
-  { id: "DD/MM/YYYY", label: "DD/MM/YYYY", example: buildDateExample("DD/MM/YYYY") },
-  { id: "YYYY-MM-DD", label: "YYYY-MM-DD (ISO)", example: buildDateExample("YYYY-MM-DD") },
-  { id: "D MMM YYYY", label: "D MMM YYYY", example: buildDateExample("D MMM YYYY") },
+  {
+    id: "MM/DD/YYYY",
+    label: "MM/DD/YYYY",
+    example: buildDateExample("MM/DD/YYYY"),
+  },
+  {
+    id: "DD/MM/YYYY",
+    label: "DD/MM/YYYY",
+    example: buildDateExample("DD/MM/YYYY"),
+  },
+  {
+    id: "YYYY-MM-DD",
+    label: "YYYY-MM-DD (ISO)",
+    example: buildDateExample("YYYY-MM-DD"),
+  },
+  {
+    id: "D MMM YYYY",
+    label: "D MMM YYYY",
+    example: buildDateExample("D MMM YYYY"),
+  },
 ];
 
 export const NUMBER_FORMAT_OPTIONS: NumberFormatOption[] = [
@@ -75,13 +101,13 @@ export const NUMBER_FORMAT_OPTIONS: NumberFormatOption[] = [
 ];
 
 export const FIRST_DAY_OPTIONS: FirstDayOption[] = [
-  { id: "sunday",    label: "Sunday" },
-  { id: "monday",    label: "Monday" },
-  { id: "tuesday",   label: "Tuesday" },
+  { id: "sunday", label: "Sunday" },
+  { id: "monday", label: "Monday" },
+  { id: "tuesday", label: "Tuesday" },
   { id: "wednesday", label: "Wednesday" },
-  { id: "thursday",  label: "Thursday" },
-  { id: "friday",    label: "Friday" },
-  { id: "saturday",  label: "Saturday" },
+  { id: "thursday", label: "Thursday" },
+  { id: "friday", label: "Friday" },
+  { id: "saturday", label: "Saturday" },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -101,10 +127,6 @@ interface LocaleContextType {
   formatNumber: (value: number, decimals?: number) => string;
 }
 
-const STORAGE_DATE_FORMAT = "@mywallet_locale_date_format";
-const STORAGE_FIRST_DAY = "@mywallet_locale_first_day";
-const STORAGE_NUMBER_FORMAT = "@mywallet_locale_number_format";
-
 const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -114,73 +136,100 @@ const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
   const [dateFormat, setDateFormatState] = useState<DateFormatId>("DD/MM/YYYY");
   const [firstDayOfWeek, setFirstDayState] = useState<FirstDayOfWeek>("sunday");
-  const [numberFormat, setNumberFormatState] = useState<NumberFormatId>("en-US");
+  const [numberFormat, setNumberFormatState] =
+    useState<NumberFormatId>("en-US");
 
-  // Load from storage on mount
+  // Load locale preferences from Realm on mount
   useEffect(() => {
     (async () => {
       try {
-        const [df, fd, nf] = await Promise.all([
-          AsyncStorage.getItem(STORAGE_DATE_FORMAT),
-          AsyncStorage.getItem(STORAGE_FIRST_DAY),
-          AsyncStorage.getItem(STORAGE_NUMBER_FORMAT),
-        ]);
-        if (df && DATE_FORMAT_OPTIONS.find((o) => o.id === df))
-          setDateFormatState(df as DateFormatId);
-        if (fd && FIRST_DAY_OPTIONS.find((o) => o.id === fd))
-          setFirstDayState(fd as FirstDayOfWeek);
-        if (nf && NUMBER_FORMAT_OPTIONS.find((o) => o.id === nf))
-          setNumberFormatState(nf as NumberFormatId);
+        const realm = await getRealm();
+        const prefs = readAppPrefs(realm);
+        if (!prefs) return;
+        if (
+          prefs.dateFormat &&
+          DATE_FORMAT_OPTIONS.find((o) => o.id === prefs.dateFormat)
+        )
+          setDateFormatState(prefs.dateFormat as DateFormatId);
+        if (
+          prefs.firstDayOfWeek &&
+          FIRST_DAY_OPTIONS.find((o) => o.id === prefs.firstDayOfWeek)
+        )
+          setFirstDayState(prefs.firstDayOfWeek as FirstDayOfWeek);
+        if (
+          prefs.numberFormat &&
+          NUMBER_FORMAT_OPTIONS.find((o) => o.id === prefs.numberFormat)
+        )
+          setNumberFormatState(prefs.numberFormat as NumberFormatId);
       } catch {}
     })();
   }, []);
 
   const setDateFormat = useCallback(async (id: DateFormatId) => {
     setDateFormatState(id);
-    try { await AsyncStorage.setItem(STORAGE_DATE_FORMAT, id); } catch {}
+    try {
+      const realm = await getRealm();
+      writeAppPref(realm, { dateFormat: id });
+    } catch {}
   }, []);
 
   const setFirstDayOfWeek = useCallback(async (id: FirstDayOfWeek) => {
     setFirstDayState(id);
-    try { await AsyncStorage.setItem(STORAGE_FIRST_DAY, id); } catch {}
+    try {
+      const realm = await getRealm();
+      writeAppPref(realm, { firstDayOfWeek: id });
+    } catch {}
   }, []);
 
   const setNumberFormat = useCallback(async (id: NumberFormatId) => {
     setNumberFormatState(id);
-    try { await AsyncStorage.setItem(STORAGE_NUMBER_FORMAT, id); } catch {}
+    try {
+      const realm = await getRealm();
+      writeAppPref(realm, { numberFormat: id });
+    } catch {}
   }, []);
 
-  const formatDate = useCallback((dateStr: string): string => {
-    const today = toDateStr(new Date());
-    const yesterday = toDateStr(new Date(Date.now() - 86_400_000));
-    if (dateStr === today) return "Today";
-    if (dateStr === yesterday) return "Yesterday";
+  const formatDate = useCallback(
+    (dateStr: string): string => {
+      const today = toDateStr(new Date());
+      const yesterday = toDateStr(new Date(Date.now() - 86_400_000));
+      if (dateStr === today) return "Today";
+      if (dateStr === yesterday) return "Yesterday";
 
-    const d = parseDate(dateStr);
-    const dd = String(d.getDate()).padStart(2, "0");
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const yyyy = String(d.getFullYear());
-    const monthShort = d.toLocaleDateString("en-US", { month: "short" });
-    const weekday = d.toLocaleDateString("en-US", { weekday: "short" });
+      const d = parseDate(dateStr);
+      const dd = String(d.getDate()).padStart(2, "0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const yyyy = String(d.getFullYear());
+      const monthShort = d.toLocaleDateString("en-US", { month: "short" });
+      const weekday = d.toLocaleDateString("en-US", { weekday: "short" });
 
-    switch (dateFormat) {
-      case "MM/DD/YYYY": return `${weekday}, ${mm}/${dd}/${yyyy}`;
-      case "DD/MM/YYYY": return `${weekday}, ${dd}/${mm}/${yyyy}`;
-      case "YYYY-MM-DD": return `${yyyy}-${mm}-${dd}`;
-      case "D MMM YYYY": return `${weekday}, ${d.getDate()} ${monthShort} ${yyyy}`;
-    }
-  }, [dateFormat]);
+      switch (dateFormat) {
+        case "MM/DD/YYYY":
+          return `${weekday}, ${mm}/${dd}/${yyyy}`;
+        case "DD/MM/YYYY":
+          return `${weekday}, ${dd}/${mm}/${yyyy}`;
+        case "YYYY-MM-DD":
+          return `${yyyy}-${mm}-${dd}`;
+        case "D MMM YYYY":
+          return `${weekday}, ${d.getDate()} ${monthShort} ${yyyy}`;
+      }
+    },
+    [dateFormat],
+  );
 
-  const formatNumber = useCallback((value: number, decimals = 2): string => {
-    try {
-      return value.toLocaleString(numberFormat, {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals,
-      });
-    } catch {
-      return value.toFixed(decimals);
-    }
-  }, [numberFormat]);
+  const formatNumber = useCallback(
+    (value: number, decimals = 2): string => {
+      try {
+        return value.toLocaleString(numberFormat, {
+          minimumFractionDigits: decimals,
+          maximumFractionDigits: decimals,
+        });
+      } catch {
+        return value.toFixed(decimals);
+      }
+    },
+    [numberFormat],
+  );
 
   return (
     <LocaleContext.Provider
