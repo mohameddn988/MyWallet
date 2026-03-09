@@ -20,7 +20,7 @@ interface AuthContextType {
   isLoading: boolean;
   authMode: AuthMode;
   user: AuthUser | null;
-  signInWithGoogle: () => Promise<GoogleSignInResult>;
+  signInWithGoogle: (idToken: string) => Promise<GoogleSignInResult>;
   signInLocal: (email: string, password: string) => Promise<void>;
   continueOffline: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -57,12 +57,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     load();
   }, []);
 
-  const signInWithGoogle = async (): Promise<GoogleSignInResult> => {
+  const signInWithGoogle = async (idToken: string): Promise<GoogleSignInResult> => {
     try {
       const res = await fetch(apiUrl("/api/auth/google"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ idToken }),
       });
       if (!res.ok) throw new Error(`Auth API returned ${res.status}`);
       const { token, user: serverUser, hasCompleted } = await res.json();

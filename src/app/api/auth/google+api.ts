@@ -7,40 +7,66 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET ?? "dev-secret-change-in-production",
 );
 
+interface GoogleTokenInfo {
+  sub: string;          // Google user ID
+  email: string;
+  email_verified: string;
+  name?: string;
+  given_name?: string;
+  family_name?: string;
+  picture?: string;
+  aud: string;          // Should match your client ID
+}
+
+async function verifyGoogleIdToken(idToken: string): Promise<GoogleTokenInfo> {
+  const res = await fetch(
+    `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
+  );
+  if (!res.ok) {
+    throw new Error(`Google tokeninfo rejected the ID token (${res.status})`);
+  }
+  const info = (await res.json()) as GoogleTokenInfo;
+  if (info.email_verified !== "true") {
+    throw new Error("Google account email is not verified");
+  }
+  return info;
+}
+
 /**
  * POST /api/auth/google
  *
- * For now this uses mock Google-shaped data so you can test the full
- * database + JWT flow without real OAuth. When real Google sign-in is
- * integrated (expo-auth-session), just replace the `mockPayload` block
- * with the actual ID-token claims.
+ * Accepts a real Google ID token obtained on the client via expo-auth-session,
+ * verifies it with Google's tokeninfo endpoint, upserts the user in MongoDB,
+ * and returns a signed JWT for the app.
  */
 export async function POST(request: Request) {
   try {
     const body = (await request.json().catch(() => ({}))) as {
-      googleId?: string;
-      email?: string;
-      name?: string;
-      givenName?: string;
-      familyName?: string;
-      picture?: string;
+      idToken?: string;
     };
 
-    // ── Mock Google OAuth payload ──────────────────────────────────────
-    // In production this will come from verifying a real Google ID token.
-    const normalizedEmail =
-      body.email?.trim().toLowerCase() || "mockuser@gmail.com";
-    const normalizedGoogleId = body.googleId?.trim() || "google_mock_default";
+    if (!body.idToken) {
+      return Response.json({ error: "idToken is required" }, { status: 400 });
+    }
 
-    const mockPayload = {
-      googleId: normalizedGoogleId,
-      email: normalizedEmail,
-      name: body.name?.trim() || "Mock User",
-      givenName: body.givenName?.trim() || "Mock",
-      familyName: body.familyName?.trim() || "User",
+    // ── Verify the Google ID token ─────────────────────────────────────
+    let googleInfo: GoogleTokenInfo;
+    try {
+      googleInfo = await verifyGoogleIdToken(body.idToken);
+    } catch (err) {
+      console.error("[API /auth/google] Token verification failed:", err);
+      return Response.json({ error: "Invalid Google ID token" }, { status: 401 });
+    }
+
+    const payload = {
+      googleId: googleInfo.sub,
+      email: googleInfo.email.trim().toLowerCase(),
+      name: googleInfo.name?.trim() ?? googleInfo.email.split("@")[0],
+      givenName: googleInfo.given_name?.trim() ?? "",
+      familyName: googleInfo.family_name?.trim() ?? "",
       picture:
-        body.picture?.trim() ||
-        "https://ui-avatars.com/api/?name=Mock+User&background=4285F4&color=fff&size=96",
+        googleInfo.picture?.trim() ??
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(googleInfo.name ?? googleInfo.email)}&background=4285F4&color=fff&size=96`,
       provider: "google" as const,
     };
 
@@ -51,10 +77,10 @@ export async function POST(request: Request) {
 
     const user = await users.findOneAndUpdate(
       {
-        $or: [{ email: mockPayload.email }, { googleId: mockPayload.googleId }],
+        $or: [{ email: payload.email }, { googleId: payload.googleId }],
       },
       {
-        $set: { ...mockPayload, updatedAt: timestamp },
+        $set: { ...payload, updatedAt: timestamp },
         $setOnInsert: { createdAt: timestamp },
       },
       { upsert: true, returnDocument: "after" },
@@ -95,3 +121,4 @@ export async function POST(request: Request) {
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+

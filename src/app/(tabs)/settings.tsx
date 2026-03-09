@@ -1,7 +1,15 @@
 import Constants from "expo-constants";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  GoogleSignin,
+  isSuccessResponse,
+} from "@react-native-google-signin/google-signin";
 import { useRouter } from "expo-router";
-import React, { useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+
+GoogleSignin.configure({
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+});
 import {
   Alert,
   Image,
@@ -175,9 +183,29 @@ export default function SettingsIndexScreen() {
     resetOnboarding,
   } = useFinance();
   const { signOut, authMode, user, signInWithGoogle } = useAuth();
-  const { dateFormat, numberFormat, firstDayOfWeek, setDateFormat, setNumberFormat, setFirstDayOfWeek } = useLocale();
+  const {
+    dateFormat,
+    numberFormat,
+    firstDayOfWeek,
+    setDateFormat,
+    setNumberFormat,
+    setFirstDayOfWeek,
+  } = useLocale();
   const router = useRouter();
   const s = makeStyles(theme);
+
+  const handleGoogleSignIn = async () => {
+    try {
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+      if (isSuccessResponse(response)) {
+        const idToken = response.data.idToken;
+        if (idToken) signInWithGoogle(idToken);
+      }
+    } catch (error) {
+      console.error("[Settings] Google sign-in error:", error);
+    }
+  };
 
   // ── Data management modal state ───────────────
   const [exportOpen, setExportOpen] = useState(false);
@@ -222,7 +250,15 @@ export default function SettingsIndexScreen() {
     } finally {
       setIsExporting(false);
     }
-  }, [baseCurrency, allAccounts, allTransactions, exchangeRates, dateFormat, firstDayOfWeek, numberFormat]);
+  }, [
+    baseCurrency,
+    allAccounts,
+    allTransactions,
+    exchangeRates,
+    dateFormat,
+    firstDayOfWeek,
+    numberFormat,
+  ]);
 
   const handleImportJSON = useCallback(async () => {
     try {
@@ -323,7 +359,7 @@ export default function SettingsIndexScreen() {
               s.googleBanner,
               pressed && s.googleBannerPressed,
             ]}
-            onPress={signInWithGoogle}
+            onPress={handleGoogleSignIn}
           >
             <View style={s.googleBannerLeft}>
               <View style={s.googleIconWrap}>
@@ -505,16 +541,16 @@ export default function SettingsIndexScreen() {
 
         {/* ── ACCOUNT ──────────────────────────────── */}
         {authMode === "online" ? (
-        <SectionCard label="ACCOUNT" theme={theme}>
-          <SettingRow
-            icon="logout"
-            label="Sign Out"
-            onPress={handleSignOut}
-            isDanger
-            theme={theme}
-            isLast
-          />
-        </SectionCard>
+          <SectionCard label="ACCOUNT" theme={theme}>
+            <SettingRow
+              icon="logout"
+              label="Sign Out"
+              onPress={handleSignOut}
+              isDanger
+              theme={theme}
+              isLast
+            />
+          </SectionCard>
         ) : null}
       </ScrollView>
 

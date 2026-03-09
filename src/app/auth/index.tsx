@@ -1,10 +1,18 @@
 import { AntDesign, Feather } from "@expo/vector-icons";
+import {
+  GoogleSignin,
+  isSuccessResponse,
+} from "@react-native-google-signin/google-signin";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
 import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
+
+GoogleSignin.configure({
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+});
 
 export default function AuthScreen() {
   const { theme } = useTheme();
@@ -15,12 +23,22 @@ export default function AuthScreen() {
 
   useEffect(() => {
     if (authMode !== "online") return;
-
-    router.replace((hasCompleted ? "/(tabs)/home" : "/get-started/theme") as any);
+    router.replace(
+      (hasCompleted ? "/(tabs)/home" : "/get-started/theme") as any,
+    );
   }, [authMode, hasCompleted, router]);
 
   const handleGoogle = async () => {
-    await signInWithGoogle();
+    try {
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+      if (isSuccessResponse(response)) {
+        const idToken = response.data.idToken;
+        if (idToken) await signInWithGoogle(idToken);
+      }
+    } catch (error) {
+      console.error("[Auth] Google sign-in error:", error);
+    }
   };
 
   const handleOffline = async () => {
