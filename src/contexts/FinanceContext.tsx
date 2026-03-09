@@ -31,6 +31,7 @@ import {
 } from "../lib/realm";
 import { useAuth } from "./AuthContext";
 import { useLocale } from "./LocaleContext";
+import { DataConflictModal } from "../components/ui/DataConflictModal";
 import { convertToBase, toDateStr } from "../utils/currency";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -281,6 +282,12 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const realmRef = useRef<Awaited<ReturnType<typeof getRealm>> | null>(null);
 
+  // Migration conflict state
+  const [migrationConflict, setMigrationConflict] = useState<{
+    localData: LocalWalletState;
+    cloudData: WalletStatePayload;
+  } | null>(null);
+
   /** The currency the user has chosen to view amounts in */
   const [displayCurrency, setDisplayCurrency] = useState<string>(
     DEFAULT_BASE_CURRENCY,
@@ -333,33 +340,40 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       "/api/finance/state",
       { method: "GET" },
     );
+    return cloudState;
+  }, [authedFetchJSON]);
 
-    setRawBase(cloudState.baseCurrency || DEFAULT_BASE_CURRENCY);
-    setDisplayCurrency(cloudState.baseCurrency || DEFAULT_BASE_CURRENCY);
-    setRawAccounts(
-      Array.isArray(cloudState.accounts) ? cloudState.accounts : [],
-    );
-    setRawRates(
-      Array.isArray(cloudState.exchangeRates) ? cloudState.exchangeRates : [],
-    );
-    setRawTransactions(
-      Array.isArray(cloudState.transactions) ? cloudState.transactions : [],
-    );
-    setHasCompleted(Boolean(cloudState.hasCompleted));
+  /** Apply a WalletStatePayload to all local React state + locale settings. */
+  const applyCloudState = useCallback(
+    async (cloudState: WalletStatePayload) => {
+      setRawBase(cloudState.baseCurrency || DEFAULT_BASE_CURRENCY);
+      setDisplayCurrency(cloudState.baseCurrency || DEFAULT_BASE_CURRENCY);
+      setRawAccounts(
+        Array.isArray(cloudState.accounts) ? cloudState.accounts : [],
+      );
+      setRawRates(
+        Array.isArray(cloudState.exchangeRates) ? cloudState.exchangeRates : [],
+      );
+      setRawTransactions(
+        Array.isArray(cloudState.transactions) ? cloudState.transactions : [],
+      );
+      setHasCompleted(Boolean(cloudState.hasCompleted));
 
-    if (cloudState.settings) {
-      const s = cloudState.settings;
-      if (s.dateFormat) void setDateFormat(s.dateFormat as any);
-      if (s.firstDayOfWeek) void setFirstDayOfWeek(s.firstDayOfWeek as any);
-      if (s.numberFormat) void setNumberFormat(s.numberFormat as any);
-    }
+      if (cloudState.settings) {
+        const s = cloudState.settings;
+        if (s.dateFormat) void setDateFormat(s.dateFormat as any);
+        if (s.firstDayOfWeek) void setFirstDayOfWeek(s.firstDayOfWeek as any);
+        if (s.numberFormat) void setNumberFormat(s.numberFormat as any);
+      }
 
-    if (cloudState.hasCompleted) {
-      await auth.setSetupCompleted();
-    } else {
-      await auth.resetSetup();
-    }
-  }, [authedFetchJSON, setDateFormat, setFirstDayOfWeek, setNumberFormat]);
+      if (cloudState.hasCompleted) {
+        await auth.setSetupCompleted();
+      } else {
+        await auth.resetSetup();
+      }
+    },
+    [setDateFormat, setFirstDayOfWeek, setNumberFormat],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -377,20 +391,65 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(true);
         hasBootstrappedCloud.current = false;
 
-        // Load from Realm first for instant startup
-        const local = readLocalWallet(realm, user.id);
-        if (local && !cancelled) {
-          setRawBase(local.baseCurrency);
-          setDisplayCurrency(local.baseCurrency);
-          setRawAccounts(local.accounts);
-          setRawRates(local.exchangeRates);
-          setRawTransactions(local.transactions);
-          setHasCompleted(local.hasCompleted);
+        // Load cached Realm data for this cloud user (instant startup)
+        const cachedCloud = readLocalWallet(realm, user.id);
+        if (cachedCloud && !cancelled) {
+          setRawBase(cachedCloud.baseCurrency);
+          setDisplayCurrency(cachedCloud.baseCurrency);
+          setRawAccounts(cachedCloud.accounts);
+          setRawRates(cachedCloud.exchangeRates);
+          setRawTransactions(cachedCloud.transactions);
+          setHasCompleted(cachedCloud.hasCompleted);
         }
 
-        // Then sync from cloud (cloud is the source of truth)
+        // Check if there is local offline data that could be migrated
+        const localOffline = readLocalWallet(realm, "local");
+        const localHasData =
+          localOffline &&
+          localOffline.hasCompleted &&
+          (localOffline.accounts.length > 0 ||
+            localOffline.transactions.length > 0);
+
         try {
-          await loadCloudState();
+          const cloudState = await loadCloudState();
+          if (cancelled) return;
+
+          const cloudHasData =
+            cloudState.hasCompleted &&
+            ((Array.isArray(cloudState.accounts) &&
+              cloudState.accounts.length > 0) ||
+              (Array.isArray(cloudState.transactions) &&
+                cloudState.transactions.length > 0));
+
+          if (localHasData && !cloudHasData) {
+            // Local has data, cloud is empty → push local to cloud
+            const payload: WalletStatePayload = {
+              hasCompleted: true,
+              baseCurrency: localOffline!.baseCurrency,
+              accounts: localOffline!.accounts,
+              exchangeRates: localOffline!.exchangeRates,
+              transactions: localOffline!.transactions,
+              settings: localOffline!.settings,
+            };
+            await applyCloudState(payload);
+            await syncCloudState(payload);
+            // Clean up local offline entry
+            deleteLocalWallet(realm, "local");
+          } else if (!localHasData && cloudHasData) {
+            // Cloud has data, local is empty → use cloud (normal)
+            await applyCloudState(cloudState);
+          } else if (localHasData && cloudHasData) {
+            // Both have data → show conflict modal, apply cloud for now
+            await applyCloudState(cloudState);
+            setMigrationConflict({
+              localData: localOffline!,
+              cloudData: cloudState,
+            });
+          } else {
+            // Neither has data → apply cloud defaults
+            await applyCloudState(cloudState);
+          }
+
           if (!cancelled) {
             hasBootstrappedCloud.current = true;
           }
@@ -455,14 +514,55 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     authMode,
     user?.id,
     loadCloudState,
+    applyCloudState,
+    syncCloudState,
     setDateFormat,
     setFirstDayOfWeek,
     setNumberFormat,
   ]);
 
+  /** Resolve a migration conflict by choosing local or cloud data. */
+  const resolveMigrationConflict = useCallback(
+    async (choice: "local" | "cloud") => {
+      if (!migrationConflict) return;
+      const { localData, cloudData } = migrationConflict;
+
+      if (choice === "local") {
+        // Push local offline data to cloud, replacing cloud data
+        const payload: WalletStatePayload = {
+          hasCompleted: true,
+          baseCurrency: localData.baseCurrency,
+          accounts: localData.accounts,
+          exchangeRates: localData.exchangeRates,
+          transactions: localData.transactions,
+          settings: localData.settings,
+        };
+        await applyCloudState(payload);
+        await syncCloudState(payload);
+      } else {
+        // Keep cloud data (already applied during bootstrap)
+        await applyCloudState(cloudData);
+      }
+
+      // Clean up local offline entry
+      if (realmRef.current) {
+        deleteLocalWallet(realmRef.current, "local");
+      }
+
+      setMigrationConflict(null);
+    },
+    [migrationConflict, applyCloudState, syncCloudState],
+  );
+
   // Persist all state to Realm whenever it changes (after initial load)
   useEffect(() => {
-    if (isLoading || isBootstrapping.current || !realmRef.current || authMode === null) return;
+    if (
+      isLoading ||
+      isBootstrapping.current ||
+      !realmRef.current ||
+      authMode === null
+    )
+      return;
     const userId = authMode === "offline" ? "local" : (user?.id ?? null);
     if (!userId) return;
 
@@ -1015,6 +1115,18 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   return (
     <FinanceContext.Provider value={fullValue}>
       {children}
+      <DataConflictModal
+        visible={migrationConflict !== null}
+        localAccountCount={migrationConflict?.localData.accounts.length ?? 0}
+        localTransactionCount={
+          migrationConflict?.localData.transactions.length ?? 0
+        }
+        cloudAccountCount={migrationConflict?.cloudData.accounts.length ?? 0}
+        cloudTransactionCount={
+          migrationConflict?.cloudData.transactions.length ?? 0
+        }
+        onChoose={resolveMigrationConflict}
+      />
     </FinanceContext.Provider>
   );
 }

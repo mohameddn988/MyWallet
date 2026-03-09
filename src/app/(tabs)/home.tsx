@@ -176,7 +176,7 @@ export default function HomeScreen() {
   // Get the latest 4 transactions
   const latestTransactions = recentTransactions.slice(0, 4);
 
-  // Get the 4 most used accounts
+  // Get the 4 most used accounts (accounts with no transactions are still included)
   const mostUsedAccounts = useMemo(() => {
     const accountUsage = new Map<string, number>();
 
@@ -191,14 +191,14 @@ export default function HomeScreen() {
       }
     });
 
-    // Get account IDs sorted by usage (most used first)
-    const sortedAccountIds = Array.from(accountUsage.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 4)
-      .map(([id]) => id);
-
-    // Return filtered accounts in the sorted order
-    return accounts.filter((aw) => sortedAccountIds.includes(aw.account.id));
+    // Sort all accounts: most-used first, then unused accounts in original order
+    return [...accounts]
+      .sort((a, b) => {
+        const usageA = accountUsage.get(a.account.id) ?? 0;
+        const usageB = accountUsage.get(b.account.id) ?? 0;
+        return usageB - usageA;
+      })
+      .slice(0, 4);
   }, [allTransactions, accounts]);
 
   return (
