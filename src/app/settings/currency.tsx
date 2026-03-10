@@ -180,7 +180,7 @@ export default function CurrencySettingsScreen() {
       await updateBaseCurrency(newCurrency);
       setBaseCurrencyModalVisible(false);
       Alert.alert("Success", "Base currency updated successfully");
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "Failed to update base currency");
     }
   };
@@ -209,7 +209,7 @@ export default function CurrencySettingsScreen() {
       });
       setEditRateModalVisible(false);
       Alert.alert("Success", "Exchange rate updated successfully");
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "Failed to update exchange rate");
     }
   };

@@ -5,11 +5,7 @@ import {
   isSuccessResponse,
 } from "@react-native-google-signin/google-signin";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState, useCallback } from "react";
-
-GoogleSignin.configure({
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-});
+import React, { useState, useCallback } from "react";
 import {
   Alert,
   Image,
@@ -28,6 +24,10 @@ import { AppModal } from "../../components/ui/AppModal";
 import * as Sharing from "expo-sharing";
 import * as DocumentPicker from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
+
+GoogleSignin.configure({
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+});
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -175,7 +175,6 @@ export default function SettingsIndexScreen() {
   const { theme, themeMode, variantId } = useTheme();
   const {
     baseCurrency,
-    availableCurrencies,
     allTransactions,
     allAccounts,
     exchangeRates,
@@ -295,7 +294,7 @@ export default function SettingsIndexScreen() {
         transactions: parsed.transactions.length,
         accounts: parsed.accounts.length,
       });
-    } catch (e) {
+    } catch {
       Alert.alert(
         "Import Failed",
         "Could not read the backup file. Make sure it's a valid MyWallet JSON export.",
@@ -319,10 +318,6 @@ export default function SettingsIndexScreen() {
   const appVersion = Constants.expoConfig?.version ?? "1.0.0";
   const buildNumber = Constants.expoConfig?.ios?.buildNumber ?? "1";
   const isGooglePending = authMode === "pending-online";
-
-  const nonBaseCurrencies = availableCurrencies.filter(
-    (c) => c !== baseCurrency,
-  );
 
   const getThemeDisplayValue = () => {
     const modeLabel =
@@ -371,7 +366,7 @@ export default function SettingsIndexScreen() {
               </View>
               <View style={s.googleBannerText}>
                 <Text style={s.googleBannerTitle}>Sign in with Google</Text>
-                <Text style={s.googleBannerSub}>You're using local mode</Text>
+                <Text style={s.googleBannerSub}>You&apos;re using local mode</Text>
               </View>
             </View>
             <MaterialCommunityIcons

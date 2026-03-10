@@ -7,7 +7,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-const DEFAULT_BASE_CURRENCY = "DZD";
 import {
   Account,
   AccountWithBalance,
@@ -33,6 +32,8 @@ import { useAuth } from "./AuthContext";
 import { useLocale } from "./LocaleContext";
 import { DataConflictModal } from "../components/ui/DataConflictModal";
 import { convertToBase, toDateStr } from "../utils/currency";
+
+const DEFAULT_BASE_CURRENCY = "DZD";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Setup type
@@ -542,6 +543,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     };
   }, [
     authMode,
+    user,
     user?.id,
     loadCloudState,
     applyCloudState,
@@ -610,6 +612,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   }, [
     isLoading,
     authMode,
+    user,
     user?.id,
     hasCompleted,
     rawBase,
@@ -653,6 +656,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     };
   }, [
     authMode,
+    user,
     user?.id,
     hasCompleted,
     rawBase,
