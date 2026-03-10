@@ -127,7 +127,8 @@ function makeStyles(theme: Theme) {
       fontSize: 15,
       fontWeight: "600",
       color: theme.foreground.white,
-      marginBottom: 12,
+      marginTop: 25,
+      marginBottom: 0,
       paddingHorizontal: 24,
     },
     previewScrollContent: {
