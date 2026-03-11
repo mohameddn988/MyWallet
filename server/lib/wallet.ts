@@ -1,5 +1,5 @@
 import { Collection, WithId } from "mongodb";
-import { connectDB } from "../db";
+import { connectDB } from "./db";
 import { WalletDocument, WalletStatePayload } from "../models/Wallet";
 
 export const DEFAULT_BASE_CURRENCY = "DZD";
@@ -73,16 +73,10 @@ export async function saveWalletState(
   return updated;
 }
 
-export function toWalletStatePayload(
-  wallet: WalletDocument,
-): WalletStatePayload {
+export function toWalletStatePayload(wallet: WalletDocument): WalletStatePayload {
   const accounts = Array.isArray(wallet.accounts) ? wallet.accounts : [];
-  const transactions = Array.isArray(wallet.transactions)
-    ? wallet.transactions
-    : [];
-  const exchangeRates = Array.isArray(wallet.exchangeRates)
-    ? wallet.exchangeRates
-    : [];
+  const transactions = Array.isArray(wallet.transactions) ? wallet.transactions : [];
+  const exchangeRates = Array.isArray(wallet.exchangeRates) ? wallet.exchangeRates : [];
 
   // Backward-compatibility: if old records missed hasCompleted, infer it.
   const inferredCompleted =

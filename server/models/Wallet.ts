@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import { Account, ExchangeRate, Transaction } from "../../types/finance";
+import { Account, ExchangeRate, Transaction } from "../types/finance";
 
 export interface AppSettings {
   dateFormat?: string;
