@@ -1,21 +1,24 @@
+import { Router } from "express";
 import { SignJWT } from "jose";
-import { connectDB } from "../../../lib/db";
-import type { UserDocument } from "../../../lib/models/User";
-import { ensureWallet, toWalletStatePayload } from "../../../lib/server/wallet";
+import { connectDB } from "../../lib/db";
+import type { UserDocument } from "../../models/User";
+import { ensureWallet, toWalletStatePayload } from "../../lib/wallet";
+
+const router = Router();
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET ?? "dev-secret-change-in-production",
 );
 
 interface GoogleTokenInfo {
-  sub: string;          // Google user ID
+  sub: string;
   email: string;
   email_verified: string;
   name?: string;
   given_name?: string;
   family_name?: string;
   picture?: string;
-  aud: string;          // Should match your client ID
+  aud: string;
 }
 
 async function verifyGoogleIdToken(idToken: string): Promise<GoogleTokenInfo> {
@@ -35,27 +38,25 @@ async function verifyGoogleIdToken(idToken: string): Promise<GoogleTokenInfo> {
 /**
  * POST /api/auth/google
  *
- * Accepts a real Google ID token obtained on the client via expo-auth-session,
- * verifies it with Google's tokeninfo endpoint, upserts the user in MongoDB,
- * and returns a signed JWT for the app.
+ * Accepts a Google ID token from the client, verifies it with Google's
+ * tokeninfo endpoint, upserts the user in MongoDB, and returns a signed JWT.
  */
-export async function POST(request: Request) {
+router.post("/api/auth/google", async (req, res) => {
   try {
-    const body = (await request.json().catch(() => ({}))) as {
-      idToken?: string;
-    };
+    const body = req.body as { idToken?: string };
 
     if (!body.idToken) {
-      return Response.json({ error: "idToken is required" }, { status: 400 });
+      res.status(400).json({ error: "idToken is required" });
+      return;
     }
 
-    // ── Verify the Google ID token ─────────────────────────────────────
     let googleInfo: GoogleTokenInfo;
     try {
       googleInfo = await verifyGoogleIdToken(body.idToken);
     } catch (err) {
       console.error("[API /auth/google] Token verification failed:", err);
-      return Response.json({ error: "Invalid Google ID token" }, { status: 401 });
+      res.status(401).json({ error: "Invalid Google ID token" });
+      return;
     }
 
     const payload = {
@@ -70,7 +71,6 @@ export async function POST(request: Request) {
       provider: "google" as const,
     };
 
-    // ── Upsert user in MongoDB ─────────────────────────────────────────
     const db = await connectDB();
     const users = db.collection<UserDocument>("users");
     const timestamp = new Date();
@@ -87,10 +87,10 @@ export async function POST(request: Request) {
     );
 
     if (!user) {
-      return Response.json({ error: "Failed to create user" }, { status: 500 });
+      res.status(500).json({ error: "Failed to create user" });
+      return;
     }
 
-    // ── Sign JWT ───────────────────────────────────────────────────────
     const token = await new SignJWT({
       sub: user._id!.toString(),
       email: user.email,
@@ -104,7 +104,7 @@ export async function POST(request: Request) {
     const wallet = await ensureWallet(user._id!.toString());
     const walletState = toWalletStatePayload(wallet);
 
-    return Response.json({
+    res.json({
       token,
       hasCompleted: walletState.hasCompleted,
       user: {
@@ -118,7 +118,8 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     console.error("[API /auth/google]", err);
-    return Response.json({ error: "Internal server error" }, { status: 500 });
+    res.status(500).json({ error: "Internal server error" });
   }
-}
+});
 
+export default router;

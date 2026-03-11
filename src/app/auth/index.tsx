@@ -31,6 +31,7 @@ export default function AuthScreen() {
   const handleGoogle = async () => {
     try {
       await GoogleSignin.hasPlayServices();
+      await GoogleSignin.signOut(); // clear cached account to force account picker
       const response = await GoogleSignin.signIn();
       if (isSuccessResponse(response)) {
         const idToken = response.data.idToken;
