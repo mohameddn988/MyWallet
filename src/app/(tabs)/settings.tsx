@@ -20,6 +20,7 @@ import { useFinance } from "../../contexts/FinanceContext";
 import { useLocale } from "../../contexts/LocaleContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getCurrencySymbol } from "../../utils/currency";
+import { getApiBaseUrl } from "../../lib/apiUrl";
 import { AppModal } from "../../components/ui/AppModal";
 import * as Sharing from "expo-sharing";
 import * as DocumentPicker from "expo-document-picker";
@@ -335,6 +336,20 @@ export default function SettingsIndexScreen() {
     router.navigate("/auth" as any);
   };
 
+  const handleCheckHealth = async () => {
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/health`);
+      const data = await response.json();
+      if (response.ok) {
+        Alert.alert("Server Health", `Status: ${data.status}\nMongoDB: ${data.mongo}`);
+      } else {
+        Alert.alert("Server Health", `Error: ${data.error}`);
+      }
+    } catch (error) {
+      Alert.alert("Server Health", `Failed to check health: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  };
+
   return (
     <View style={s.container}>
       {/* Page header */}
@@ -366,7 +381,9 @@ export default function SettingsIndexScreen() {
               </View>
               <View style={s.googleBannerText}>
                 <Text style={s.googleBannerTitle}>Sign in with Google</Text>
-                <Text style={s.googleBannerSub}>You&apos;re using local mode</Text>
+                <Text style={s.googleBannerSub}>
+                  You&apos;re using local mode
+                </Text>
               </View>
             </View>
             <MaterialCommunityIcons
@@ -532,21 +549,26 @@ export default function SettingsIndexScreen() {
               color={theme.foreground.gray}
             />
           </Pressable>
+          <SettingRow
+            icon="server"
+            label="Check Server Health"
+            onPress={handleCheckHealth}
+            theme={theme}
+            isLast
+          />
         </SectionCard>
 
         {/* ── ACCOUNT ──────────────────────────────── */}
-        {authMode === "online" ? (
-          <SectionCard label="ACCOUNT" theme={theme}>
-            <SettingRow
-              icon="logout"
-              label="Sign Out"
-              onPress={handleSignOut}
-              isDanger
-              theme={theme}
-              isLast
-            />
-          </SectionCard>
-        ) : null}
+        <SectionCard label="ACCOUNT" theme={theme}>
+          <SettingRow
+            icon="logout"
+            label="Sign Out"
+            onPress={handleSignOut}
+            isDanger
+            theme={theme}
+            isLast
+          />
+        </SectionCard>
       </ScrollView>
 
       {/* ── EXPORT MODAL ─────────────────────────── */}
