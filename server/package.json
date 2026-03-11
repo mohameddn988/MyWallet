@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "bun --watch --env-file .env index.ts",
-    "start": "bun --env-file .env index.ts"
+    "start": "bun index.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",

@@ -6,9 +6,7 @@ import authGoogleRouter from "./routes/auth/google";
 import financeStateRouter from "./routes/finance/state";
 
 const app = express();
-const PORT = Number(
-  process.env.SERVER_PORT ?? process.env.EXPO_PUBLIC_API_PORT ?? 4000,
-);
+const PORT = Number(process.env.PORT ?? process.env.SERVER_PORT ?? 4000);
 
 app.use(cors());
 app.use(express.json());
