@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "mywallet",
+    "name": "MyWallet",
     "slug": "mywallet",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.mywallet",
+      "bundleIdentifier": "com.whale.mywallet",
       "infoPlist": {
         "UIStatusBarHidden": true,
         "UIViewControllerBasedStatusBarAppearance": false
@@ -26,7 +26,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.mywallet"
+      "package": "com.whale.mywallet"
     },
     "web": {
       "output": "static",

@@ -69,7 +69,6 @@ export function draftToAccount(draft: AccountDraft, index: number): Account {
     type: draft.type,
     currency: draft.currency,
     balance: Math.round(raw * 100),
-    isLiability: draft.type === "credit" || draft.type === "loan",
     isArchived: false,
     icon: TYPE_ICON[draft.type],
     color: TYPE_COLOR[draft.type],

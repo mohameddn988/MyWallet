@@ -48,7 +48,6 @@ export interface Account {
    * Negative for liabilities (credit cards, loans).
    */
   balance: number;
-  isLiability: boolean;
   isArchived: boolean;
   /** MaterialCommunityIcons icon name */
   icon: string;

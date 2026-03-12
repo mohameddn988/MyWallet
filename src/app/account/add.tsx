@@ -368,7 +368,6 @@ export default function AddAccountScreen() {
       type: accountType,
       currency,
       balance: balanceMinorUnits,
-      isLiability: accountType === "credit",
       isArchived: editAcc?.isArchived ?? false,
       icon,
       color,

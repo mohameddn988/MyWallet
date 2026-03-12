@@ -10,8 +10,6 @@ export interface AccountTypeMeta {
   /** MaterialCommunityIcons icon name */
   icon: string;
   defaultColor: string;
-  /** Whether this type normally carries a negative balance (credit, loan) */
-  isLiability: boolean;
   description: string;
   /** If true, only one account of this type (per loanDirection) is allowed */
   isSingleton?: boolean;
@@ -23,7 +21,6 @@ export const ACCOUNT_TYPE_META: AccountTypeMeta[] = [
     label: "Cash",
     icon: "cash",
     defaultColor: "#26A17B",
-    isLiability: false,
     description: "Physical cash on hand",
   },
   {
@@ -31,7 +28,6 @@ export const ACCOUNT_TYPE_META: AccountTypeMeta[] = [
     label: "Bank",
     icon: "bank",
     defaultColor: "#4A9FF1",
-    isLiability: false,
     description: "Checking or current account",
   },
   {
@@ -39,7 +35,6 @@ export const ACCOUNT_TYPE_META: AccountTypeMeta[] = [
     label: "Savings",
     icon: "piggy-bank-outline",
     defaultColor: "#C8F14A",
-    isLiability: false,
     description: "Savings or deposit account",
   },
   {
@@ -47,7 +42,6 @@ export const ACCOUNT_TYPE_META: AccountTypeMeta[] = [
     label: "Credit Card",
     icon: "credit-card-outline",
     defaultColor: "#F14A6E",
-    isLiability: true,
     description: "Credit card — balance is what you owe",
   },
   {
@@ -55,7 +49,6 @@ export const ACCOUNT_TYPE_META: AccountTypeMeta[] = [
     label: "Loan",
     icon: "hand-coin-outline",
     defaultColor: "#FF9500",
-    isLiability: false,
     description: "Track debts and receivables with per-person breakdown",
     isSingleton: true,
   },
@@ -64,7 +57,6 @@ export const ACCOUNT_TYPE_META: AccountTypeMeta[] = [
     label: "Charity",
     icon: "hand-heart-outline",
     defaultColor: "#A44AF1",
-    isLiability: false,
     description: "Neutral fund — tracked separately from your net worth",
   },
   {
@@ -72,7 +64,6 @@ export const ACCOUNT_TYPE_META: AccountTypeMeta[] = [
     label: "Crypto",
     icon: "currency-btc",
     defaultColor: "#F7931A",
-    isLiability: false,
     description: "Cryptocurrency wallet",
   },
   {
@@ -80,7 +71,6 @@ export const ACCOUNT_TYPE_META: AccountTypeMeta[] = [
     label: "Gold",
     icon: "gold",
     defaultColor: "#FFD700",
-    isLiability: false,
     description: "Physical gold or precious metals",
   },
   {
@@ -88,7 +78,6 @@ export const ACCOUNT_TYPE_META: AccountTypeMeta[] = [
     label: "Other",
     icon: "dots-horizontal-circle-outline",
     defaultColor: "#BFC3C7",
-    isLiability: false,
     description: "Other asset or wallet",
   },
 ];

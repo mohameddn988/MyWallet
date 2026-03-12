@@ -25,17 +25,15 @@ export default function AccountsList({
   const { theme } = useTheme();
   const styles = useMemo(() => makeStyles(theme), [theme]);
 
-  const liquidAccounts = accounts.filter(
-    (aw) => aw.account.type !== "loan" && aw.account.type !== "charity",
-  );
-  const specialAccounts = accounts.filter(
-    (aw) => aw.account.type === "loan" || aw.account.type === "charity",
-  );
+  const liquidAccounts = accounts
+    .filter((aw) => aw.account.type !== "loan" && aw.account.type !== "charity")
+    .sort((a, b) => b.balance - a.balance);
+  const specialAccounts = accounts
+    .filter((aw) => aw.account.type === "loan" || aw.account.type === "charity")
+    .sort((a, b) => b.balance - a.balance);
 
   const renderRow = (aw: AccountWithBalance, isLast: boolean) => {
     const { account, balance } = aw;
-    const isLiability = account.isLiability || account.type === "loan";
-    const balColor = isLiability ? "#F14A6E" : theme.foreground.white;
 
     return (
       <Pressable
@@ -61,7 +59,7 @@ export default function AccountsList({
           {account.name}
         </Text>
 
-        <Text style={[styles.balance, { color: balColor }]}>
+        <Text style={[styles.balance, { color: theme.foreground.white }]}>
           {formatAmount(balance, account.currency)}
         </Text>
 
