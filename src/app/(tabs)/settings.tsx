@@ -508,6 +508,18 @@ export default function SettingsIndexScreen() {
         </SectionCard>
 
         {/* ── ABOUT ────────────────────────────────── */}
+        <SectionCard label="APP" theme={theme}>
+          <SettingRow
+            icon="update"
+            label="Updates"
+            description="Check for new app versions"
+            badge={`v${appVersion}`}
+            onPress={() => router.navigate("/settings/updates" as any)}
+            theme={theme}
+            isLast
+          />
+        </SectionCard>
+
         <SectionCard label="ABOUT" theme={theme}>
           <Pressable
             style={({ pressed }) => [s.aboutRow, pressed && s.rowPressed]}
