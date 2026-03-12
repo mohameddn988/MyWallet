@@ -9,6 +9,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "../../data/categories";
@@ -106,9 +107,11 @@ export default function TransactionFilterSheet({
 }: TransactionFilterSheetProps) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const isCompactLayout = width <= 360;
   const styles = useMemo(
-    () => makeStyles(theme, insets.bottom),
-    [theme, insets.bottom],
+    () => makeStyles(theme, insets.bottom, isCompactLayout),
+    [theme, insets.bottom, isCompactLayout],
   );
 
   const sheetRef = useRef<BottomSheet>(null);
@@ -267,6 +270,7 @@ export default function TransactionFilterSheet({
                       <MaterialCommunityIcons
                         name={opt.icon as any}
                         size={15}
+                        style={styles.sortChipIcon}
                         color={
                           active ? theme.primary.main : theme.foreground.gray
                         }
@@ -305,6 +309,7 @@ export default function TransactionFilterSheet({
                   <MaterialCommunityIcons
                     name="calendar-start"
                     size={15}
+                    style={styles.dateBtnIcon}
                     color={
                       draft.dateFrom
                         ? theme.primary.main
@@ -327,6 +332,7 @@ export default function TransactionFilterSheet({
                 <MaterialCommunityIcons
                   name="arrow-right"
                   size={14}
+                  style={styles.dateArrowIcon}
                   color={theme.foreground.gray}
                 />
 
@@ -343,6 +349,7 @@ export default function TransactionFilterSheet({
                   <MaterialCommunityIcons
                     name="calendar-end"
                     size={15}
+                    style={styles.dateBtnIcon}
                     color={
                       draft.dateTo ? theme.primary.main : theme.foreground.gray
                     }
@@ -413,6 +420,7 @@ export default function TransactionFilterSheet({
                         <MaterialCommunityIcons
                           name={cat.icon as any}
                           size={14}
+                          style={styles.categoryChipIcon}
                           color={active ? cat.color : theme.foreground.gray}
                         />
                         <Text
@@ -457,6 +465,7 @@ export default function TransactionFilterSheet({
                         <MaterialCommunityIcons
                           name={cat.icon as any}
                           size={14}
+                          style={styles.categoryChipIcon}
                           color={active ? cat.color : theme.foreground.gray}
                         />
                         <Text
@@ -506,6 +515,7 @@ export default function TransactionFilterSheet({
                         <MaterialCommunityIcons
                           name={typeMeta.icon as any}
                           size={16}
+                          style={styles.accountChipIcon}
                           color={
                             active
                               ? typeMeta.defaultColor
@@ -593,7 +603,7 @@ function Section({
 // Styles
 // ─────────────────────────────────────────────────────────────────────────────
 
-function makeStyles(theme: Theme, bottomInset: number = 0) {
+function makeStyles(theme: Theme, bottomInset: number = 0, compact = false) {
   return StyleSheet.create({
     // Header
     header: {
@@ -636,7 +646,6 @@ function makeStyles(theme: Theme, bottomInset: number = 0) {
     sectionHeader: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 8,
       marginBottom: 12,
       minHeight: 24,
     },
@@ -657,6 +666,7 @@ function makeStyles(theme: Theme, bottomInset: number = 0) {
       borderRadius: 10,
       minWidth: 20,
       height: 20,
+      marginLeft: 8,
       alignItems: "center",
       justifyContent: "center",
       paddingHorizontal: 5,
@@ -678,20 +688,24 @@ function makeStyles(theme: Theme, bottomInset: number = 0) {
     sortGrid: {
       flexDirection: "row",
       flexWrap: "wrap",
-      gap: 8,
+      justifyContent: "space-between",
+      marginTop: -8,
     },
     sortChip: {
-      flex: 1,
-      minWidth: "48%",
+      width: compact ? "100%" : "48.5%",
+      maxWidth: compact ? "100%" : "48.5%",
       flexDirection: "row",
       alignItems: "center",
-      gap: 10,
+      marginTop: 8,
       paddingVertical: 13,
       paddingHorizontal: 14,
       borderRadius: 14,
       borderWidth: 1,
       borderColor: `${theme.foreground.gray}22`,
       backgroundColor: theme.background.darker,
+    },
+    sortChipIcon: {
+      marginRight: 10,
     },
     sortChipText: {
       fontSize: 13,
@@ -703,15 +717,13 @@ function makeStyles(theme: Theme, bottomInset: number = 0) {
     dateRow: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 8,
+      justifyContent: "space-between",
     },
     dateBtnFrom: {
       flex: 1,
-      maxWidth: "46%",
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      gap: 6,
       paddingVertical: 11,
       paddingHorizontal: 12,
       borderRadius: 12,
@@ -721,11 +733,9 @@ function makeStyles(theme: Theme, bottomInset: number = 0) {
     },
     dateBtnTo: {
       flex: 1,
-      maxWidth: "46%",
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      gap: 6,
       paddingVertical: 11,
       paddingHorizontal: 12,
       borderRadius: 12,
@@ -738,19 +748,28 @@ function makeStyles(theme: Theme, bottomInset: number = 0) {
       fontWeight: "500",
       color: theme.foreground.gray,
     },
+    dateBtnIcon: {
+      marginRight: 6,
+    },
+    dateArrowIcon: {
+      marginHorizontal: 8,
+    },
     clearDateBtn: {
+      marginLeft: 8,
       padding: 2,
     },
     // Category & account chips
     chipWrap: {
       flexDirection: "row",
       flexWrap: "wrap",
-      gap: 8,
+      marginHorizontal: -4,
+      marginTop: -8,
     },
     chip: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 5,
+      marginTop: 8,
+      marginHorizontal: 4,
       paddingVertical: 7,
       paddingHorizontal: 11,
       borderRadius: 20,
@@ -767,13 +786,15 @@ function makeStyles(theme: Theme, bottomInset: number = 0) {
     categoryChipWrap: {
       flexDirection: "row",
       flexWrap: "wrap",
-      gap: 8,
+      justifyContent: "space-between",
+      marginTop: -8,
     },
     categoryChip: {
-      flex: 1,
-      minWidth: "22%",
+      width: compact ? "32%" : "24%",
+      maxWidth: compact ? "32%" : "24%",
       alignItems: "center",
       justifyContent: "center",
+      marginTop: 8,
       paddingVertical: 9,
       paddingHorizontal: 8,
       borderRadius: 20,
@@ -781,16 +802,21 @@ function makeStyles(theme: Theme, bottomInset: number = 0) {
       borderColor: `${theme.foreground.gray}22`,
       backgroundColor: theme.background.darker,
     },
+    categoryChipIcon: {
+      marginBottom: 4,
+    },
     // Account chips — grid layout (4 per row)
     accountChipWrap: {
       flexDirection: "row",
       flexWrap: "wrap",
-      gap: 8,
+      justifyContent: "space-between",
+      marginTop: -8,
     },
     accountChip: {
-      flex: 1,
-      minWidth: "22%",
+      width: compact ? "32%" : "24%",
+      maxWidth: compact ? "32%" : "24%",
       alignItems: "center",
+      marginTop: 8,
       paddingVertical: 10,
       paddingHorizontal: 8,
       borderRadius: 12,
@@ -800,7 +826,9 @@ function makeStyles(theme: Theme, bottomInset: number = 0) {
     },
     accountChipContent: {
       alignItems: "center",
-      gap: 4,
+    },
+    accountChipIcon: {
+      marginBottom: 4,
     },
     accountChipText: {
       fontSize: 11,

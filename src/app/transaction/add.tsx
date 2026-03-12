@@ -989,10 +989,22 @@ export default function AddTransactionScreen() {
 
           {/* â”€â”€ Merchant â”€â”€ */}
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Merchant / Payee (Optional)</Text>
+            <Text style={styles.sectionLabel}>
+              {txType === "income"
+                ? "Payer / Source (Optional)"
+                : txType === "transfer"
+                  ? "Reference / Description (Optional)"
+                  : "Merchant / Payee (Optional)"}
+            </Text>
             <TextInput
               style={styles.input}
-              placeholder="Where did you spend?"
+              placeholder={
+                txType === "income"
+                  ? "Who paid you?"
+                  : txType === "transfer"
+                    ? "Transfer reference or notes"
+                    : "Where did you spend?"
+              }
               placeholderTextColor={theme.foreground.gray}
               value={merchant}
               onChangeText={setMerchant}
@@ -1005,7 +1017,13 @@ export default function AddTransactionScreen() {
             <Text style={styles.sectionLabel}>Note (Optional)</Text>
             <TextInput
               style={[styles.input, styles.noteInput]}
-              placeholder="What was this for?"
+              placeholder={
+                txType === "income"
+                  ? "Any details about the income?"
+                  : txType === "transfer"
+                    ? "Why did you transfer this?"
+                    : "What was this for?"
+              }
               placeholderTextColor={theme.foreground.gray}
               value={note}
               onChangeText={setNote}

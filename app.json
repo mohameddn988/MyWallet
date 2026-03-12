@@ -2,7 +2,7 @@
   "expo": {
     "name": "MyWallet",
     "slug": "mywallet",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/Logo.png",
     "scheme": "mywallet",
@@ -26,7 +26,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.whale.mywallet"
+      "package": "com.whale.mywallet",
+      "versionCode": 2
     },
     "web": {
       "output": "static",

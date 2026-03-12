@@ -708,14 +708,26 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
 
   function applyTx(accs: Account[], tx: Transaction, dir: 1 | -1): Account[] {
     return accs.map((acc) => {
-      if (tx.type === "expense" && acc.id === tx.accountId)
-        return { ...acc, balance: acc.balance - dir * tx.amount };
+      if (tx.type === "expense" && acc.id === tx.accountId) {
+        const newBalance = acc.balance - dir * tx.amount;
+        // Charity accounts cannot go below 0
+        return {
+          ...acc,
+          balance: acc.type === "charity" ? Math.max(0, newBalance) : newBalance,
+        };
+      }
       if (
         tx.type === "expense" &&
         tx.secondaryAccountId &&
         acc.id === tx.secondaryAccountId
-      )
-        return { ...acc, balance: acc.balance - dir * tx.amount };
+      ) {
+        const newBalance = acc.balance - dir * tx.amount;
+        // Charity accounts cannot go below 0
+        return {
+          ...acc,
+          balance: acc.type === "charity" ? Math.max(0, newBalance) : newBalance,
+        };
+      }
       if (tx.type === "income" && acc.id === tx.accountId)
         return { ...acc, balance: acc.balance + dir * tx.amount };
       if (
