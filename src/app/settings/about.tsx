@@ -1,10 +1,14 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Constants from "expo-constants";
+import { File, Paths } from "expo-file-system";
+import * as IntentLauncher from "expo-intent-launcher";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -130,6 +134,37 @@ export default function AboutScreen() {
       setError(message);
     } finally {
       setIsChecking(false);
+    }
+  }, []);
+
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownloadAndInstall = useCallback(async (url?: string) => {
+    const downloadUrl = url ?? DEFAULT_RELEASES_URL;
+
+    if (Platform.OS !== "android") {
+      await Linking.openURL(downloadUrl);
+      return;
+    }
+
+    try {
+      setIsDownloading(true);
+
+      const destination = new File(Paths.cache, "MyWallet-update.apk");
+      const apkFile = await File.downloadFileAsync(downloadUrl, destination, {
+        idempotent: true,
+      });
+
+      await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
+        data: apkFile.uri,
+        type: "application/vnd.android.package-archive",
+        flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
+      });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Download failed";
+      Alert.alert("Update failed", msg);
+    } finally {
+      setIsDownloading(false);
     }
   }, []);
 
@@ -261,14 +296,21 @@ export default function AboutScreen() {
                 styles.actionBtn,
                 pressed && styles.pressed,
               ]}
-              onPress={() => openUrl(manifest?.downloadUrl)}
+              onPress={() => handleDownloadAndInstall(manifest?.downloadUrl)}
+              disabled={isDownloading}
             >
-              <MaterialCommunityIcons
-                name="download"
-                size={18}
-                color={theme.foreground.white}
-              />
-              <Text style={styles.actionText}>Download latest build</Text>
+              {isDownloading ? (
+                <ActivityIndicator size="small" color={theme.foreground.white} />
+              ) : (
+                <MaterialCommunityIcons
+                  name="download"
+                  size={18}
+                  color={theme.foreground.white}
+                />
+              )}
+              <Text style={styles.actionText}>
+                {isDownloading ? "Downloading..." : "Download & install update"}
+              </Text>
             </Pressable>
           ) : null}
 
