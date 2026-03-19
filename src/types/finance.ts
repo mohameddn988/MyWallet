@@ -56,6 +56,8 @@ export interface Account {
   accountRef?: string;
   /** Optional free-form note */
   note?: string;
+  /** Whether this account is pinned to the home screen */
+  isPinned?: boolean;
   /** Sub-accounts or breakdown items shown inside this account card */
   subAccounts?: SubAccount[];
   /**

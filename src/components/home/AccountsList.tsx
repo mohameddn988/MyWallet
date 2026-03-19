@@ -27,10 +27,10 @@ export default function AccountsList({
 
   const liquidAccounts = accounts
     .filter((aw) => aw.account.type !== "loan" && aw.account.type !== "charity")
-    .sort((a, b) => b.balance - a.balance);
+    .sort((a, b) => Math.abs(b.balanceInBase) - Math.abs(a.balanceInBase));
   const specialAccounts = accounts
     .filter((aw) => aw.account.type === "loan" || aw.account.type === "charity")
-    .sort((a, b) => b.balance - a.balance);
+    .sort((a, b) => Math.abs(b.balanceInBase) - Math.abs(a.balanceInBase));
 
   const renderRow = (aw: AccountWithBalance, isLast: boolean) => {
     const { account, balance } = aw;

@@ -6,13 +6,18 @@ import { AppModal } from "../../components/ui/AppModal";
 import { Theme } from "../../constants/themes";
 import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
-import { formatAmount, formatDateLabel } from "../../utils/currency";
+import {
+  convertFromBase,
+  convertToBase,
+  formatAmount,
+  formatDateLabel,
+} from "../../utils/currency";
 
 export default function TransactionDetailScreen() {
   const { theme } = useTheme();
   const styles = makeStyles(theme);
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { allTransactions, accounts, deleteTransaction } = useFinance();
+  const { allTransactions, accounts, deleteTransaction, baseCurrency, exchangeRates } = useFinance();
 
   const [busy, setBusy] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -69,6 +74,18 @@ export default function TransactionDetailScreen() {
     ? formatAmount(tx.amount, tx.currency)
     : (isIncome ? "+" : "−") + formatAmount(tx.amount, tx.currency);
 
+  // For cross-currency transfers, compute the converted amount
+  const toCurrency = toAccount?.account.currency;
+  const isCrossCurrency = isTransfer && toCurrency && toCurrency !== tx.currency;
+  const convertedAmountStr = isCrossCurrency
+    ? (() => {
+        const rateMap = Object.fromEntries(exchangeRates.map((r) => [r.from, r.rate]));
+        const inBase = convertToBase(tx.amount, tx.currency, baseCurrency, rateMap);
+        const converted = convertFromBase(inBase, toCurrency, baseCurrency, rateMap);
+        return formatAmount(converted, toCurrency);
+      })()
+    : null;
+
   return (
     <View style={styles.root}>
       {/* ── Header ── */}
@@ -110,6 +127,11 @@ export default function TransactionDetailScreen() {
             />
           </View>
           <Text style={[styles.amount, { color: typeColor }]}>{amountStr}</Text>
+          {convertedAmountStr && (
+            <Text style={[styles.convertedAmount, { color: typeColor }]}>
+              → {convertedAmountStr}
+            </Text>
+          )}
           <Text style={styles.categoryName}>
             {tx.categoryName ?? (isTransfer ? "Transfer" : "Uncategorized")}
           </Text>
@@ -398,6 +420,12 @@ function makeStyles(theme: Theme) {
     amount: {
       fontSize: 38,
       fontWeight: "800",
+    },
+    convertedAmount: {
+      fontSize: 20,
+      fontWeight: "700",
+      opacity: 0.8,
+      marginTop: 2,
     },
     categoryName: {
       fontSize: 16,

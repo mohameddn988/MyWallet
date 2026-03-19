@@ -58,7 +58,6 @@ export default function HomeScreen() {
     netWorth,
     quickStats,
     recentTransactions,
-    allTransactions,
     isRefreshing,
     refresh,
     displayCurrency,
@@ -176,30 +175,17 @@ export default function HomeScreen() {
   // Get the latest 4 transactions
   const latestTransactions = recentTransactions.slice(0, 4);
 
-  // Get the 4 most used accounts (accounts with no transactions are still included)
-  const mostUsedAccounts = useMemo(() => {
-    const accountUsage = new Map<string, number>();
-
-    // Count how many times each account appears in transactions
-    allTransactions.forEach((tx) => {
-      accountUsage.set(tx.accountId, (accountUsage.get(tx.accountId) ?? 0) + 1);
-      if (tx.toAccountId) {
-        accountUsage.set(
-          tx.toAccountId,
-          (accountUsage.get(tx.toAccountId) ?? 0) + 1,
-        );
-      }
-    });
-
-    // Sort all accounts: most-used first, then unused accounts in original order
+  // Get the top 4 accounts: pinned accounts first, then by highest balance
+  const topAccounts = useMemo(() => {
     return [...accounts]
       .sort((a, b) => {
-        const usageA = accountUsage.get(a.account.id) ?? 0;
-        const usageB = accountUsage.get(b.account.id) ?? 0;
-        return usageB - usageA;
+        const pinnedA = a.account.isPinned ? 1 : 0;
+        const pinnedB = b.account.isPinned ? 1 : 0;
+        if (pinnedA !== pinnedB) return pinnedB - pinnedA;
+        return Math.abs(b.balanceInBase) - Math.abs(a.balanceInBase);
       })
       .slice(0, 4);
-  }, [allTransactions, accounts]);
+  }, [accounts]);
 
   return (
     <View style={styles.root}>
@@ -264,7 +250,7 @@ export default function HomeScreen() {
 
         {/* ── Account balances ── */}
         <AccountsList
-          accounts={mostUsedAccounts}
+          accounts={topAccounts}
           netWorth={netWorth}
           baseCurrency={baseCurrency}
           exchangeRates={exchangeRates}

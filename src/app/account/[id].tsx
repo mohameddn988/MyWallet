@@ -17,12 +17,14 @@ import { getAccountTypeMeta, LOAN_DIRECTIONS } from "../../data/accounts";
 import { AppModal } from "../../components/ui/AppModal";
 import { Transaction } from "../../types/finance";
 import {
+  convertFromBase,
   convertToBase,
   formatAmount,
   formatAmountSigned,
   getCurrencySymbol,
   parseDate,
 } from "../../utils/currency";
+import { ExchangeRate } from "../../types/finance";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mini sparkline (last 8 weeks net flow)
@@ -106,10 +108,16 @@ function buildWeeklyFlow(
 function TxRow({
   tx,
   accountId,
+  accountCurrency,
+  baseCurrency,
+  exchangeRates,
   theme,
 }: {
   tx: Transaction;
   accountId: string;
+  accountCurrency: string;
+  baseCurrency: string;
+  exchangeRates: ExchangeRate[];
   theme: Theme;
 }) {
   const isCredit =
@@ -121,6 +129,16 @@ function TxRow({
       : tx.type === "income"
         ? theme.primary.main
         : "#F14A6E";
+
+  // For transfers, show the amount in this account's currency
+  let displayAmount = tx.amount;
+  let displayCurrency = tx.currency;
+  if (tx.type === "transfer" && tx.currency !== accountCurrency) {
+    const rateMap = Object.fromEntries(exchangeRates.map((r) => [r.from, r.rate]));
+    const inBase = convertToBase(tx.amount, tx.currency, baseCurrency, rateMap);
+    displayAmount = convertFromBase(inBase, accountCurrency, baseCurrency, rateMap);
+    displayCurrency = accountCurrency;
+  }
 
   return (
     <Pressable
@@ -184,7 +202,7 @@ function TxRow({
         }}
       >
         {isCredit ? "+" : "-"}
-        {formatAmount(tx.amount, tx.currency)}
+        {formatAmount(displayAmount, displayCurrency)}
       </Text>
     </Pressable>
   );
@@ -830,7 +848,14 @@ export default function AccountDetailScreen() {
           </View>
         )}
         renderItem={({ item }) => (
-          <TxRow tx={item} accountId={id} theme={theme} />
+          <TxRow
+            tx={item}
+            accountId={id}
+            accountCurrency={account?.currency ?? baseCurrency}
+            baseCurrency={baseCurrency}
+            exchangeRates={exchangeRates}
+            theme={theme}
+          />
         )}
         ListEmptyComponent={
           <View style={styles.emptyState}>

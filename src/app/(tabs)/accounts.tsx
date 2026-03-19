@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { router, useNavigation } from "expo-router";
 import React, {
   useCallback,
@@ -40,19 +41,30 @@ function AccountCard({
   baseCurrency,
   showBase,
   theme,
+  onLongPress,
 }: {
   account: Account;
   balanceInBase: number;
   baseCurrency: string;
   showBase: boolean;
   theme: Theme;
+  onLongPress?: () => void;
 }) {
   const s = makeStyles(theme);
 
   return (
     <Pressable
-      style={({ pressed }) => [s.accountCard, pressed && { opacity: 0.78 }]}
+      style={({ pressed }) => [
+        s.accountCard,
+        {
+          borderWidth: 1,
+          borderColor: account.isPinned ? theme.primary.main : "transparent",
+        },
+        pressed && { opacity: 0.78 },
+      ]}
       onPress={() => router.navigate(`/account/${account.id}` as any)}
+      onLongPress={onLongPress}
+      delayLongPress={500}
     >
       {/* Icon */}
       <View style={[s.accountIcon, { backgroundColor: `${account.color}18` }]}>
@@ -128,6 +140,7 @@ function GroupSection({
   theme,
   expanded,
   onToggle,
+  onTogglePin,
 }: {
   type: AccountType;
   accounts: Account[];
@@ -138,6 +151,7 @@ function GroupSection({
   theme: Theme;
   expanded: boolean;
   onToggle: () => void;
+  onTogglePin: (account: Account) => void;
 }) {
   const meta = getAccountTypeMeta(type);
   const rotateAnim = useRef(new Animated.Value(expanded ? 1 : 0)).current;
@@ -221,6 +235,7 @@ function GroupSection({
                 baseCurrency={baseCurrency}
                 showBase={showBase}
                 theme={theme}
+                onLongPress={() => onTogglePin(acc)}
               />
             );
           })}
@@ -261,6 +276,7 @@ export default function AccountsTabScreen() {
     refresh,
     updateExchangeRate,
     updateBaseCurrency,
+    updateAccount,
   } = useFinance();
 
   const [showArchived, setShowArchived] = useState(false);
@@ -314,6 +330,14 @@ export default function AccountsTabScreen() {
     setRateEditorVisible(false);
     setEditingCurrency(null);
   }, [editingCurrency, editingRateStr, handleSaveRate]);
+
+  const togglePin = useCallback(
+    async (account: Account) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await updateAccount({ ...account, isPinned: !account.isPinned });
+    },
+    [updateAccount],
+  );
 
   // Keep displayCurrency in sync when baseCurrency changes externally
   useEffect(() => {
@@ -534,6 +558,7 @@ export default function AccountsTabScreen() {
                   }
                   setExpandedTypes(newExpanded);
                 }}
+                onTogglePin={togglePin}
               />
             ))}
           </View>

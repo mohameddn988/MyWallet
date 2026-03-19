@@ -31,7 +31,7 @@ import {
 import { useAuth } from "./AuthContext";
 import { useLocale } from "./LocaleContext";
 import { DataConflictModal } from "../components/ui/DataConflictModal";
-import { convertToBase, toDateStr } from "../utils/currency";
+import { convertFromBase, convertToBase, toDateStr } from "../utils/currency";
 
 const DEFAULT_BASE_CURRENCY = "DZD";
 
@@ -739,8 +739,13 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       if (tx.type === "transfer") {
         if (acc.id === tx.accountId)
           return { ...acc, balance: acc.balance - dir * tx.amount };
-        if (acc.id === tx.toAccountId)
-          return { ...acc, balance: acc.balance + dir * tx.amount };
+        if (acc.id === tx.toAccountId) {
+          const rateMap = buildRateMap(rawRates);
+          // Convert: source currency → base → destination currency
+          const inBase = convertToBase(tx.amount, tx.currency, rawBase, rateMap);
+          const converted = convertFromBase(inBase, acc.currency, rawBase, rateMap);
+          return { ...acc, balance: acc.balance + dir * converted };
+        }
       }
       return acc;
     });
