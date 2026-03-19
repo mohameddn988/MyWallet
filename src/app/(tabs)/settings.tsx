@@ -19,7 +19,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useFinance } from "../../contexts/FinanceContext";
 import { useLocale } from "../../contexts/LocaleContext";
 import { useTheme } from "../../contexts/ThemeContext";
-import { getApiBaseUrl } from "../../lib/apiUrl";
+
 import { AppModal } from "../../components/ui/AppModal";
 import * as Sharing from "expo-sharing";
 import * as DocumentPicker from "expo-document-picker";

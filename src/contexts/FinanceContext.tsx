@@ -335,6 +335,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const [rawAccounts, setRawAccounts] = useState<Account[]>([]);
   const [rawRates, setRawRates] = useState<ExchangeRate[]>([]);
   const [rawTransactions, setRawTransactions] = useState<Transaction[]>([]);
+  const rawTransactionsRef = useRef<Transaction[]>(rawTransactions);
+  rawTransactionsRef.current = rawTransactions;
   const [lastDeletedTransaction, setLastDeletedTransaction] =
     useState<Transaction | null>(null);
   const [eggZeroMode, setEggZeroMode] = useState(false);
@@ -605,6 +607,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     applyCloudState,
     syncCloudState,
     commitPendingGoogleSignIn,
+    setMonthLength,
+    setMonthStartDay,
     setDateFormat,
     setNumberFormat,
   ]);
@@ -877,13 +881,14 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       setRawTransactions((prev) => [...prev, tx]);
       return tx;
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 
   const updateTransaction = useCallback(
     async (tx: Transaction): Promise<void> => {
+      const old = rawTransactionsRef.current.find((t) => t.id === tx.id);
       setRawAccounts((prevAccs) => {
-        const old = rawTransactions.find((t) => t.id === tx.id);
         let updated = prevAccs;
         if (old) {
           updated = applyTx(updated, old, -1);
@@ -895,12 +900,13 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       });
       setRawTransactions((prev) => prev.map((t) => (t.id === tx.id ? tx : t)));
     },
-    [rawTransactions],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
   );
 
   const deleteTransaction = useCallback(
     async (id: string): Promise<void> => {
-      const tx = rawTransactions.find((t) => t.id === id);
+      const tx = rawTransactionsRef.current.find((t) => t.id === id);
       if (tx) {
         setLastDeletedTransaction(tx);
         setRawAccounts((prev) =>
@@ -909,7 +915,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       }
       setRawTransactions((prev) => prev.filter((t) => t.id !== id));
     },
-    [rawTransactions],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
   );
 
   const restoreLastDeleted = useCallback(async (): Promise<void> => {
@@ -918,6 +925,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     setRawAccounts((prev) => applySubAccountTx(applyTx(prev, tx, 1), tx, 1));
     setRawTransactions((prev) => [...prev, tx]);
     setLastDeletedTransaction(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastDeletedTransaction]);
 
   const clearLastDeleted = useCallback(() => {
@@ -942,6 +950,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       setRawTransactions((prev) => [...prev, dup]);
       return dup;
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [rawTransactions],
   );
 
@@ -994,6 +1003,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         (t) => t.accountId !== id && t.toAccountId !== id,
       );
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Sub-account CRUD (for loan person entries) ──

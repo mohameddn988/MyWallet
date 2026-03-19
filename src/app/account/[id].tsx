@@ -15,7 +15,7 @@ import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getAccountTypeMeta, LOAN_DIRECTIONS } from "../../data/accounts";
 import { AppModal } from "../../components/ui/AppModal";
-import { Transaction } from "../../types/finance";
+import { Transaction, ExchangeRate } from "../../types/finance";
 import { useLocale } from "../../contexts/LocaleContext";
 import {
   convertFromBase,
@@ -25,7 +25,6 @@ import {
   toMinorUnits,
   fromMinorUnits,
 } from "../../utils/currency";
-import { ExchangeRate } from "../../types/finance";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mini sparkline (last 8 weeks net flow)
@@ -81,7 +80,12 @@ function buildWeeklyFlow(
       tx.toAccountId !== accountId
     )
       continue;
-    if (tx.type !== "transfer" && tx.accountId !== accountId) continue;
+    if (
+      tx.type !== "transfer" &&
+      tx.accountId !== accountId &&
+      tx.secondaryAccountId !== accountId
+    )
+      continue;
 
     const d = parseDate(tx.date);
     const diffMs = now.getTime() - d.getTime();
@@ -92,7 +96,11 @@ function buildWeeklyFlow(
 
     if (tx.type === "income" && tx.accountId === accountId) {
       weeks[weekIdx] += tx.amount;
+    } else if (tx.type === "income" && tx.secondaryAccountId === accountId) {
+      weeks[weekIdx] += tx.amount;
     } else if (tx.type === "expense" && tx.accountId === accountId) {
+      weeks[weekIdx] -= tx.amount;
+    } else if (tx.type === "expense" && tx.secondaryAccountId === accountId) {
       weeks[weekIdx] -= tx.amount;
     } else if (tx.type === "transfer") {
       if (tx.accountId === accountId) weeks[weekIdx] -= tx.amount;
@@ -255,7 +263,7 @@ export default function AccountDetailScreen() {
   const accountTxs = useMemo(
     () =>
       allTransactions
-        .filter((t) => t.accountId === id || t.toAccountId === id)
+        .filter((t) => t.accountId === id || t.toAccountId === id || t.secondaryAccountId === id)
         .sort((a, b) => b.date.localeCompare(a.date)),
     [allTransactions, id],
   );
@@ -275,17 +283,22 @@ export default function AccountDetailScreen() {
   const stats = useMemo(() => {
     let totalIn = 0;
     let totalOut = 0;
+    // For "People Owe Me" loans, income = debt collected (out), expense = lending (in)
+    const isOwedLoan = account?.type === "loan" && account.loanDirection === "owed";
     for (const tx of accountTxs) {
-      if (tx.type === "income" && tx.accountId === id) totalIn += tx.amount;
-      else if (tx.type === "expense" && tx.accountId === id)
-        totalOut += tx.amount;
-      else if (tx.type === "transfer") {
+      if (tx.type === "income" && (tx.accountId === id || tx.secondaryAccountId === id)) {
+        if (isOwedLoan && tx.accountId === id) totalOut += tx.amount;
+        else totalIn += tx.amount;
+      } else if (tx.type === "expense" && (tx.accountId === id || tx.secondaryAccountId === id)) {
+        if (isOwedLoan && tx.accountId === id) totalIn += tx.amount;
+        else totalOut += tx.amount;
+      } else if (tx.type === "transfer") {
         if (tx.toAccountId === id) totalIn += tx.amount;
         else if (tx.accountId === id) totalOut += tx.amount;
       }
     }
     return { totalIn, totalOut };
-  }, [accountTxs, id]);
+  }, [accountTxs, id, account]);
 
   // Weekly flow for sparkline
   const weeklyFlow = useMemo(

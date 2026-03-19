@@ -169,6 +169,10 @@ const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
 // Provider
 // ─────────────────────────────────────────────────────────────────────────────
 
+const DAY_NAMES: FirstDayOfWeek[] = [
+  "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday",
+];
+
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
   const [dateFormat, setDateFormatState] = useState<DateFormatId>("DD/MM/YYYY");
   const [numberFormat, setNumberFormatState] =
@@ -177,9 +181,6 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   const [monthStartDay, setMonthStartDayState] = useState(1);
 
   // Compute firstDayOfWeek from monthStartDay
-  const DAY_NAMES: FirstDayOfWeek[] = [
-    "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday",
-  ];
   const firstDayOfWeek = useMemo(() => {
     const now = new Date();
     const clamp = (y: number, m: number, day: number) => {

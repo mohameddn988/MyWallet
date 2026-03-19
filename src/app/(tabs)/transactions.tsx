@@ -103,7 +103,6 @@ const FILTER_CONFIG: {
 
 export default function TransactionsTabScreen() {
   const { theme } = useTheme();
-  const { formatAmount, formatDateLabel } = useLocale();
   const styles = useMemo(() => makeStyles(theme), [theme]);
   const searchParams = useLocalSearchParams<{ filter?: string }>();
   const { allTransactions, isRefreshing, refresh, allAccounts, baseCurrency, exchangeRates } = useFinance();

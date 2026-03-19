@@ -442,7 +442,6 @@ export default function AddTransactionScreen() {
     }
   }, [
     canSave,
-    saving,
     isEdit,
     editTx,
     txType,
