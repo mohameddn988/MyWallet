@@ -58,6 +58,13 @@ export const EXPENSE_CATEGORIES: Category[] = [
     type: "expense",
   },
   {
+    id: "cat_loan_exp",
+    name: "Loan",
+    icon: "handshake-outline",
+    color: "#F1C44A",
+    type: "expense",
+  },
+  {
     id: "cat_entertainment",
     name: "Entertainment",
     icon: "gamepad-variant-outline",
@@ -240,6 +247,13 @@ export const INCOME_CATEGORIES: Category[] = [
     name: "Bonus",
     icon: "star-circle-outline",
     color: "#FF9500",
+    type: "income",
+  },
+  {
+    id: "cat_loan_inc",
+    name: "Loan",
+    icon: "handshake-outline",
+    color: "#F1C44A",
     type: "income",
   },
   {

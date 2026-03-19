@@ -36,9 +36,9 @@ import {
   toDateStr,
 } from "../../utils/currency";
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 // Helpers
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 /** Currencies that don't use decimal sub-units */
 const NO_CENTS_CURRENCIES = ["DZD", "MAD", "JPY", "KRW", "VND"];
@@ -91,9 +91,9 @@ function shiftDate(dateStr: string, days: number): string {
   return toDateStr(d);
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 // Toast
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 interface ToastState {
   visible: boolean;
@@ -140,9 +140,9 @@ function useToast() {
   return { toast, show, translateY };
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 // Main Screen
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 interface TouchedFields {
   amount: boolean;
   account: boolean;
@@ -171,10 +171,10 @@ export default function AddTransactionScreen() {
   const isEdit = Boolean(params.editId);
   const { toast, show: showToast, translateY: toastY } = useToast();
 
-  const { accounts, allTransactions, addTransaction, updateTransaction } =
+  const { accounts, allAccounts, allTransactions, addTransaction, updateTransaction, addAccount, baseCurrency } =
     useFinance();
 
-  // â”€â”€ Edit target â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â"€â"€ Edit target â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
   const editTx = useMemo(
     () =>
       params.editId
@@ -183,7 +183,7 @@ export default function AddTransactionScreen() {
     [params.editId, allTransactions],
   );
 
-  // â”€â”€ Form state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â"€â"€ Form state â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
   const [txType, setTxType] = useState<TransactionType>(
     (editTx?.type ?? params.type ?? "expense") as TransactionType,
   );
@@ -240,7 +240,7 @@ export default function AddTransactionScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editTx?.id]);
 
-  // â”€â”€ Derived â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â"€â"€ Derived â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
   const selectedAccount = accounts.find((a) => a.account.id === accountId);
   const currency = selectedAccount?.account.currency ?? "DZD";
   const noCents = isNoCentsCurrency(currency);
@@ -252,12 +252,55 @@ export default function AddTransactionScreen() {
     (c) => c.id === categoryId,
   );
 
+  // Loan category auto-setup
+  const isLoanExpense = txType === "expense" && categoryId === "cat_loan_exp";
+  const isLoanIncome = txType === "income" && categoryId === "cat_loan_inc";
+  const isLoanCategory = isLoanExpense || isLoanIncome;
+
+  // Expense Loan category = lending money out -> "People Owe Me" (owed)
+  // Income Loan category = paying back debt -> "I Owe People" (owe)
+  const owedLoanAccount = useMemo(
+    () => allAccounts.find((a) => a.type === "loan" && a.loanDirection === "owed"),
+    [allAccounts],
+  );
+  const oweLoanAccount = useMemo(
+    () => allAccounts.find((a) => a.type === "loan" && a.loanDirection === "owe"),
+    [allAccounts],
+  );
+  const targetLoanAccount = isLoanExpense ? owedLoanAccount : oweLoanAccount;
+  const targetLoanDirection = isLoanExpense ? "owed" : "owe";
+  const targetLoanName = isLoanExpense ? "People Owe Me" : "I Owe People";
+
+  useEffect(() => {
+    if (!isLoanCategory) return;
+    (async () => {
+      let loanAcc = targetLoanAccount;
+      if (!loanAcc) {
+        loanAcc = await addAccount({
+          name: targetLoanName,
+          type: "loan",
+          loanDirection: targetLoanDirection,
+          currency: baseCurrency,
+          balance: 0,
+          icon: "handshake-outline",
+          color: "#F1C44A",
+          isArchived: false,
+        });
+      }
+      if (accountId !== loanAcc.id) setAccountId(loanAcc.id);
+    })();
+  }, [isLoanCategory, targetLoanAccount, targetLoanDirection, targetLoanName, addAccount, baseCurrency, accountId]);
+
   // Loan account + person picker
   const isLoanAccount =
-    selectedAccount?.account.type === "loan" && txType !== "transfer";
-  const loanSubAccounts = isLoanAccount
-    ? (selectedAccount?.account.subAccounts ?? [])
-    : [];
+    (selectedAccount?.account.type === "loan" && txType !== "transfer") ||
+    isLoanCategory;
+  const loanAccountForPicker = isLoanCategory
+    ? targetLoanAccount
+    : selectedAccount?.account.type === "loan"
+      ? selectedAccount.account
+      : undefined;
+  const loanSubAccounts = loanAccountForPicker?.subAccounts ?? [];
 
   // Secondary account picker (charity expense = paid from, debt expense = paid from, loan income = deposit to)
   const needsSecondaryAccount =
@@ -275,8 +318,8 @@ export default function AddTransactionScreen() {
       return !(acc.type === "loan" && acc.loanDirection === "owed");
     }
     if (txType === "income") {
-      // Exclude only charity from income (debt + loan accounts allowed)
-      return acc.type !== "charity";
+      // Exclude charity and "I Owe People" (handled by Loan category)
+      return acc.type !== "charity" && !(acc.type === "loan" && acc.loanDirection === "owe");
     }
     if (txType === "transfer") {
       // Exclude all loan and charity accounts from transfer
@@ -290,7 +333,7 @@ export default function AddTransactionScreen() {
   const liveFormatted =
     amountMinorUnits > 0 ? formatLiveAmount(amountRaw, currency, formatAmount) : null;
 
-  // â”€â”€ Validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â"€â"€ Validation â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
   const errors = {
     amount:
       !amountRaw || isNaN(amountNum) || amountNum <= 0
@@ -313,7 +356,7 @@ export default function AddTransactionScreen() {
   const canSave =
     !errors.amount && !errors.account && !errors.toAccount && !errors.category && !errors.noAccounts;
 
-  // â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â"€â"€ Handlers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
   const handleAmountChange = (raw: string) => {
     setAmountRaw(sanitizeAmount(raw, noCents));
   };
@@ -394,7 +437,7 @@ export default function AddTransactionScreen() {
     showToast,
   ]);
 
-  // â”€â”€ Type color â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â"€â"€ Type color â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
   const typeColor =
     txType === "income"
       ? theme.primary.main
@@ -402,7 +445,7 @@ export default function AddTransactionScreen() {
         ? "#4A9FF1"
         : "#F14A6E";
 
-  // â”€â”€ Time formatting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â"€â"€ Time formatting â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
   const timeLabel = `${String(timeHour).padStart(2, "0")}:${String(timeMin).padStart(2, "0")}`;
 
   return (
@@ -412,7 +455,7 @@ export default function AddTransactionScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
-        {/* â”€â”€ Header â”€â”€ */}
+        {/* â"€â"€ Header â"€â"€ */}
         <View style={styles.header}>
           <Pressable
             style={({ pressed }) => [
@@ -450,7 +493,7 @@ export default function AddTransactionScreen() {
           </Pressable>
         </View>
 
-        {/* â”€â”€ Type tabs â”€â”€ */}
+        {/* â"€â"€ Type tabs â"€â"€ */}
         <View style={styles.typeRow}>
           {(["expense", "income", "transfer"] as TransactionType[]).map((t) => {
             const tColor =
@@ -510,7 +553,7 @@ export default function AddTransactionScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* â”€â”€ Amount input â”€â”€ */}
+          {/* â"€â"€ Amount input â"€â"€ */}
           <Pressable
             style={styles.amountSection}
             onPress={() => amountRef.current?.focus()}
@@ -544,7 +587,7 @@ export default function AddTransactionScreen() {
             <Text style={styles.amountHint}>
               {noCents
                 ? `Stored as whole units (${currency})`
-                : `Stored as minor units â€” e.g. 12.50 = 1250 cents`}
+                : `Stored as minor units â€" e.g. 12.50 = 1250 cents`}
             </Text>
           </View>
 
@@ -555,8 +598,8 @@ export default function AddTransactionScreen() {
             </View>
           )}
 
-          {/* â”€â”€ Account picker â”€â”€ */}
-          <View style={styles.section}>
+          {/* Account picker (hidden when loan category auto-assigns) */}
+          {!isLoanCategory && (<View style={styles.section}>
             <Text style={styles.sectionLabel}>
               {txType === "transfer" ? "From Account" : "Account"}
             </Text>
@@ -611,14 +654,14 @@ export default function AddTransactionScreen() {
             {touched.account && errors.account && (
               <Text style={styles.errorText}>{errors.account}</Text>
             )}
-          </View>
-          {/* Person picker (loan accounts only) */}
-          {isLoanAccount && (
+          </View>)}
+          {/* Person picker moved below categories */}
+          {isLoanAccount && !isLoanCategory && (
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>
-                {selectedAccount?.account.loanDirection === "owe"
-                  ? "Who do you owe?"
-                  : "Who owes you?"}
+                {(loanAccountForPicker?.loanDirection ?? "owe") === "owe"
+                  ? "People I owe"
+                  : "People who owe me"}
               </Text>
               <ScrollView
                 horizontal
@@ -627,14 +670,15 @@ export default function AddTransactionScreen() {
               >
                 {loanSubAccounts.map((sub) => {
                   const active = subAccountName === sub.name;
+                  const acColor = loanAccountForPicker?.color ?? theme.primary.main;
                   return (
                     <Pressable
                       key={sub.name}
                       style={[
                         styles.accountChip,
                         active && {
-                          backgroundColor: `${selectedAccount!.account.color}22`,
-                          borderColor: selectedAccount!.account.color,
+                          backgroundColor: `${acColor}22`,
+                          borderColor: acColor,
                         },
                       ]}
                       onPress={() => {
@@ -645,17 +689,13 @@ export default function AddTransactionScreen() {
                       <MaterialCommunityIcons
                         name="account-outline"
                         size={14}
-                        color={
-                          active
-                            ? selectedAccount!.account.color
-                            : theme.foreground.gray
-                        }
+                        color={active ? acColor : theme.foreground.gray}
                       />
                       <Text
                         style={[
                           styles.chipText,
                           active && {
-                            color: selectedAccount!.account.color,
+                            color: acColor,
                             fontWeight: "600",
                           },
                         ]}
@@ -713,7 +753,7 @@ export default function AddTransactionScreen() {
             </View>
           )}
 
-          {/* â”€â”€ To Account (transfer only) â”€â”€ */}
+          {/* â"€â"€ To Account (transfer only) â"€â"€ */}
           {/* Secondary account picker (charity paid-from / loan deposit-to) */}
           {needsSecondaryAccount && (
             <View style={styles.section}>
@@ -829,7 +869,7 @@ export default function AddTransactionScreen() {
             </View>
           )}
 
-          {/* â”€â”€ Category picker â”€â”€ */}
+          {/* â"€â"€ Category picker â"€â"€ */}
           {txType !== "transfer" && (
             <View style={styles.section}>
               <Pressable
@@ -913,7 +953,93 @@ export default function AddTransactionScreen() {
             </View>
           )}
 
-          {/* â”€â”€ Date picker â”€â”€ */}
+          {/* Person picker (shown below categories when loan category selected) */}
+          {isLoanCategory && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>
+                {isLoanExpense ? "Who are you lending to?" : "Who are you paying back?"}
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipsRow}
+              >
+                {loanSubAccounts.map((sub) => {
+                  const active = subAccountName === sub.name;
+                  const acColor = loanAccountForPicker?.color ?? theme.primary.main;
+                  return (
+                    <Pressable
+                      key={sub.name}
+                      style={[
+                        styles.accountChip,
+                        active && {
+                          backgroundColor: `${acColor}22`,
+                          borderColor: acColor,
+                        },
+                      ]}
+                      onPress={() => {
+                        setSubAccountName(active ? "" : sub.name);
+                        setNewPersonName("");
+                      }}
+                    >
+                      <MaterialCommunityIcons
+                        name="account-outline"
+                        size={14}
+                        color={active ? acColor : theme.foreground.gray}
+                      />
+                      <Text
+                        style={[
+                          styles.chipText,
+                          active && { color: acColor, fontWeight: "600" },
+                        ]}
+                      >
+                        {sub.name}
+                      </Text>
+                      <Text style={styles.chipBalance}>
+                        {formatAmount(sub.balance, currency, { compact: true })}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+                <Pressable
+                  style={[
+                    styles.accountChip,
+                    !subAccountName && {
+                      backgroundColor: `${theme.primary.main}22`,
+                      borderColor: theme.primary.main,
+                    },
+                  ]}
+                  onPress={() => setSubAccountName("")}
+                >
+                  <MaterialCommunityIcons
+                    name="account-plus-outline"
+                    size={14}
+                    color={!subAccountName ? theme.primary.main : theme.foreground.gray}
+                  />
+                  <Text
+                    style={[
+                      styles.chipText,
+                      !subAccountName && { color: theme.primary.main, fontWeight: "600" },
+                    ]}
+                  >
+                    New
+                  </Text>
+                </Pressable>
+              </ScrollView>
+              {!subAccountName && (
+                <TextInput
+                  style={[styles.input, { marginTop: 10 }]}
+                  placeholder="Enter name..."
+                  placeholderTextColor={theme.foreground.gray}
+                  value={newPersonName}
+                  onChangeText={setNewPersonName}
+                  returnKeyType="done"
+                />
+              )}
+            </View>
+          )}
+
+          {/* Date picker */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Date</Text>
             <View style={styles.dateRow}>
@@ -959,7 +1085,7 @@ export default function AddTransactionScreen() {
             </View>
           </View>
 
-          {/* â”€â”€ Time (optional) â”€â”€ */}
+          {/* â"€â"€ Time (optional) â"€â"€ */}
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionLabel}>Time (Optional)</Text>
@@ -992,7 +1118,7 @@ export default function AddTransactionScreen() {
             )}
           </View>
 
-          {/* â”€â”€ Merchant â”€â”€ */}
+          {/* â"€â"€ Merchant â"€â"€ */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>
               {txType === "income"
@@ -1017,7 +1143,7 @@ export default function AddTransactionScreen() {
             />
           </View>
 
-          {/* â”€â”€ Note â”€â”€ */}
+          {/* â"€â"€ Note â"€â"€ */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Note (Optional)</Text>
             <TextInput
@@ -1041,7 +1167,7 @@ export default function AddTransactionScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* â”€â”€ Date picker modal â”€â”€ */}
+      {/* â"€â"€ Date picker modal â"€â"€ */}
       <DatePickerModal
         visible={showDatePicker}
         value={date}
@@ -1064,7 +1190,7 @@ export default function AddTransactionScreen() {
         onClose={() => setShowTimePicker(false)}
       />
 
-      {/* â”€â”€ Toast â”€â”€ */}
+      {/* â"€â"€ Toast â"€â"€ */}
       {toast.visible && (
         <Animated.View
           style={[
@@ -1097,9 +1223,9 @@ export default function AddTransactionScreen() {
   );
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 // Styles
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 function makeStyles(theme: Theme) {
   return StyleSheet.create({
@@ -1175,7 +1301,7 @@ function makeStyles(theme: Theme) {
       paddingHorizontal: 16,
       paddingTop: 4,
     },
-    // â”€â”€ Amount â”€â”€
+    // â"€â"€ Amount â"€â"€
     amountSection: {
       flexDirection: "row",
       alignItems: "center",
@@ -1212,7 +1338,7 @@ function makeStyles(theme: Theme) {
       color: theme.foreground.gray,
       opacity: 0.6,
     },
-    // â”€â”€ Sections â”€â”€
+    // â"€â"€ Sections â"€â"€
     section: {
       marginBottom: 20,
     },
@@ -1250,7 +1376,7 @@ function makeStyles(theme: Theme) {
       color: "#F14A6E",
       textAlign: "center",
     },
-    // â”€â”€ Chips â”€â”€
+    // â"€â"€ Chips â"€â"€
     chipsRow: {
       flexDirection: "row",
       gap: 8,
@@ -1277,7 +1403,7 @@ function makeStyles(theme: Theme) {
       color: theme.foreground.gray,
       opacity: 0.65,
     },
-    // â”€â”€ Category â”€â”€
+    // â"€â"€ Category â"€â"€
     categoryGrid: {
       flexDirection: "row",
       flexWrap: "wrap",
@@ -1328,7 +1454,7 @@ function makeStyles(theme: Theme) {
       color: theme.foreground.gray,
       textAlign: "center",
     },
-    // â”€â”€ Date â”€â”€
+    // â"€â"€ Date â"€â"€
     dateRow: {
       flexDirection: "row",
       alignItems: "center",
@@ -1361,7 +1487,7 @@ function makeStyles(theme: Theme) {
       fontSize: 11,
       color: theme.foreground.gray,
     },
-    // â”€â”€ Time â”€â”€
+    // â"€â"€ Time â"€â"€
     toggleBtn: {
       paddingHorizontal: 12,
       paddingVertical: 4,
@@ -1397,7 +1523,7 @@ function makeStyles(theme: Theme) {
       color: theme.foreground.white,
       letterSpacing: 1,
     },
-    // â”€â”€ Text inputs â”€â”€
+    // â"€â"€ Text inputs â"€â"€
     input: {
       backgroundColor: theme.background.accent,
       borderRadius: 12,
@@ -1420,7 +1546,7 @@ function makeStyles(theme: Theme) {
     bottomPad: {
       height: 48,
     },
-    // â”€â”€ Toast â”€â”€
+    // â"€â"€ Toast â"€â"€
     toast: {
       position: "absolute",
       bottom: 32,

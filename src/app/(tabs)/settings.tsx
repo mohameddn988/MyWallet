@@ -505,20 +505,8 @@ export default function SettingsIndexScreen() {
           </View>
         </SectionCard>
 
-        {/* ── ABOUT ────────────────────────────────── */}
-        <SectionCard label="APP" theme={theme}>
-          <SettingRow
-            icon="update"
-            label="Updates"
-            description="Check for new app versions"
-            badge={`v${appVersion}`}
-            onPress={() => router.navigate("/settings/updates" as any)}
-            theme={theme}
-            isLast
-          />
-        </SectionCard>
-
-        <SectionCard label="ABOUT" theme={theme}>
+        {/* ── MYWALLET ─────────────────────────────── */}
+        <SectionCard label="MYWALLET" theme={theme}>
           <Pressable
             style={({ pressed }) => [s.aboutRow, pressed && s.rowPressed]}
             onPress={() => router.navigate("/settings/about" as any)}
@@ -535,9 +523,6 @@ export default function SettingsIndexScreen() {
               <Text style={s.aboutMeta}>
                 Version {appVersion} · Build {buildNumber}
               </Text>
-            </View>
-            <View style={[s.badge, s.badgeGreen]}>
-              <Text style={[s.badgeText, s.badgeTextGreen]}>Latest</Text>
             </View>
             <MaterialCommunityIcons
               name="chevron-right"

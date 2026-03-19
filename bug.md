@@ -97,3 +97,96 @@ For users in negative UTC offsets, `new Date("2026-01-01").getMonth()` returns 1
 The large hero amount displays `totals.income` while expenses appear in small text below as "Spent {expense}". For a spending analytics screen, users likely expect the prominent number to be their spending, not income.
 
 **Fix:** Swap — show `totals.expense` as the hero amount and income as the subtitle, or label the hero clearly as "Income".
+
+---
+
+## 8. Leading Zero Stripping Breaks Decimal Input
+
+**Severity:** Medium (wrong amount entered)
+
+**Location:** `src/app/transaction/add.tsx:66`
+
+**Description:**
+`sanitizeAmount()` uses `s.replace(/^0+(\d)/, "$1")` to strip leading zeros. This incorrectly converts `"0.50"` to `".50"` by removing the single leading zero before the decimal point.
+
+**Example:** User types `0.50` → becomes `.50` → may confuse the user or cause parsing issues.
+
+**Fix:** Update the regex to preserve a zero before a decimal: `s.replace(/^0+(?=\d(?!\.))/, "")` or `s.replace(/^0{2,}/, "0")`.
+
+---
+
+## 9. Budget Period Overflows for monthStartDay > Days in Month
+
+**Severity:** Medium (wrong budget calculations)
+
+**Location:** `src/contexts/FinanceContext.tsx` — `getBudgetPeriod()`
+
+**Description:**
+When `monthStartDay` is 31 and the current month has fewer days (e.g. February with 28), `new Date(year, 1, 31)` overflows to March 3. This means the budget period start is wrong — it jumps forward instead of clamping to the last day of the month.
+
+**Example:** Feb 15 with `monthStartDay=31` → start becomes March 3 instead of Jan 31. The entire budget period is shifted.
+
+**Fix:** Clamp `monthStartDay` to the number of days in the target month:
+```js
+const daysInMonth = new Date(year, month + 1, 0).getDate();
+const clampedDay = Math.min(monthStartDay, daysInMonth);
+```
+
+---
+
+## 10. Analytics Date Filtering Uses UTC Parsing in Multiple Places
+
+**Severity:** Medium (wrong data in analytics)
+
+**Location:** `src/app/analytics/index.tsx:175, 194, 204-205, 466, 475`
+
+**Description:**
+Beyond the main filtering (bug #6), the sparkline calculations for year/quarter views also use `new Date(tx.date)` (UTC) to extract month/year, then compare against local-time period boundaries. This affects monthly bar charts and daily sparklines.
+
+**Fix:** Replace all `new Date(tx.date)` with `parseDate(tx.date)` from `src/utils/currency.ts` throughout the analytics file.
+
+---
+
+## 11. Analytics Average Daily Expense Uses Hardcoded 30-Day Month
+
+**Severity:** Low (inaccurate stat)
+
+**Location:** `src/app/analytics/index.tsx:507-516`
+
+**Description:**
+The "Avg/day" stat card divides total expenses by a fixed `daysMap = { month: 30 }`. February shows a lower average than reality (divides by 30 instead of 28), and 31-day months show a higher average.
+
+**Fix:** Calculate actual days in the period dynamically:
+```js
+const daysInCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+```
+
+---
+
+## 12. Transfer buildRateMap Called Inside map() Loop
+
+**Severity:** Low (performance)
+
+**Location:** `src/contexts/FinanceContext.tsx` — `applyTx()`, transfer branch
+
+**Description:**
+When processing a transfer to a different currency, `buildRateMap(rawRates)` is called inside the `.map()` callback for every account on every transfer. This rebuilds the rate map `O(accounts)` times per transfer instead of once.
+
+**Fix:** Move `buildRateMap` call outside the `.map()` loop, or pass the pre-built `rateMap` as a parameter to `applyTx`.
+
+---
+
+## 13. Duplicate Transaction on Rapid Save Button Presses
+
+**Severity:** Medium (duplicate data)
+
+**Location:** `src/app/transaction/add.tsx:324-346`
+
+**Description:**
+`handleSave` checks `saving` state to prevent duplicates, but `setSaving(true)` is async (React batching). If the user taps "Save" rapidly before the state update renders, `saving` may still be `false` on the second call, creating duplicate transactions.
+
+**Fix:** Use a ref (`const savingRef = useRef(false)`) for immediate synchronous guard instead of relying on state:
+```js
+if (savingRef.current) return;
+savingRef.current = true;
+```

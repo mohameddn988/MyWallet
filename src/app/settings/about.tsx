@@ -2,10 +2,85 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
-import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { Theme } from "../../constants/themes";
 import { useTheme } from "../../contexts/ThemeContext";
+
+// ─── Update manifest ────────────────────────────────────────────────────────
+
+type UpdateManifest = {
+  versionCode: number;
+  versionName: string;
+  changelog?: string;
+  publishedAt?: string;
+  downloadUrl?: string;
+  releaseNotesUrl?: string;
+};
+
+const DEFAULT_RELEASES_URL =
+  "https://github.com/mohameddn988/MyWallet/releases";
+const DEFAULT_MANIFEST_URL =
+  process.env.EXPO_PUBLIC_APP_UPDATE_MANIFEST_URL ??
+  "https://raw.githubusercontent.com/mohameddn988/MyWallet/main/update-manifest.json";
+
+function toPositiveInt(value: unknown): number | null {
+  const n = Number(value);
+  if (!Number.isInteger(n) || n <= 0) return null;
+  return n;
+}
+
+function normalizeManifest(input: unknown): UpdateManifest {
+  if (!input || typeof input !== "object") {
+    throw new Error("Invalid update response format");
+  }
+
+  const raw = input as Record<string, unknown>;
+  const versionCode = toPositiveInt(raw.versionCode);
+  if (!versionCode) {
+    throw new Error("Missing or invalid versionCode in update manifest");
+  }
+
+  const versionName =
+    typeof raw.versionName === "string" && raw.versionName.trim().length > 0
+      ? raw.versionName.trim()
+      : `build-${versionCode}`;
+
+  return {
+    versionCode,
+    versionName,
+    changelog:
+      typeof raw.changelog === "string" ? raw.changelog.trim() : undefined,
+    publishedAt:
+      typeof raw.publishedAt === "string" ? raw.publishedAt : undefined,
+    downloadUrl:
+      typeof raw.downloadUrl === "string" ? raw.downloadUrl : undefined,
+    releaseNotesUrl:
+      typeof raw.releaseNotesUrl === "string"
+        ? raw.releaseNotesUrl
+        : undefined,
+  };
+}
+
+function formatDate(dateIso?: string): string {
+  if (!dateIso) return "Unknown";
+  const parsed = new Date(dateIso);
+  if (Number.isNaN(parsed.getTime())) return "Unknown";
+  return parsed.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+// ─── Screen ─────────────────────────────────────────────────────────────────
 
 export default function AboutScreen() {
   const { theme } = useTheme();
@@ -18,6 +93,54 @@ export default function AboutScreen() {
     buildNumber: Constants.expoConfig?.ios?.buildNumber || "1",
     description: "A personal finance manager for tracking your money",
   };
+
+  const localVersionCode =
+    toPositiveInt(Constants.expoConfig?.android?.versionCode) ?? 1;
+
+  // ── Update state ──────────────────────────────
+  const [isChecking, setIsChecking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [manifest, setManifest] = useState<UpdateManifest | null>(null);
+  const [lastCheckedAt, setLastCheckedAt] = useState<string | null>(null);
+
+  const hasUpdate = useMemo(() => {
+    if (!manifest) return false;
+    return manifest.versionCode > localVersionCode;
+  }, [manifest, localVersionCode]);
+
+  const handleCheckForUpdates = useCallback(async () => {
+    setIsChecking(true);
+    setError(null);
+
+    try {
+      const response = await fetch(DEFAULT_MANIFEST_URL, {
+        headers: { Accept: "application/json" },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Update server returned ${response.status}`);
+      }
+
+      const data = await response.json();
+      setManifest(normalizeManifest(data));
+      setLastCheckedAt(new Date().toISOString());
+    } catch (e: unknown) {
+      const message =
+        e instanceof Error ? e.message : "Failed to check updates";
+      setError(message);
+    } finally {
+      setIsChecking(false);
+    }
+  }, []);
+
+  const openUrl = useCallback(async (url?: string) => {
+    const target = url ?? DEFAULT_RELEASES_URL;
+    await Linking.openURL(target);
+  }, []);
+
+  useEffect(() => {
+    handleCheckForUpdates();
+  }, [handleCheckForUpdates]);
 
   const handleOpenLink = (url: string) => {
     Linking.openURL(url);
@@ -40,7 +163,9 @@ export default function AboutScreen() {
             color={theme.foreground.white}
           />
         </Pressable>
-        <Text style={styles.headerTitle} numberOfLines={1}>About</Text>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          MyWallet
+        </Text>
         <View style={styles.headerBtn} />
       </View>
 
@@ -50,13 +175,7 @@ export default function AboutScreen() {
       >
         {/* App Icon & Info */}
         <View style={styles.appInfoContainer}>
-          <View style={styles.appIcon}>
-            <MaterialCommunityIcons
-              name="wallet"
-              size={48}
-              color={theme.primary.main}
-            />
-          </View>
+
           <Text style={styles.appName}>{appInfo.name}</Text>
           <Text style={styles.appVersion}>
             Version {appInfo.version} (Build {appInfo.buildNumber})
@@ -64,23 +183,103 @@ export default function AboutScreen() {
           <Text style={styles.appDescription}>{appInfo.description}</Text>
         </View>
 
-        {/* App Info Section */}
+        {/* ── UPDATES ───────────────────────────────── */}
         <View style={styles.section}>
-          <Text style={styles.sectionHeader}>APPLICATION</Text>
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Version</Text>
-            <Text style={styles.infoValue}>{appInfo.version}</Text>
+          <Text style={styles.sectionHeader}>UPDATES</Text>
+          <View style={styles.updateCard}>
+            <View style={styles.updateStatusRow}>
+              <View style={styles.updateStatusLeft}>
+                <MaterialCommunityIcons
+                  name={
+                    hasUpdate
+                      ? "arrow-up-bold-circle-outline"
+                      : "check-circle-outline"
+                  }
+                  size={20}
+                  color={hasUpdate ? "#F59E0B" : theme.primary.main}
+                />
+                <Text style={styles.updateStatusTitle}>
+                  {manifest
+                    ? hasUpdate
+                      ? "Update available"
+                      : "You are up to date"
+                    : "No remote data yet"}
+                </Text>
+              </View>
+              {isChecking ? (
+                <ActivityIndicator size="small" color={theme.foreground.gray} />
+              ) : null}
+            </View>
+
+            {manifest ? (
+              <>
+                <View style={styles.updateDivider} />
+                <View style={styles.updateRow}>
+                  <Text style={styles.updateRowLabel}>Latest Version</Text>
+                  <Text style={styles.updateRowValue}>
+                    {manifest.versionName}
+                  </Text>
+                </View>
+                <View style={styles.updateDivider} />
+                <View style={styles.updateRow}>
+                  <Text style={styles.updateRowLabel}>Published</Text>
+                  <Text style={styles.updateRowValue}>
+                    {formatDate(manifest.publishedAt)}
+                  </Text>
+                </View>
+              </>
+            ) : null}
+
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+            {lastCheckedAt ? (
+              <Text style={styles.metaText}>
+                Last checked: {formatDate(lastCheckedAt)}
+              </Text>
+            ) : null}
           </View>
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Build Number</Text>
-            <Text style={styles.infoValue}>{appInfo.buildNumber}</Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Platform</Text>
-            <Text style={styles.infoValue}>
-              {Constants.platform?.ios ? "iOS" : "Android"}
-            </Text>
-          </View>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.actionBtn,
+              pressed && styles.pressed,
+            ]}
+            onPress={handleCheckForUpdates}
+            disabled={isChecking}
+          >
+            <MaterialCommunityIcons
+              name="autorenew"
+              size={18}
+              color={theme.primary.main}
+            />
+            <Text style={styles.actionText}>Check for updates</Text>
+          </Pressable>
+
+          {hasUpdate ? (
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionBtn,
+                pressed && styles.pressed,
+              ]}
+              onPress={() => openUrl(manifest?.downloadUrl)}
+            >
+              <MaterialCommunityIcons
+                name="download"
+                size={18}
+                color={theme.foreground.white}
+              />
+              <Text style={styles.actionText}>Download latest build</Text>
+            </Pressable>
+          ) : null}
+
+          <Pressable
+            style={({ pressed }) => [styles.linkBtn, pressed && styles.pressed]}
+            onPress={() =>
+              openUrl(manifest?.releaseNotesUrl ?? DEFAULT_RELEASES_URL)
+            }
+          >
+            <Text style={styles.linkBtnText}>Open release notes</Text>
+          </Pressable>
         </View>
 
         {/* Technology Section */}
@@ -213,15 +412,6 @@ function makeStyles(theme: Theme) {
       textAlign: "center",
       marginHorizontal: 8,
     },
-    title: {
-      fontSize: 20,
-      fontWeight: "700",
-      color: theme.foreground.white,
-    },
-    subtitle: {
-      fontSize: 15,
-      color: theme.foreground.gray,
-    },
     scrollView: {
       flex: 1,
       paddingHorizontal: 16,
@@ -291,6 +481,94 @@ function makeStyles(theme: Theme) {
       fontSize: 14,
       color: theme.foreground.gray,
     },
+
+    // ── Updates ─────────────────────────────────────
+    updateCard: {
+      backgroundColor: theme.background.accent,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: `${theme.foreground.gray}12`,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      gap: 10,
+      marginBottom: 12,
+    },
+    updateStatusRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      minHeight: 28,
+    },
+    updateStatusLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      flex: 1,
+    },
+    updateStatusTitle: {
+      fontSize: 14,
+      color: theme.foreground.white,
+      fontWeight: "700",
+    },
+    updateDivider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: `${theme.foreground.gray}20`,
+    },
+    updateRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      minHeight: 28,
+    },
+    updateRowLabel: {
+      fontSize: 13,
+      color: theme.foreground.gray,
+      fontWeight: "500",
+    },
+    updateRowValue: {
+      fontSize: 14,
+      color: theme.foreground.white,
+      fontWeight: "700",
+    },
+    metaText: {
+      fontSize: 12,
+      color: theme.foreground.gray,
+      marginTop: 2,
+    },
+    errorText: {
+      fontSize: 12,
+      color: "#F87171",
+      marginTop: 2,
+    },
+    actionBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      backgroundColor: `${theme.primary.main}20`,
+      borderWidth: 1,
+      borderColor: `${theme.primary.main}60`,
+      paddingVertical: 12,
+      borderRadius: 12,
+      marginBottom: 10,
+    },
+    actionText: {
+      fontSize: 14,
+      color: theme.foreground.white,
+      fontWeight: "700",
+    },
+    linkBtn: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 10,
+    },
+    linkBtnText: {
+      fontSize: 13,
+      color: theme.primary.main,
+      fontWeight: "600",
+    },
+
+    // ── Tech / Links ────────────────────────────────
     techStack: {
       gap: 8,
     },
