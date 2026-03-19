@@ -156,7 +156,7 @@ export default function AboutScreen() {
       });
 
       await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
-        data: apkFile.uri,
+        data: apkFile.contentUri,
         type: "application/vnd.android.package-archive",
         flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
       });
