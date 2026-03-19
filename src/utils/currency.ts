@@ -1,9 +1,29 @@
 /**
  * Currency formatting utilities.
  * All amounts are stored in minor units (cents). Divide by 100 for display.
+ * Currencies without sub-units (JPY, KRW, VND) are stored as-is (divisor = 1).
  */
 
 const MINOR_UNIT_DIVISOR = 100;
+
+/** Currencies that have no sub-units — stored 1:1, no ×100 conversion. */
+const NO_SUB_UNIT_CURRENCIES = new Set(["JPY", "KRW", "VND"]);
+
+export function isNoSubUnit(currency: string): boolean {
+  return NO_SUB_UNIT_CURRENCIES.has(currency.toUpperCase());
+}
+
+/** Convert a user-entered major-unit value to minor units for storage. */
+export function toMinorUnits(value: number, currency: string): number {
+  if (isNoSubUnit(currency)) return Math.round(value);
+  return Math.round(value * MINOR_UNIT_DIVISOR);
+}
+
+/** Convert stored minor units back to major units for editing / display inputs. */
+export function fromMinorUnits(minorUnits: number, currency: string): number {
+  if (isNoSubUnit(currency)) return minorUnits;
+  return minorUnits / MINOR_UNIT_DIVISOR;
+}
 
 /** Symbol map for common currencies */
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -72,12 +92,11 @@ export function formatAmount(
 ): string {
   const { showSign = false, compact = false, locale = "en-US" } = options;
   const symbol = getCurrencySymbol(currency);
-  // Currencies stored without sub-units (minor unit = 1, no ×100 storage)
-  const isNoSubUnit = ["JPY", "KRW", "VND"].includes(currency.toUpperCase());
+  const noSubUnit = isNoSubUnit(currency);
   // Currencies that should display as whole numbers (no ".00") even if stored ×100
   const isNoCents =
-    isNoSubUnit || ["DZD", "MAD"].includes(currency.toUpperCase());
-  const divisor = isNoSubUnit ? 1 : MINOR_UNIT_DIVISOR;
+    noSubUnit || ["DZD", "MAD"].includes(currency.toUpperCase());
+  const divisor = noSubUnit ? 1 : MINOR_UNIT_DIVISOR;
   const value = Math.abs(minorUnits) / divisor;
   const sign = minorUnits < 0 ? "-" : showSign && minorUnits > 0 ? "+" : "";
 

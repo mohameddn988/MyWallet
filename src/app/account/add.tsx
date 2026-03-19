@@ -40,7 +40,7 @@ import {
   LoanDirection,
   SubAccount,
 } from "../../types/finance";
-import { getCurrencySymbol } from "../../utils/currency";
+import { getCurrencySymbol, toMinorUnits, fromMinorUnits } from "../../utils/currency";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Toast (same pattern as transaction add)
@@ -256,7 +256,7 @@ export default function AddAccountScreen() {
   const [currency, setCurrency] = useState(editAcc?.currency ?? "DZD");
   const [exchangeRate, setExchangeRate] = useState("");
   const [balanceRaw, setBalanceRaw] = useState(
-    editAcc ? String(Math.abs(editAcc.balance) / 100) : "0",
+    editAcc ? String(fromMinorUnits(Math.abs(editAcc.balance), editAcc.currency)) : "0",
   );
   const [color, setColor] = useState(editAcc?.color ?? "#4A9FF1");
   const [icon, setIcon] = useState(editAcc?.icon ?? "wallet-outline");
@@ -287,7 +287,7 @@ export default function AddAccountScreen() {
       setName(editAcc.name);
       setAccountType(editAcc.type);
       setCurrency(editAcc.currency);
-      setBalanceRaw(String(Math.abs(editAcc.balance) / 100));
+      setBalanceRaw(String(fromMinorUnits(Math.abs(editAcc.balance), editAcc.currency)));
       setColor(editAcc.color);
       setIcon(editAcc.icon);
       setAccountRef(editAcc.accountRef ?? "");
@@ -339,14 +339,14 @@ export default function AddAccountScreen() {
       return subAccounts.reduce((sum, s) => sum + s.balance, 0);
     }
     const n = parseFloat(balanceRaw) || 0;
-    const minor = Math.round(Math.abs(n) * 100);
-    return minor;
+    return toMinorUnits(Math.abs(n), currency);
+
   })();
 
   // ── Loan sub-account helpers ──────────────────────────────────────────────
   const handleAddPerson = () => {
     const personName = newPersonName.trim();
-    const amount = Math.round((parseFloat(newPersonAmount) || 0) * 100);
+    const amount = toMinorUnits(parseFloat(newPersonAmount) || 0, currency);
     if (!personName || amount <= 0) return;
     setSubAccounts((prev) => [...prev, { name: personName, balance: amount }]);
     setNewPersonName("");
@@ -751,7 +751,7 @@ export default function AddAccountScreen() {
                     <Text style={styles.personName}>{sub.name}</Text>
                     <Text style={styles.personAmount}>
                       {getCurrencySymbol(currency)}{" "}
-                      {(sub.balance / 100).toLocaleString()}
+                      {fromMinorUnits(sub.balance, currency).toLocaleString()}
                     </Text>
                   </View>
                   <Pressable
@@ -828,8 +828,8 @@ export default function AddAccountScreen() {
                   <Text style={styles.personTotalLabel}>Total</Text>
                   <Text style={styles.personTotalAmount}>
                     {getCurrencySymbol(currency)}{" "}
-                    {(
-                      subAccounts.reduce((s, e) => s + e.balance, 0) / 100
+                    {fromMinorUnits(
+                      subAccounts.reduce((s, e) => s + e.balance, 0), currency
                     ).toLocaleString()}
                   </Text>
                 </View>

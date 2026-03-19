@@ -1,4 +1,5 @@
 import { Account, AccountType, TransactionType } from "./finance";
+import { toMinorUnits } from "../utils/currency";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Draft types
@@ -68,7 +69,7 @@ export function draftToAccount(draft: AccountDraft, index: number): Account {
     name: draft.name.trim() || "My Account",
     type: draft.type,
     currency: draft.currency,
-    balance: Math.round(raw * 100),
+    balance: toMinorUnits(raw, draft.currency),
     isArchived: false,
     icon: TYPE_ICON[draft.type],
     color: TYPE_COLOR[draft.type],

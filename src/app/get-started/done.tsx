@@ -7,6 +7,7 @@ import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { Account, Transaction } from "../../types/finance";
 import { draftToAccount } from "../../types/getStarted";
+import { toMinorUnits } from "../../utils/currency";
 
 export default function DoneScreen() {
   const { theme } = useTheme();
@@ -41,7 +42,7 @@ export default function DoneScreen() {
         transactions.push({
           id: `tx_onb_${Date.now()}`,
           type: txDraft.type,
-          amount: Math.round(raw * 100),
+          amount: toMinorUnits(raw, acc.currency),
           currency: acc.currency,
           accountId: acc.id,
           date: new Date().toISOString().split("T")[0],

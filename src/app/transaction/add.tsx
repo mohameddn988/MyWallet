@@ -34,6 +34,8 @@ import {
   getCurrencySymbol,
   parseDate,
   toDateStr,
+  toMinorUnits as currencyToMinor,
+  fromMinorUnits,
 } from "../../utils/currency";
 
 // â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
@@ -67,11 +69,11 @@ function sanitizeAmount(raw: string, noCents: boolean): string {
   return s;
 }
 
-/** Parse amount string â†’ minor units */
-function toMinorUnits(raw: string): number {
+/** Parse amount string → minor units (currency-aware) */
+function toMinorUnits(raw: string, currency: string): number {
   const n = parseFloat(raw);
   if (isNaN(n) || n <= 0) return 0;
-  return Math.round(n * 100);
+  return currencyToMinor(n, currency);
 }
 
 /** Format amount string as live display preview */
@@ -80,7 +82,7 @@ function formatLiveAmount(
   currency: string,
   formatAmount: (minorUnits: number, currency: string) => string,
 ): string | null {
-  const minor = toMinorUnits(raw);
+  const minor = toMinorUnits(raw, currency);
   if (!minor) return null;
   return formatAmount(minor, currency);
 }
@@ -188,7 +190,7 @@ export default function AddTransactionScreen() {
     (editTx?.type ?? params.type ?? "expense") as TransactionType,
   );
   const [amountRaw, setAmountRaw] = useState<string>(
-    editTx ? String(editTx.amount / 100) : "",
+    editTx ? String(fromMinorUnits(editTx.amount, editTx.currency)) : "",
   );
   const [accountId, setAccountId] = useState(
     editTx?.accountId ?? accounts[0]?.account.id ?? "",
@@ -212,6 +214,7 @@ export default function AddTransactionScreen() {
   );
   const [catExpanded, setCatExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [touched, setTouched] = useState<TouchedFields>({
     amount: false,
     account: false,
@@ -227,7 +230,7 @@ export default function AddTransactionScreen() {
   useEffect(() => {
     if (editTx) {
       setTxType(editTx.type);
-      setAmountRaw(String(editTx.amount / 100));
+      setAmountRaw(String(fromMinorUnits(editTx.amount, editTx.currency)));
       setAccountId(editTx.accountId);
       setToAccountId(editTx.toAccountId ?? "");
       setCategoryId(editTx.categoryId ?? "");
@@ -291,6 +294,29 @@ export default function AddTransactionScreen() {
     })();
   }, [isLoanCategory, targetLoanAccount, targetLoanDirection, targetLoanName, addAccount, baseCurrency, accountId]);
 
+  // Auto-set category when a special account is selected directly
+  useEffect(() => {
+    if (!selectedAccount || isLoanCategory) return;
+    const acc = selectedAccount.account;
+    if (acc.type === "charity" && txType === "expense") {
+      if (categoryId !== "cat_charity_exp") setCategoryId("cat_charity_exp");
+    } else if (acc.type === "loan" && acc.loanDirection === "owed") {
+      // People Owe Me: expense = lending, income = repayment
+      const cat = txType === "expense" ? "cat_lending" : "cat_repayment";
+      if (categoryId !== cat) setCategoryId(cat);
+    } else if (acc.type === "loan" && acc.loanDirection === "owe") {
+      // I Owe People: expense = debt payment, income = borrowing
+      const cat = txType === "expense" ? "cat_debt_payment" : "cat_borrowing";
+      if (categoryId !== cat) setCategoryId(cat);
+    }
+  }, [accountId, selectedAccount, txType, isLoanCategory, categoryId]);
+
+  // Whether the category is auto-assigned (hide the category picker)
+  const isAutoCategory =
+    isLoanCategory ||
+    (selectedAccount?.account.type === "charity" && txType === "expense") ||
+    (selectedAccount?.account.type === "loan" && txType !== "transfer");
+
   // Loan account + person picker
   const isLoanAccount =
     (selectedAccount?.account.type === "loan" && txType !== "transfer") ||
@@ -329,7 +355,7 @@ export default function AddTransactionScreen() {
   });
 
   const amountNum = parseFloat(amountRaw);
-  const amountMinorUnits = toMinorUnits(amountRaw);
+  const amountMinorUnits = toMinorUnits(amountRaw, currency);
   const liveFormatted =
     amountMinorUnits > 0 ? formatLiveAmount(amountRaw, currency, formatAmount) : null;
 
@@ -371,7 +397,8 @@ export default function AddTransactionScreen() {
 
   const handleSave = useCallback(async () => {
     touchAll();
-    if (!canSave || saving) return;
+    if (!canSave || savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
 
     const txData: Omit<Transaction, "id"> = {
@@ -410,6 +437,7 @@ export default function AddTransactionScreen() {
     } catch {
       showToast("Failed to save transaction", "error");
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }, [
@@ -870,7 +898,7 @@ export default function AddTransactionScreen() {
           )}
 
           {/* â"€â"€ Category picker â"€â"€ */}
-          {txType !== "transfer" && (
+          {txType !== "transfer" && !isAutoCategory && (
             <View style={styles.section}>
               <Pressable
                 style={styles.catHeaderRow}

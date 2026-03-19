@@ -182,8 +182,12 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   ];
   const firstDayOfWeek = useMemo(() => {
     const now = new Date();
-    let d = new Date(now.getFullYear(), now.getMonth(), monthStartDay);
-    if (d > now) d = new Date(now.getFullYear(), now.getMonth() - 1, monthStartDay);
+    const clamp = (y: number, m: number, day: number) => {
+      const max = new Date(y, m + 1, 0).getDate();
+      return new Date(y, m, Math.min(day, max));
+    };
+    let d = clamp(now.getFullYear(), now.getMonth(), monthStartDay);
+    if (d > now) d = clamp(now.getFullYear(), now.getMonth() - 1, monthStartDay);
     return DAY_NAMES[d.getDay()];
   }, [monthStartDay]);
 

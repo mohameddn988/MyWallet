@@ -22,6 +22,8 @@ import {
   convertToBase,
   getCurrencySymbol,
   parseDate,
+  toMinorUnits,
+  fromMinorUnits,
 } from "../../utils/currency";
 import { ExchangeRate } from "../../types/finance";
 
@@ -315,7 +317,7 @@ export default function AccountDetailScreen() {
   const handleAddPerson = useCallback(async () => {
     if (!account) return;
     const personName = newPersonName.trim();
-    const amount = Math.round((parseFloat(newPersonAmount) || 0) * 100);
+    const amount = toMinorUnits(parseFloat(newPersonAmount) || 0, account.currency);
     if (!personName || amount <= 0) return;
     await addSubAccount(account.id, { name: personName, balance: amount });
     setNewPersonName("");
@@ -911,7 +913,7 @@ export default function AccountDetailScreen() {
         description={
           pendingRemoveIndex !== null &&
           account?.subAccounts?.[pendingRemoveIndex]
-            ? `Remove "${account.subAccounts[pendingRemoveIndex].name}" (${getCurrencySymbol(account.currency)} ${(account.subAccounts[pendingRemoveIndex].balance / 100).toLocaleString()}) from this list?`
+            ? `Remove "${account.subAccounts[pendingRemoveIndex].name}" (${getCurrencySymbol(account.currency)} ${fromMinorUnits(account.subAccounts[pendingRemoveIndex].balance, account.currency).toLocaleString()}) from this list?`
             : "Remove this entry from the list?"
         }
         icon="account-remove-outline"

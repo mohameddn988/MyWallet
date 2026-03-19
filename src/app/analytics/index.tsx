@@ -20,7 +20,7 @@ import { Theme } from "../../constants/themes";
 import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useLocale } from "../../contexts/LocaleContext";
-import { convertToBase } from "../../utils/currency";
+import { convertToBase, parseDate } from "../../utils/currency";
 
 type Period = "day" | "week" | "month" | "quarter" | "year";
 
@@ -172,7 +172,7 @@ function getSparklinePoints(
       return txs
         .filter((tx) => {
           if (tx.type !== "expense") return false;
-          const d = new Date(tx.date);
+          const d = parseDate(tx.date);
           return d.getMonth() === mo && d.getFullYear() === yr;
         })
         .reduce((s, tx) => s + convertToBase(tx.amount, tx.currency, baseCurrency, rateMap), 0);
@@ -191,7 +191,7 @@ function getSparklinePoints(
       return txs
         .filter((tx) => {
           if (tx.type !== "expense") return false;
-          const d = new Date(tx.date);
+          const d = parseDate(tx.date);
           return d >= wStart && d <= wEnd;
         })
         .reduce((s, tx) => s + convertToBase(tx.amount, tx.currency, baseCurrency, rateMap), 0);
@@ -463,7 +463,7 @@ export default function AnalyticsScreen() {
   const periodTxs = useMemo(
     () =>
       allTransactions.filter((tx) => {
-        const d = new Date(tx.date);
+        const d = parseDate(tx.date);
         return d >= start && d <= end;
       }),
     [allTransactions, start, end],
@@ -472,7 +472,7 @@ export default function AnalyticsScreen() {
   const priorTxs = useMemo(
     () =>
       allTransactions.filter((tx) => {
-        const d = new Date(tx.date);
+        const d = parseDate(tx.date);
         return d >= priorStart && d <= priorEnd;
       }),
     [allTransactions, priorStart, priorEnd],
@@ -505,15 +505,10 @@ export default function AnalyticsScreen() {
     priorExpense > 0 ? ((totals.expense - priorExpense) / priorExpense) * 100 : null;
 
   const avgDailyExpense = useMemo(() => {
-    const daysMap: Record<Period, number> = {
-      day: 1,
-      week: 7,
-      month: 30,
-      quarter: 91,
-      year: 365,
-    };
-    return Math.round(totals.expense / daysMap[selectedPeriod]);
-  }, [totals.expense, selectedPeriod]);
+    const ms = end.getTime() - start.getTime();
+    const days = Math.max(1, Math.round(ms / 86_400_000));
+    return Math.round(totals.expense / days);
+  }, [totals.expense, start, end]);
 
   const categoryData = useMemo<CatEntry[]>(() => {
     const map = new Map<string, CatEntry>();
@@ -544,7 +539,7 @@ export default function AnalyticsScreen() {
       const yr = now.getFullYear() + Math.floor(offset / 12);
       const mo = ((offset % 12) + 12) % 12;
       const txsInMonth = allTransactions.filter((tx) => {
-        const d = new Date(tx.date);
+        const d = parseDate(tx.date);
         return d.getMonth() === mo && d.getFullYear() === yr;
       });
       const expense = txsInMonth
@@ -664,14 +659,14 @@ export default function AnalyticsScreen() {
           </View>
 
           <HeroAmount
-            amount={totals.income}
+            amount={totals.expense}
             currency={baseCurrency}
-            accentColor={INCOME_COLOR}
+            accentColor={EXPENSE_COLOR}
             foreColor={theme.foreground.white}
           />
 
           <Text style={styles.heroCompare}>
-            Spent {formatAmount(totals.expense, baseCurrency, { compact: true })}
+            Earned {formatAmount(totals.income, baseCurrency, { compact: true })}
           </Text>
 
           {/* Sparkline */}

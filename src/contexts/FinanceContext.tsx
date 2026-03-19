@@ -191,6 +191,11 @@ function getStartOfDay(dateStr: string): Date {
  * - "calendar": real calendar month, starting on `startDay`
  * - "30" / "28": fixed-length cycles anchored to the most recent `startDay`
  */
+function clampedDate(year: number, month: number, day: number): Date {
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  return new Date(year, month, Math.min(day, daysInMonth));
+}
+
 function getBudgetPeriod(
   now: Date,
   monthLength: string,
@@ -198,15 +203,15 @@ function getBudgetPeriod(
 ): { start: Date; end: Date } {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  // Find the most recent occurrence of monthStartDay
-  let start = new Date(today.getFullYear(), today.getMonth(), monthStartDay);
+  // Find the most recent occurrence of monthStartDay (clamped to month length)
+  let start = clampedDate(today.getFullYear(), today.getMonth(), monthStartDay);
   if (today < start) {
     // Haven't reached startDay this calendar month — go to previous month
-    start = new Date(today.getFullYear(), today.getMonth() - 1, monthStartDay);
+    start = clampedDate(today.getFullYear(), today.getMonth() - 1, monthStartDay);
   }
 
   if (monthLength === "calendar") {
-    const end = new Date(start.getFullYear(), start.getMonth() + 1, monthStartDay);
+    const end = clampedDate(start.getFullYear(), start.getMonth() + 1, monthStartDay);
     return { start, end };
   }
 
@@ -761,9 +766,20 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   // ─────────────────────────────────────────────────────────────────────────
 
   function applyTx(accs: Account[], tx: Transaction, dir: 1 | -1): Account[] {
+    // Check if the primary account is a "People Owe Me" loan —
+    // these need inverted balance logic vs normal accounts.
+    const primaryAcc = accs.find((a) => a.id === tx.accountId);
+    const isPrimaryOwedLoan =
+      primaryAcc?.type === "loan" && primaryAcc.loanDirection === "owed";
+    const rateMap = buildRateMap(rawRates);
+
     return accs.map((acc) => {
       if (tx.type === "expense" && acc.id === tx.accountId) {
-        const newBalance = acc.balance - dir * tx.amount;
+        // "People Owe Me" expense (lending): balance INCREASES (they owe more)
+        // Normal/other expense: balance DECREASES (money goes out)
+        const newBalance = isPrimaryOwedLoan
+          ? acc.balance + dir * tx.amount
+          : acc.balance - dir * tx.amount;
         // Charity accounts cannot go below 0
         return {
           ...acc,
@@ -782,8 +798,13 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           balance: acc.type === "charity" ? Math.max(0, newBalance) : newBalance,
         };
       }
-      if (tx.type === "income" && acc.id === tx.accountId)
-        return { ...acc, balance: acc.balance + dir * tx.amount };
+      if (tx.type === "income" && acc.id === tx.accountId) {
+        // "People Owe Me" income (paid back): balance DECREASES (they owe less)
+        // Normal/other income: balance INCREASES (money comes in)
+        return isPrimaryOwedLoan
+          ? { ...acc, balance: acc.balance - dir * tx.amount }
+          : { ...acc, balance: acc.balance + dir * tx.amount };
+      }
       if (
         tx.type === "income" &&
         tx.secondaryAccountId &&
@@ -794,8 +815,6 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         if (acc.id === tx.accountId)
           return { ...acc, balance: acc.balance - dir * tx.amount };
         if (acc.id === tx.toAccountId) {
-          const rateMap = buildRateMap(rawRates);
-          // Convert: source currency → base → destination currency
           const inBase = convertToBase(tx.amount, tx.currency, rawBase, rateMap);
           const converted = convertFromBase(inBase, acc.currency, rawBase, rateMap);
           return { ...acc, balance: acc.balance + dir * converted };
@@ -814,15 +833,31 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     if (!tx.subAccountName || tx.type === "transfer") return accs;
     return accs.map((acc) => {
       if (acc.id !== tx.accountId || acc.type !== "loan") return acc;
+
+      // For "People Owe Me" (owed) loans, invert the sign:
+      //   expense (lending) → sub-account increases (they owe more)
+      //   income (paid back) → sub-account decreases (they owe less)
+      // For "I Owe People" (owe) loans, default behavior:
+      //   income (borrowing) → sub-account increases (I owe more)
+      //   expense (paying back) → sub-account decreases (I owe less)
+      const isOwed = acc.loanDirection === "owed";
+      const sign =
+        (isOwed && tx.type === "income") || (!isOwed && tx.type === "expense")
+          ? -1
+          : 1;
+
       const subs = [...(acc.subAccounts ?? [])];
       const idx = subs.findIndex(
         (s) => s.name.toLowerCase() === tx.subAccountName!.toLowerCase(),
       );
       if (idx >= 0) {
-        subs[idx] = {
-          ...subs[idx],
-          balance: Math.max(0, subs[idx].balance + dir * tx.amount),
-        };
+        const newBal = Math.max(0, subs[idx].balance + sign * dir * tx.amount);
+        if (newBal === 0) {
+          // Remove person once fully paid off
+          subs.splice(idx, 1);
+        } else {
+          subs[idx] = { ...subs[idx], balance: newBal };
+        }
       } else if (dir === 1) {
         // Only create on add, not on undo/delete
         subs.push({ name: tx.subAccountName!, balance: tx.amount });
@@ -943,10 +978,22 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const deleteAccount = useCallback(async (id: string): Promise<void> => {
-    setRawTransactions((prev) =>
-      prev.filter((t) => t.accountId !== id && t.toAccountId !== id),
-    );
-    setRawAccounts((prev) => prev.filter((a) => a.id !== id));
+    setRawTransactions((prev) => {
+      const toRemove = prev.filter(
+        (t) => t.accountId === id || t.toAccountId === id,
+      );
+      // Reverse balance impacts on surviving accounts
+      setRawAccounts((accs) => {
+        let updated = accs;
+        for (const tx of toRemove) {
+          updated = applySubAccountTx(applyTx(updated, tx, -1), tx, -1);
+        }
+        return updated.filter((a) => a.id !== id);
+      });
+      return prev.filter(
+        (t) => t.accountId !== id && t.toAccountId !== id,
+      );
+    });
   }, []);
 
   // ── Sub-account CRUD (for loan person entries) ──
