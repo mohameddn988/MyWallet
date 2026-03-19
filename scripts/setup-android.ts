@@ -75,8 +75,8 @@ patchFile(
 // 2b. Use release signing config in release build type
 patchFile(
   buildGradlePath,
-  /release \{\n([\s\S]*?)signingConfig signingConfigs\.debug/,
-  `release {\n$1signingConfig signingConfigs.release`,
+  /(buildTypes\s*\{[\s\S]*?release\s*\{[\s\S]*?)signingConfig signingConfigs\.debug/,
+  `$1signingConfig signingConfigs.release`,
   "build.gradle: set release signingConfig",
 );
 
