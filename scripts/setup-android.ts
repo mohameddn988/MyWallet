@@ -114,12 +114,17 @@ const colorsXmlPath = path.join(
   ANDROID, "app", "src", "main", "res", "values", "colors.xml",
 );
 
-patchFile(
-  colorsXmlPath,
-  "</resources>",
-  `  <color name="colorPrimary">#023c69</color>\n  <color name="colorPrimaryDark">#F5F5F5</color>\n</resources>`,
-  "colors.xml: added colorPrimary and colorPrimaryDark",
-);
+const colorsContent = readFile(colorsXmlPath);
+if (!colorsContent.includes('"colorPrimary"')) {
+  patchFile(
+    colorsXmlPath,
+    "</resources>",
+    `  <color name="colorPrimary">#023c69</color>\n  <color name="colorPrimaryDark">#F5F5F5</color>\n</resources>`,
+    "colors.xml: added colorPrimary and colorPrimaryDark",
+  );
+} else {
+  console.log("  [skip] colors.xml: colorPrimary already present");
+}
 
 // ── 5. Patch styles.xml — add colorPrimary ref and statusBarColor ────────────
 
