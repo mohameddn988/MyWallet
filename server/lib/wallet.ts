@@ -1,6 +1,7 @@
 import { Collection, WithId } from "mongodb";
 import { connectDB } from "./db";
 import { WalletDocument, WalletStatePayload } from "../models/Wallet";
+import { sanitize } from "./sanitize";
 
 export const DEFAULT_BASE_CURRENCY = "DZD";
 
@@ -51,11 +52,18 @@ export async function saveWalletState(
   const wallets = await walletsCollection();
   const now = new Date();
 
+  const safeState = sanitize(nextState);
+
   const updated = await wallets.findOneAndUpdate(
     { userId },
     {
       $set: {
-        ...nextState,
+        hasCompleted: safeState.hasCompleted,
+        baseCurrency: safeState.baseCurrency,
+        accounts: safeState.accounts,
+        exchangeRates: safeState.exchangeRates,
+        transactions: safeState.transactions,
+        settings: safeState.settings,
         updatedAt: now,
       },
       $setOnInsert: {
