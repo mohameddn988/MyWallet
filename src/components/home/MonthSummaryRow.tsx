@@ -1,9 +1,10 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useLocale } from "../../contexts/LocaleContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { MonthSummary } from "../../types/finance";
-import { convertFromBase, formatAmount } from "../../utils/currency";
+import { convertFromBase } from "../../utils/currency";
 
 interface MonthSummaryRowProps {
   summary: MonthSummary;
@@ -25,6 +26,7 @@ export default function MonthSummaryRow({
   onNetPress,
 }: MonthSummaryRowProps) {
   const { theme } = useTheme();
+  const { formatAmount } = useLocale();
   const styles = useMemo(() => makeStyles(theme), [theme]);
   const isNetPositive = summary.net >= 0;
 

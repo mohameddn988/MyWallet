@@ -68,9 +68,9 @@ export function isSuffixCurrency(currency: string): boolean {
 export function formatAmount(
   minorUnits: number,
   currency: string,
-  options: { showSign?: boolean; compact?: boolean } = {},
+  options: { showSign?: boolean; compact?: boolean; locale?: string } = {},
 ): string {
-  const { showSign = false, compact = false } = options;
+  const { showSign = false, compact = false, locale = "en-US" } = options;
   const symbol = getCurrencySymbol(currency);
   // Currencies stored without sub-units (minor unit = 1, no ×100 storage)
   const isNoSubUnit = ["JPY", "KRW", "VND"].includes(currency.toUpperCase());
@@ -84,16 +84,18 @@ export function formatAmount(
   let formatted: string;
   if (compact) {
     if (value >= 1_000_000) {
-      formatted = `${(value / 1_000_000).toFixed(1)}M`;
+      formatted = `${(value / 1_000_000).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`;
     } else if (value >= 1_000) {
-      formatted = `${(value / 1_000).toFixed(1)}K`;
+      formatted = `${(value / 1_000).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}K`;
     } else {
-      formatted = isNoCents ? value.toFixed(0) : value.toFixed(2);
+      formatted = isNoCents
+        ? value.toLocaleString(locale, { maximumFractionDigits: 0 })
+        : value.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
   } else {
     formatted = isNoCents
-      ? value.toLocaleString("en-US", { maximumFractionDigits: 0 })
-      : value.toLocaleString("en-US", {
+      ? value.toLocaleString(locale, { maximumFractionDigits: 0 })
+      : value.toLocaleString(locale, {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
         });
@@ -110,8 +112,9 @@ export function formatAmount(
 export function formatAmountSigned(
   minorUnits: number,
   currency: string,
+  locale?: string,
 ): string {
-  return formatAmount(minorUnits, currency, { showSign: true });
+  return formatAmount(minorUnits, currency, { showSign: true, locale });
 }
 
 /**
@@ -159,18 +162,32 @@ export function toDateStr(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-/** Human-readable date label: "Today", "Yesterday", or "Mon, Feb 24" */
-export function formatDateLabel(dateStr: string): string {
+/** Human-readable date label with configurable format */
+export function formatDateLabel(
+  dateStr: string,
+  dateFormatId: string = "DD/MM/YYYY",
+): string {
   const today = toDateStr(new Date());
   const yesterday = toDateStr(new Date(Date.now() - 86_400_000));
   if (dateStr === today) return "Today";
   if (dateStr === yesterday) return "Yesterday";
   const d = parseDate(dateStr);
-  return d.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = String(d.getFullYear());
+  const monthShort = d.toLocaleDateString("en-US", { month: "short" });
+  const weekday = d.toLocaleDateString("en-US", { weekday: "short" });
+  switch (dateFormatId) {
+    case "MM/DD/YYYY":
+      return `${weekday}, ${mm}/${dd}/${yyyy}`;
+    case "YYYY-MM-DD":
+      return `${yyyy}-${mm}-${dd}`;
+    case "D MMM YYYY":
+      return `${weekday}, ${d.getDate()} ${monthShort} ${yyyy}`;
+    case "DD/MM/YYYY":
+    default:
+      return `${weekday}, ${dd}/${mm}/${yyyy}`;
+  }
 }
 
 /** e.g. "February 2026" */

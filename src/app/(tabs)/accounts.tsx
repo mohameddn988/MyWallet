@@ -25,10 +25,10 @@ import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getAccountTypeMeta } from "../../data/accounts";
 import { Account, AccountType, ExchangeRate } from "../../types/finance";
+import { useLocale } from "../../contexts/LocaleContext";
 import {
   convertFromBase,
   convertToBase,
-  formatAmount,
 } from "../../utils/currency";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -50,6 +50,7 @@ function AccountCard({
   theme: Theme;
   onLongPress?: () => void;
 }) {
+  const { formatAmount } = useLocale();
   const s = makeStyles(theme);
 
   return (
@@ -153,6 +154,7 @@ function GroupSection({
   onToggle: () => void;
   onTogglePin: (account: Account) => void;
 }) {
+  const { formatAmount } = useLocale();
   const meta = getAccountTypeMeta(type);
   const rotateAnim = useRef(new Animated.Value(expanded ? 1 : 0)).current;
   const s = makeStyles(theme);
@@ -265,6 +267,7 @@ const TYPE_ORDER: AccountType[] = [
 
 export default function AccountsTabScreen() {
   const { theme } = useTheme();
+  const { formatAmount } = useLocale();
   const s = useMemo(() => makeStyles(theme), [theme]);
   const {
     allAccounts,

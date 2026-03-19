@@ -3,10 +3,17 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import { getRealm, readAppPrefs, writeAppPref } from "../lib/realm";
-import { parseDate, toDateStr } from "../utils/currency";
+import {
+  formatAmount as _formatAmount,
+  formatAmountSigned as _formatAmountSigned,
+  formatDateLabel as _formatDateLabel,
+  parseDate,
+  toDateStr,
+} from "../utils/currency";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -125,6 +132,16 @@ interface LocaleContextType {
   formatDate: (dateStr: string) => string;
   /** Format a plain number (not minor-units) to the user's chosen number format. */
   formatNumber: (value: number, decimals?: number) => string;
+  /** Locale-aware formatAmount (minor units → display string). */
+  formatAmount: (
+    minorUnits: number,
+    currency: string,
+    options?: { showSign?: boolean; compact?: boolean },
+  ) => string;
+  /** Locale-aware formatAmountSigned. */
+  formatAmountSigned: (minorUnits: number, currency: string) => string;
+  /** Locale-aware formatDateLabel ("Today" / "Yesterday" / formatted). */
+  formatDateLabel: (dateStr: string) => string;
 }
 
 const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
@@ -231,19 +248,58 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     [numberFormat],
   );
 
+  // Locale-aware wrappers around utility functions
+  const formatAmount = useCallback(
+    (
+      minorUnits: number,
+      currency: string,
+      options?: { showSign?: boolean; compact?: boolean },
+    ) => _formatAmount(minorUnits, currency, { ...options, locale: numberFormat }),
+    [numberFormat],
+  );
+
+  const formatAmountSigned = useCallback(
+    (minorUnits: number, currency: string) =>
+      _formatAmountSigned(minorUnits, currency, numberFormat),
+    [numberFormat],
+  );
+
+  const formatDateLabel = useCallback(
+    (dateStr: string) => _formatDateLabel(dateStr, dateFormat),
+    [dateFormat],
+  );
+
+  const value = useMemo(
+    () => ({
+      dateFormat,
+      firstDayOfWeek,
+      numberFormat,
+      setDateFormat,
+      setFirstDayOfWeek,
+      setNumberFormat,
+      formatDate,
+      formatNumber,
+      formatAmount,
+      formatAmountSigned,
+      formatDateLabel,
+    }),
+    [
+      dateFormat,
+      firstDayOfWeek,
+      numberFormat,
+      setDateFormat,
+      setFirstDayOfWeek,
+      setNumberFormat,
+      formatDate,
+      formatNumber,
+      formatAmount,
+      formatAmountSigned,
+      formatDateLabel,
+    ],
+  );
+
   return (
-    <LocaleContext.Provider
-      value={{
-        dateFormat,
-        firstDayOfWeek,
-        numberFormat,
-        setDateFormat,
-        setFirstDayOfWeek,
-        setNumberFormat,
-        formatDate,
-        formatNumber,
-      }}
-    >
+    <LocaleContext.Provider value={value}>
       {children}
     </LocaleContext.Provider>
   );

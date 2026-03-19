@@ -19,7 +19,8 @@ import Svg, {
 import { Theme } from "../../constants/themes";
 import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
-import { convertToBase, formatAmount } from "../../utils/currency";
+import { useLocale } from "../../contexts/LocaleContext";
+import { convertToBase } from "../../utils/currency";
 
 type Period = "day" | "week" | "month" | "quarter" | "year";
 
@@ -221,6 +222,7 @@ function HeroAmount({
   accentColor: string;
   foreColor: string;
 }) {
+  const { formatAmount } = useLocale();
   const full = formatAmount(amount, currency);
   const dotIdx = full.lastIndexOf(".");
   const intPart = dotIdx >= 0 ? full.slice(0, dotIdx) : full;
@@ -389,6 +391,7 @@ function DonutRow({
   theme: Theme;
   styles: ReturnType<typeof makeStyles>;
 }) {
+  const { formatAmount } = useLocale();
   const total = data.reduce((s, d) => s + d.value, 0);
   return (
     <View style={styles.donutRow}>
@@ -441,6 +444,7 @@ function DonutRow({
 
 export default function AnalyticsScreen() {
   const { theme } = useTheme();
+  const { formatAmount } = useLocale();
   const { allTransactions, baseCurrency, exchangeRates } = useFinance();
   const router = useRouter();
   const styles = useMemo(() => makeStyles(theme), [theme]);

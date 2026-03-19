@@ -1,9 +1,9 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useLocale } from "../../contexts/LocaleContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { AccountWithBalance, ExchangeRate } from "../../types/finance";
-import { formatAmount } from "../../utils/currency";
 
 interface AccountsListProps {
   accounts: AccountWithBalance[];
@@ -23,6 +23,7 @@ export default function AccountsList({
   onViewAllPress,
 }: AccountsListProps) {
   const { theme } = useTheme();
+  const { formatAmount } = useLocale();
   const styles = useMemo(() => makeStyles(theme), [theme]);
 
   const liquidAccounts = accounts

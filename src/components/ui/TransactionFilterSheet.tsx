@@ -15,7 +15,8 @@ import {
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "../../data/categories";
 import { ACCOUNT_TYPE_META } from "../../data/accounts";
 import { AccountType } from "../../types/finance";
-import { formatDateLabel, toDateStr } from "../../utils/currency";
+import { useLocale } from "../../contexts/LocaleContext";
+import { toDateStr } from "../../utils/currency";
 import { DatePickerModal } from "./DatePickerModal";
 import { useTheme } from "../../contexts/ThemeContext";
 import { Theme } from "../../constants/themes";
@@ -106,6 +107,7 @@ export default function TransactionFilterSheet({
   onApply,
 }: TransactionFilterSheetProps) {
   const { theme } = useTheme();
+  const { formatDateLabel } = useLocale();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const isCompactLayout = width <= 360;

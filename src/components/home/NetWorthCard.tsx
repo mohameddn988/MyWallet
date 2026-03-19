@@ -7,8 +7,8 @@ import {
   Text,
   View,
 } from "react-native";
+import { useLocale } from "../../contexts/LocaleContext";
 import { useTheme } from "../../contexts/ThemeContext";
-import { formatAmount } from "../../utils/currency";
 
 interface NetWorthCardProps {
   netWorth: number;
@@ -28,6 +28,7 @@ export default function NetWorthCard({
   onCurrencyChange,
 }: NetWorthCardProps) {
   const { theme } = useTheme();
+  const { formatAmount } = useLocale();
   const [pickerVisible, setPickerVisible] = useState(false);
 
   const isPositive = monthNet >= 0;
@@ -63,16 +64,7 @@ export default function NetWorthCard({
           <View style={styles.changeRow}>
             <Text style={[styles.changeText, { color: changeColor }]}>
               {changeSign}
-              {(() => {
-                const value = Math.abs(monthNet) / 100;
-                if (value >= 1_000_000) {
-                  return `${(value / 1_000_000).toFixed(1)}M`;
-                } else if (value >= 1_000) {
-                  return `${(value / 1_000).toFixed(1)}K`;
-                } else {
-                  return value.toFixed(2);
-                }
-              })()}
+              {formatAmount(Math.abs(monthNet), displayCurrency, { compact: true })}
             </Text>
             <Text
               style={[styles.changeSuffix, { color: theme.foreground.gray }]}

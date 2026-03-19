@@ -29,8 +29,8 @@ import {
   INCOME_CATEGORIES,
 } from "../../data/categories";
 import { Transaction, TransactionType } from "../../types/finance";
+import { useLocale } from "../../contexts/LocaleContext";
 import {
-  formatAmount,
   getCurrencySymbol,
   parseDate,
   toDateStr,
@@ -75,7 +75,11 @@ function toMinorUnits(raw: string): number {
 }
 
 /** Format amount string as live display preview */
-function formatLiveAmount(raw: string, currency: string): string | null {
+function formatLiveAmount(
+  raw: string,
+  currency: string,
+  formatAmount: (minorUnits: number, currency: string) => string,
+): string | null {
   const minor = toMinorUnits(raw);
   if (!minor) return null;
   return formatAmount(minor, currency);
@@ -161,6 +165,7 @@ function formatDateDisplay(dateStr: string): string {
 
 export default function AddTransactionScreen() {
   const { theme } = useTheme();
+  const { formatAmount } = useLocale();
   const styles = makeStyles(theme);
   const params = useLocalSearchParams<{ type?: string; editId?: string }>();
   const isEdit = Boolean(params.editId);
@@ -283,7 +288,7 @@ export default function AddTransactionScreen() {
   const amountNum = parseFloat(amountRaw);
   const amountMinorUnits = toMinorUnits(amountRaw);
   const liveFormatted =
-    amountMinorUnits > 0 ? formatLiveAmount(amountRaw, currency) : null;
+    amountMinorUnits > 0 ? formatLiveAmount(amountRaw, currency, formatAmount) : null;
 
   // â”€â”€ Validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const errors = {

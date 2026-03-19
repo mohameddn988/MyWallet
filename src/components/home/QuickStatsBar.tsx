@@ -1,8 +1,9 @@
 import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useLocale } from "../../contexts/LocaleContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { QuickStats } from "../../types/finance";
-import { convertFromBase, formatAmount } from "../../utils/currency";
+import { convertFromBase } from "../../utils/currency";
 
 export type Period = "today" | "week" | "month";
 
@@ -30,6 +31,7 @@ export default function QuickStatsBar({
   onPeriodChange,
 }: QuickStatsBarProps) {
   const { theme } = useTheme();
+  const { formatAmount } = useLocale();
   const styles = useMemo(() => makeStyles(theme), [theme]);
 
   const convertedStats = useMemo(

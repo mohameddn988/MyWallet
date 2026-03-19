@@ -1,9 +1,9 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useLocale } from "../../contexts/LocaleContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { Transaction } from "../../types/finance";
-import { formatAmount, formatDateLabel } from "../../utils/currency";
 
 interface RecentTransactionsListProps {
   transactions: Transaction[];
@@ -30,6 +30,7 @@ export default function RecentTransactionsList({
   onViewAllPress,
 }: RecentTransactionsListProps) {
   const { theme } = useTheme();
+  const { formatAmount, formatDateLabel } = useLocale();
   const styles = useMemo(() => makeStyles(theme), [theme]);
   const groups = useMemo(() => groupByDate(transactions), [transactions]);
 

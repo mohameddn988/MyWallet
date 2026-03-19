@@ -14,7 +14,7 @@ import { Theme } from "../../constants/themes";
 import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { Transaction, TransactionType } from "../../types/finance";
-import { formatAmount, formatDateLabel } from "../../utils/currency";
+import { useLocale } from "../../contexts/LocaleContext";
 import TransactionFilterSheet, {
   countActiveFilters,
   DEFAULT_TX_FILTERS,
@@ -95,6 +95,7 @@ const FILTER_CONFIG: {
 
 export default function TransactionsTabScreen() {
   const { theme } = useTheme();
+  const { formatAmount, formatDateLabel } = useLocale();
   const styles = useMemo(() => makeStyles(theme), [theme]);
   const searchParams = useLocalSearchParams<{ filter?: string }>();
   const { allTransactions, isRefreshing, refresh, allAccounts } = useFinance();
@@ -378,6 +379,7 @@ const DayCard = React.memo(function DayCard({
   isExpanded: boolean;
   onToggle: (date: string) => void;
 }) {
+  const { formatAmount, formatDateLabel } = useLocale();
   const net = group.dayNet;
   const netColor =
     net > 0 ? theme.primary.main : net < 0 ? "#F14A6E" : theme.foreground.gray;
@@ -427,6 +429,7 @@ const TxRow = React.memo(function TxRow({
   styles: ReturnType<typeof makeStyles>;
   onPress: () => void;
 }) {
+  const { formatAmount } = useLocale();
   const isIncome = tx.type === "income";
   const isTransfer = tx.type === "transfer";
   const accentColor = isTransfer

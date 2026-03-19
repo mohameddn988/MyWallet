@@ -16,11 +16,10 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { getAccountTypeMeta, LOAN_DIRECTIONS } from "../../data/accounts";
 import { AppModal } from "../../components/ui/AppModal";
 import { Transaction } from "../../types/finance";
+import { useLocale } from "../../contexts/LocaleContext";
 import {
   convertFromBase,
   convertToBase,
-  formatAmount,
-  formatAmountSigned,
   getCurrencySymbol,
   parseDate,
 } from "../../utils/currency";
@@ -129,6 +128,7 @@ function TxRow({
       : tx.type === "income"
         ? theme.primary.main
         : "#F14A6E";
+  const { formatAmount } = useLocale();
 
   // For transfers, show the amount in this account's currency
   let displayAmount = tx.amount;
@@ -229,6 +229,7 @@ function formatDateHeading(dateStr: string): string {
 
 export default function AccountDetailScreen() {
   const { theme } = useTheme();
+  const { formatAmount, formatAmountSigned } = useLocale();
   const styles = makeStyles(theme);
   const { id } = useLocalSearchParams<{ id: string }>();
 

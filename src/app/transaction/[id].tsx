@@ -6,15 +6,15 @@ import { AppModal } from "../../components/ui/AppModal";
 import { Theme } from "../../constants/themes";
 import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useLocale } from "../../contexts/LocaleContext";
 import {
   convertFromBase,
   convertToBase,
-  formatAmount,
-  formatDateLabel,
 } from "../../utils/currency";
 
 export default function TransactionDetailScreen() {
   const { theme } = useTheme();
+  const { formatAmount, formatDateLabel } = useLocale();
   const styles = makeStyles(theme);
   const { id } = useLocalSearchParams<{ id: string }>();
   const { allTransactions, accounts, deleteTransaction, baseCurrency, exchangeRates } = useFinance();

@@ -1061,9 +1061,14 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       now,
     );
     const quickStats = computeQuickStats(rawTransactions, rateMap, base, now);
-    const sorted = [...rawTransactions].sort((a, b) =>
-      b.date.localeCompare(a.date),
-    );
+    const sorted = [...rawTransactions].sort((a, b) => {
+      const cmp = b.date.localeCompare(a.date);
+      if (cmp !== 0) return cmp;
+      // Extract timestamp from id (tx_1234567890) — higher = newer
+      const tsA = parseInt(a.id.replace("tx_", ""), 10) || 0;
+      const tsB = parseInt(b.id.replace("tx_", ""), 10) || 0;
+      return tsB - tsA;
+    });
     const recentTransactions = sorted.slice(0, 12);
     const allTransactions = sorted;
     const allAccounts = rawAccounts;
