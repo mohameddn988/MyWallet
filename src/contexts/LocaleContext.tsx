@@ -117,6 +117,20 @@ export const FIRST_DAY_OPTIONS: FirstDayOption[] = [
   { id: "saturday", label: "Saturday" },
 ];
 
+export type MonthLengthId = "calendar" | "30" | "28";
+
+export interface MonthLengthOption {
+  id: MonthLengthId;
+  label: string;
+  desc: string;
+}
+
+export const MONTH_LENGTH_OPTIONS: MonthLengthOption[] = [
+  { id: "calendar", label: "Calendar", desc: "Follow real calendar months (28–31 days)" },
+  { id: "30", label: "30 days", desc: "Every month is exactly 30 days" },
+  { id: "28", label: "28 days", desc: "Every month is exactly 28 days (4 weeks)" },
+];
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Context
 // ─────────────────────────────────────────────────────────────────────────────
@@ -126,7 +140,6 @@ interface LocaleContextType {
   firstDayOfWeek: FirstDayOfWeek;
   numberFormat: NumberFormatId;
   setDateFormat: (id: DateFormatId) => Promise<void>;
-  setFirstDayOfWeek: (id: FirstDayOfWeek) => Promise<void>;
   setNumberFormat: (id: NumberFormatId) => Promise<void>;
   /** Format a "YYYY-MM-DD" string to the user's chosen date format. */
   formatDate: (dateStr: string) => string;
@@ -142,6 +155,12 @@ interface LocaleContextType {
   formatAmountSigned: (minorUnits: number, currency: string) => string;
   /** Locale-aware formatDateLabel ("Today" / "Yesterday" / formatted). */
   formatDateLabel: (dateStr: string) => string;
+  /** Budget month length mode */
+  monthLength: MonthLengthId;
+  /** Day of month the budget cycle starts (1-31) */
+  monthStartDay: number;
+  setMonthLength: (id: MonthLengthId) => Promise<void>;
+  setMonthStartDay: (day: number) => Promise<void>;
 }
 
 const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
@@ -152,9 +171,21 @@ const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
 
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
   const [dateFormat, setDateFormatState] = useState<DateFormatId>("DD/MM/YYYY");
-  const [firstDayOfWeek, setFirstDayState] = useState<FirstDayOfWeek>("sunday");
   const [numberFormat, setNumberFormatState] =
     useState<NumberFormatId>("en-US");
+  const [monthLength, setMonthLengthState] = useState<MonthLengthId>("calendar");
+  const [monthStartDay, setMonthStartDayState] = useState(1);
+
+  // Compute firstDayOfWeek from monthStartDay
+  const DAY_NAMES: FirstDayOfWeek[] = [
+    "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday",
+  ];
+  const firstDayOfWeek = useMemo(() => {
+    const now = new Date();
+    let d = new Date(now.getFullYear(), now.getMonth(), monthStartDay);
+    if (d > now) d = new Date(now.getFullYear(), now.getMonth() - 1, monthStartDay);
+    return DAY_NAMES[d.getDay()];
+  }, [monthStartDay]);
 
   // Load locale preferences from Realm on mount
   useEffect(() => {
@@ -169,15 +200,17 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
         )
           setDateFormatState(prefs.dateFormat as DateFormatId);
         if (
-          prefs.firstDayOfWeek &&
-          FIRST_DAY_OPTIONS.find((o) => o.id === prefs.firstDayOfWeek)
-        )
-          setFirstDayState(prefs.firstDayOfWeek as FirstDayOfWeek);
-        if (
           prefs.numberFormat &&
           NUMBER_FORMAT_OPTIONS.find((o) => o.id === prefs.numberFormat)
         )
           setNumberFormatState(prefs.numberFormat as NumberFormatId);
+        if (
+          prefs.monthLength &&
+          MONTH_LENGTH_OPTIONS.find((o) => o.id === prefs.monthLength)
+        )
+          setMonthLengthState(prefs.monthLength as MonthLengthId);
+        if (prefs.monthStartDay != null)
+          setMonthStartDayState(prefs.monthStartDay);
       } catch {}
     })();
   }, []);
@@ -190,19 +223,27 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, []);
 
-  const setFirstDayOfWeek = useCallback(async (id: FirstDayOfWeek) => {
-    setFirstDayState(id);
-    try {
-      const realm = await getRealm();
-      writeAppPref(realm, { firstDayOfWeek: id });
-    } catch {}
-  }, []);
-
   const setNumberFormat = useCallback(async (id: NumberFormatId) => {
     setNumberFormatState(id);
     try {
       const realm = await getRealm();
       writeAppPref(realm, { numberFormat: id });
+    } catch {}
+  }, []);
+
+  const setMonthLength = useCallback(async (id: MonthLengthId) => {
+    setMonthLengthState(id);
+    try {
+      const realm = await getRealm();
+      writeAppPref(realm, { monthLength: id });
+    } catch {}
+  }, []);
+
+  const setMonthStartDay = useCallback(async (day: number) => {
+    setMonthStartDayState(day);
+    try {
+      const realm = await getRealm();
+      writeAppPref(realm, { monthStartDay: day });
     } catch {}
   }, []);
 
@@ -274,9 +315,12 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
       dateFormat,
       firstDayOfWeek,
       numberFormat,
+      monthLength,
+      monthStartDay,
       setDateFormat,
-      setFirstDayOfWeek,
       setNumberFormat,
+      setMonthLength,
+      setMonthStartDay,
       formatDate,
       formatNumber,
       formatAmount,
@@ -287,9 +331,12 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
       dateFormat,
       firstDayOfWeek,
       numberFormat,
+      monthLength,
+      monthStartDay,
       setDateFormat,
-      setFirstDayOfWeek,
       setNumberFormat,
+      setMonthLength,
+      setMonthStartDay,
       formatDate,
       formatNumber,
       formatAmount,

@@ -85,6 +85,8 @@ export class AppPrefsObject extends Realm.Object<AppPrefsObject> {
   dateFormat?: string;
   firstDayOfWeek?: string;
   numberFormat?: string;
+  monthLength?: string;
+  monthStartDay?: number;
 
   static schema: Realm.ObjectSchema = {
     name: "AppPrefs",
@@ -94,6 +96,8 @@ export class AppPrefsObject extends Realm.Object<AppPrefsObject> {
       dateFormat: "string?",
       firstDayOfWeek: "string?",
       numberFormat: "string?",
+      monthLength: "string?",
+      monthStartDay: "int?",
     },
   };
 }
@@ -109,7 +113,8 @@ export async function getRealm(): Promise<Realm> {
 
   _realm = await Realm.open({
     schema: [WalletObject, AuthSessionObject, AppPrefsObject],
-    schemaVersion: 2,
+    schemaVersion: 3,
+    onMigration: () => {},
   });
 
   return _realm;
@@ -253,6 +258,8 @@ export interface AppPrefsData {
   dateFormat?: string;
   firstDayOfWeek?: string;
   numberFormat?: string;
+  monthLength?: string;
+  monthStartDay?: number;
 }
 
 /** Read the singleton app preferences from Realm, or null if none exists. */
@@ -263,6 +270,8 @@ export function readAppPrefs(realm: Realm): AppPrefsData | null {
     dateFormat: doc.dateFormat ?? undefined,
     firstDayOfWeek: doc.firstDayOfWeek ?? undefined,
     numberFormat: doc.numberFormat ?? undefined,
+    monthLength: doc.monthLength ?? undefined,
+    monthStartDay: doc.monthStartDay ?? undefined,
   };
 }
 
@@ -278,12 +287,16 @@ export function writeAppPref(realm: Realm, patch: Partial<AppPrefsData>): void {
       if ("firstDayOfWeek" in patch)
         existing.firstDayOfWeek = patch.firstDayOfWeek;
       if ("numberFormat" in patch) existing.numberFormat = patch.numberFormat;
+      if ("monthLength" in patch) existing.monthLength = patch.monthLength;
+      if ("monthStartDay" in patch) existing.monthStartDay = patch.monthStartDay;
     } else {
       realm.create(AppPrefsObject, {
         id: "singleton",
         dateFormat: patch.dateFormat,
         firstDayOfWeek: patch.firstDayOfWeek,
         numberFormat: patch.numberFormat,
+        monthLength: patch.monthLength,
+        monthStartDay: patch.monthStartDay,
       });
     }
   });

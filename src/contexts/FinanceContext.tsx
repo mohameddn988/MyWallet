@@ -57,6 +57,8 @@ interface WalletStatePayload {
     dateFormat?: string;
     firstDayOfWeek?: string;
     numberFormat?: string;
+    monthLength?: string;
+    monthStartDay?: number;
   };
 }
 
@@ -184,20 +186,51 @@ function getStartOfDay(dateStr: string): Date {
   return new Date(y, m - 1, d);
 }
 
+/**
+ * Compute the start (inclusive) and end (exclusive) of the current budget period.
+ * - "calendar": real calendar month, starting on `startDay`
+ * - "30" / "28": fixed-length cycles anchored to the most recent `startDay`
+ */
+function getBudgetPeriod(
+  now: Date,
+  monthLength: string,
+  monthStartDay: number,
+): { start: Date; end: Date } {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  // Find the most recent occurrence of monthStartDay
+  let start = new Date(today.getFullYear(), today.getMonth(), monthStartDay);
+  if (today < start) {
+    // Haven't reached startDay this calendar month — go to previous month
+    start = new Date(today.getFullYear(), today.getMonth() - 1, monthStartDay);
+  }
+
+  if (monthLength === "calendar") {
+    const end = new Date(start.getFullYear(), start.getMonth() + 1, monthStartDay);
+    return { start, end };
+  }
+
+  // Fixed-length (28 or 30 days) from the most recent startDay
+  const days = monthLength === "28" ? 28 : 30;
+  const end = new Date(start.getTime() + days * 86_400_000);
+  return { start, end };
+}
+
 function computeMonthSummary(
   transactions: Transaction[],
   rateMap: Record<string, number>,
   base: string,
   now: Date,
+  monthLength: string,
+  monthStartDay: number,
 ): MonthSummary {
-  const month = now.getMonth();
-  const year = now.getFullYear();
+  const { start, end } = getBudgetPeriod(now, monthLength, monthStartDay);
   let income = 0;
   let expense = 0;
 
   for (const tx of transactions) {
     const d = getStartOfDay(tx.date);
-    if (d.getFullYear() !== year || d.getMonth() !== month) continue;
+    if (d < start || d >= end) continue;
     if (tx.type === "transfer") continue;
     const inBase = convertToBase(tx.amount, tx.currency, base, rateMap);
     if (tx.type === "income") income += inBase;
@@ -215,13 +248,27 @@ function computeQuickStats(
   rateMap: Record<string, number>,
   base: string,
   now: Date,
+  monthLength: string,
+  monthStartDay: number,
 ): QuickStats {
   const todayStr = toDateStr(now);
-  const weekAgo = new Date(now);
-  weekAgo.setDate(now.getDate() - 6);
+  const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  const month = now.getMonth();
-  const year = now.getFullYear();
+  const { start: budgetStart, end: budgetEnd } = getBudgetPeriod(
+    now,
+    monthLength,
+    monthStartDay,
+  );
+
+  // Current week: count days since budget start, find which 7-day block we're in
+  const daysSinceBudgetStart = Math.floor(
+    (todayDate.getTime() - budgetStart.getTime()) / 86_400_000,
+  );
+  const currentWeekIndex = Math.floor(daysSinceBudgetStart / 7);
+  const weekStart = new Date(
+    budgetStart.getTime() + currentWeekIndex * 7 * 86_400_000,
+  );
+  const weekEnd = new Date(weekStart.getTime() + 7 * 86_400_000);
 
   const today = makePeriod();
   const week = makePeriod();
@@ -239,8 +286,8 @@ function computeQuickStats(
     };
 
     if (tx.date === todayStr) addTo(today);
-    if (d >= weekAgo && d <= now) addTo(week);
-    if (d.getFullYear() === year && d.getMonth() === month) addTo(month_);
+    if (d >= weekStart && d < weekEnd) addTo(week);
+    if (d >= budgetStart && d < budgetEnd) addTo(month_);
   }
 
   today.net = today.income - today.expense;
@@ -266,9 +313,12 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     dateFormat,
     firstDayOfWeek,
     numberFormat,
+    monthLength,
+    monthStartDay,
     setDateFormat,
-    setFirstDayOfWeek,
     setNumberFormat,
+    setMonthLength,
+    setMonthStartDay,
   } = useLocale();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -369,8 +419,9 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       if (cloudState.settings) {
         const s = cloudState.settings;
         if (s.dateFormat) void setDateFormat(s.dateFormat as any);
-        if (s.firstDayOfWeek) void setFirstDayOfWeek(s.firstDayOfWeek as any);
         if (s.numberFormat) void setNumberFormat(s.numberFormat as any);
+        if (s.monthLength) void setMonthLength(s.monthLength as any);
+        if (s.monthStartDay != null) void setMonthStartDay(s.monthStartDay);
       }
 
       if (cloudState.hasCompleted) {
@@ -379,7 +430,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
         await auth.resetSetup();
       }
     },
-    [setDateFormat, setFirstDayOfWeek, setNumberFormat],
+    [setDateFormat, setNumberFormat, setMonthLength, setMonthStartDay],
   );
 
   useEffect(() => {
@@ -511,9 +562,9 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
           if (local.settings) {
             const s = local.settings;
             if (s.dateFormat) void setDateFormat(s.dateFormat as any);
-            if (s.firstDayOfWeek)
-              void setFirstDayOfWeek(s.firstDayOfWeek as any);
             if (s.numberFormat) void setNumberFormat(s.numberFormat as any);
+            if (s.monthLength) void setMonthLength(s.monthLength as any);
+            if (s.monthStartDay != null) void setMonthStartDay(s.monthStartDay);
           }
           if (local.hasCompleted) {
             await auth.setSetupCompleted();
@@ -550,7 +601,6 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     syncCloudState,
     commitPendingGoogleSignIn,
     setDateFormat,
-    setFirstDayOfWeek,
     setNumberFormat,
   ]);
 
@@ -605,7 +655,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       accounts: rawAccounts,
       exchangeRates: rawRates,
       transactions: rawTransactions,
-      settings: { dateFormat, firstDayOfWeek, numberFormat },
+      settings: { dateFormat, firstDayOfWeek, numberFormat, monthLength, monthStartDay },
     };
 
     writeLocalWallet(realmRef.current, userId, state);
@@ -622,6 +672,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     dateFormat,
     firstDayOfWeek,
     numberFormat,
+    monthLength,
+    monthStartDay,
   ]);
 
   useEffect(() => {
@@ -639,7 +691,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       accounts: rawAccounts,
       exchangeRates: rawRates,
       transactions: rawTransactions,
-      settings: { dateFormat, firstDayOfWeek, numberFormat },
+      settings: { dateFormat, firstDayOfWeek, numberFormat, monthLength, monthStartDay },
     };
 
     syncTimerRef.current = setTimeout(() => {
@@ -666,6 +718,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     dateFormat,
     firstDayOfWeek,
     numberFormat,
+    monthLength,
+    monthStartDay,
     syncCloudState,
   ]);
 
@@ -1059,8 +1113,17 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       rateMap,
       base,
       now,
+      monthLength,
+      monthStartDay,
     );
-    const quickStats = computeQuickStats(rawTransactions, rateMap, base, now);
+    const quickStats = computeQuickStats(
+      rawTransactions,
+      rateMap,
+      base,
+      now,
+      monthLength,
+      monthStartDay,
+    );
     const sorted = [...rawTransactions].sort((a, b) => {
       const cmp = b.date.localeCompare(a.date);
       if (cmp !== 0) return cmp;
@@ -1110,6 +1173,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     rawRates,
     rawTransactions,
     eggZeroMode,
+    monthLength,
+    monthStartDay,
   ]);
 
   const fullValue = useMemo(

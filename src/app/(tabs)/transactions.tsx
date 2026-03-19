@@ -15,6 +15,7 @@ import { useFinance } from "../../contexts/FinanceContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { Transaction, TransactionType } from "../../types/finance";
 import { useLocale } from "../../contexts/LocaleContext";
+import { convertToBase } from "../../utils/currency";
 import TransactionFilterSheet, {
   countActiveFilters,
   DEFAULT_TX_FILTERS,
@@ -35,6 +36,8 @@ function groupByDate(
   txs: Transaction[],
   sortBy: "date" | "amount" = "date",
   sortDir: "asc" | "desc" = "desc",
+  baseCurrency?: string,
+  rateMap?: Record<string, number>,
 ): DayGroup[] {
   const map = new Map<string, Transaction[]>();
   for (const tx of txs) {
@@ -51,8 +54,13 @@ function groupByDate(
           )
         : items;
     const dayNet = sortedItems.reduce((sum, tx) => {
-      if (tx.type === "income") return sum + tx.amount;
-      if (tx.type === "expense") return sum - tx.amount;
+      if (tx.type === "transfer") return sum;
+      const amount =
+        baseCurrency && rateMap
+          ? convertToBase(tx.amount, tx.currency, baseCurrency, rateMap)
+          : tx.amount;
+      if (tx.type === "income") return sum + amount;
+      if (tx.type === "expense") return sum - amount;
       return sum;
     }, 0);
     return { date, data: sortedItems, dayNet };
@@ -98,7 +106,11 @@ export default function TransactionsTabScreen() {
   const { formatAmount, formatDateLabel } = useLocale();
   const styles = useMemo(() => makeStyles(theme), [theme]);
   const searchParams = useLocalSearchParams<{ filter?: string }>();
-  const { allTransactions, isRefreshing, refresh, allAccounts } = useFinance();
+  const { allTransactions, isRefreshing, refresh, allAccounts, baseCurrency, exchangeRates } = useFinance();
+  const rateMap = useMemo(
+    () => Object.fromEntries(exchangeRates.map((r) => [r.from, r.rate])),
+    [exchangeRates],
+  );
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>(
@@ -176,8 +188,8 @@ export default function TransactionsTabScreen() {
   }, [allTransactions, filter, search, advFilters, allAccounts]);
 
   const groups = useMemo(
-    () => groupByDate(filtered, advFilters.sortBy, advFilters.sortDir),
-    [filtered, advFilters.sortBy, advFilters.sortDir],
+    () => groupByDate(filtered, advFilters.sortBy, advFilters.sortDir, baseCurrency, rateMap),
+    [filtered, advFilters.sortBy, advFilters.sortDir, baseCurrency, rateMap],
   );
 
   // Expand all cards whenever groups change (on first load or filter/search change)
@@ -301,6 +313,7 @@ export default function TransactionsTabScreen() {
         renderItem={({ item }) => (
           <DayCard
             group={item}
+            baseCurrency={baseCurrency}
             theme={theme}
             styles={styles}
             isExpanded={expandedDates.has(item.date)}
@@ -368,12 +381,14 @@ export default function TransactionsTabScreen() {
 
 const DayCard = React.memo(function DayCard({
   group,
+  baseCurrency,
   theme,
   styles,
   isExpanded,
   onToggle,
 }: {
   group: DayGroup;
+  baseCurrency: string;
   theme: Theme;
   styles: ReturnType<typeof makeStyles>;
   isExpanded: boolean;
@@ -391,7 +406,7 @@ const DayCard = React.memo(function DayCard({
           <Text style={styles.dayCardDate}>{formatDateLabel(group.date)}</Text>
           <Text style={[styles.dayCardNet, { color: netColor }]}>
             {net > 0 ? "+" : ""}
-            {group.data[0] ? formatAmount(net, group.data[0].currency) : ""}
+            {formatAmount(net, baseCurrency)}
           </Text>
         </View>
         <MaterialCommunityIcons

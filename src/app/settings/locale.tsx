@@ -16,8 +16,8 @@ import { Theme } from "../../constants/themes";
 import {
   DATE_FORMAT_OPTIONS,
   DateFormatId,
-  FIRST_DAY_OPTIONS,
-  FirstDayOfWeek,
+  MONTH_LENGTH_OPTIONS,
+  MonthLengthId,
   NUMBER_FORMAT_OPTIONS,
   NumberFormatId,
   useLocale,
@@ -199,18 +199,20 @@ function SettingRow({
 // Screen
 // 
 
-type ActivePicker = "date" | "firstDay" | "number" | null;
+type ActivePicker = "date" | "number" | "monthLength" | "monthStartDay" | null;
 
 export default function LocaleSettingsScreen() {
   const { theme } = useTheme();
   const router = useRouter();
   const {
     dateFormat,
-    firstDayOfWeek,
     numberFormat,
+    monthLength,
+    monthStartDay,
     setDateFormat,
-    setFirstDayOfWeek,
     setNumberFormat,
+    setMonthLength,
+    setMonthStartDay,
     formatDate,
     formatNumber,
   } = useLocale();
@@ -231,11 +233,11 @@ export default function LocaleSettingsScreen() {
   const selectedDateOption = DATE_FORMAT_OPTIONS.find(
     (o) => o.id === dateFormat
   )!;
-  const selectedFirstDayOption = FIRST_DAY_OPTIONS.find(
-    (o) => o.id === firstDayOfWeek
-  )!;
   const selectedNumberOption = NUMBER_FORMAT_OPTIONS.find(
     (o) => o.id === numberFormat
+  )!;
+  const selectedMonthLengthOption = MONTH_LENGTH_OPTIONS.find(
+    (o) => o.id === monthLength
   )!;
 
   const previewDate = formatDate("2026-03-05");
@@ -255,14 +257,6 @@ export default function LocaleSettingsScreen() {
           selectedId: dateFormat,
           onSelect: (id: string) => setDateFormat(id as DateFormatId),
         };
-      case "firstDay":
-        return {
-          title: "First Day of Week",
-          subtitle: "Sets the start of your weekly calendar",
-          options: FIRST_DAY_OPTIONS.map((o) => ({ id: o.id, label: o.label })),
-          selectedId: firstDayOfWeek,
-          onSelect: (id: string) => setFirstDayOfWeek(id as FirstDayOfWeek),
-        };
       case "number":
         return {
           title: "Number Format",
@@ -274,6 +268,30 @@ export default function LocaleSettingsScreen() {
           })),
           selectedId: numberFormat,
           onSelect: (id: string) => setNumberFormat(id as NumberFormatId),
+        };
+      case "monthLength":
+        return {
+          title: "Month Length",
+          subtitle: "How long is a budget month?",
+          options: MONTH_LENGTH_OPTIONS.map((o) => ({
+            id: o.id,
+            label: o.label,
+            sublabel: o.desc,
+          })),
+          selectedId: monthLength,
+          onSelect: (id: string) => setMonthLength(id as MonthLengthId),
+        };
+      case "monthStartDay":
+        return {
+          title: "Month Start Day",
+          subtitle: "Which day does your budget month begin?",
+          options: Array.from({ length: 31 }, (_, i) => ({
+            id: String(i + 1),
+            label: `${i + 1}${i + 1 === 1 ? "st" : i + 1 === 2 ? "nd" : i + 1 === 3 ? "rd" : "th"}`,
+            sublabel: i === 0 ? "Default" : undefined,
+          })),
+          selectedId: String(monthStartDay),
+          onSelect: (id: string) => setMonthStartDay(parseInt(id, 10)),
         };
       default:
         return {
@@ -346,13 +364,15 @@ export default function LocaleSettingsScreen() {
           <View style={[styles.previewRow, styles.previewRowLast]}>
             <View style={styles.previewLabelRow}>
               <MaterialCommunityIcons
-                name="calendar-week-begin"
+                name="calendar-range"
                 size={14}
                 color={theme.foreground.gray}
               />
-              <Text style={styles.previewLabel}>Week starts</Text>
+              <Text style={styles.previewLabel}>Budget month</Text>
             </View>
-            <Text style={styles.previewValue}>{selectedFirstDayOption.label}</Text>
+            <Text style={styles.previewValue}>
+              {selectedMonthLengthOption.label}, starts {monthStartDay}{monthStartDay === 1 ? "st" : monthStartDay === 2 ? "nd" : monthStartDay === 3 ? "rd" : "th"}
+            </Text>
           </View>
         </View>
 
@@ -367,10 +387,19 @@ export default function LocaleSettingsScreen() {
             theme={theme}
           />
           <SettingRow
-            icon="calendar-week-begin"
-            label="First Day of Week"
-            value={selectedFirstDayOption.label}
-            onPress={() => openPicker("firstDay")}
+            icon="calendar-range"
+            label="Month Length"
+            description={selectedMonthLengthOption.desc}
+            value={selectedMonthLengthOption.label}
+            onPress={() => openPicker("monthLength")}
+            theme={theme}
+          />
+          <SettingRow
+            icon="calendar-start"
+            label="Month Starts On"
+            description="Day your budget cycle begins"
+            value={`${monthStartDay}${monthStartDay === 1 ? "st" : monthStartDay === 2 ? "nd" : monthStartDay === 3 ? "rd" : "th"}`}
+            onPress={() => openPicker("monthStartDay")}
             theme={theme}
           />
         </View>

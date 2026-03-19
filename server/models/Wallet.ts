@@ -5,6 +5,8 @@ export interface AppSettings {
   dateFormat?: string;
   firstDayOfWeek?: string;
   numberFormat?: string;
+  monthLength?: string;
+  monthStartDay?: number;
 }
 
 export interface WalletDocument {

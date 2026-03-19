@@ -188,7 +188,6 @@ export default function SettingsIndexScreen() {
     firstDayOfWeek,
     setDateFormat,
     setNumberFormat,
-    setFirstDayOfWeek,
   } = useLocale();
   const router = useRouter();
   const s = makeStyles(theme);
@@ -287,7 +286,6 @@ export default function SettingsIndexScreen() {
       if (parsed.settings) {
         const s = parsed.settings;
         if (s.dateFormat) await setDateFormat(s.dateFormat);
-        if (s.firstDayOfWeek) await setFirstDayOfWeek(s.firstDayOfWeek);
         if (s.numberFormat) await setNumberFormat(s.numberFormat);
       }
       setImportOpen(false);
@@ -301,7 +299,7 @@ export default function SettingsIndexScreen() {
         "Could not read the backup file. Make sure it's a valid MyWallet JSON export.",
       );
     }
-  }, [completeOnboarding, setDateFormat, setFirstDayOfWeek, setNumberFormat]);
+  }, [completeOnboarding, setDateFormat, setNumberFormat]);
 
   const handleReset = useCallback(async () => {
     try {
