@@ -195,9 +195,10 @@ export default function AboutScreen() {
     try {
       const contentUri = await FileSystem.getContentUriAsync(downloadedUri.current);
       await IntentLauncher.startActivityAsync(
-        "android.intent.action.INSTALL_PACKAGE",
+        "android.intent.action.VIEW",
         {
           data: contentUri,
+          type: "application/vnd.android.package-archive",
           flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
         },
       );
