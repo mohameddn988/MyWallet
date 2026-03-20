@@ -138,6 +138,7 @@ export default function AboutScreen() {
   }, []);
 
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadStatus, setDownloadStatus] = useState("");
 
   const handleDownloadAndInstall = useCallback(async (url?: string) => {
     const downloadUrl = url ?? DEFAULT_RELEASES_URL;
@@ -149,12 +150,14 @@ export default function AboutScreen() {
 
     try {
       setIsDownloading(true);
+      setDownloadStatus("Downloading APK...");
 
       const destination = new File(Paths.cache, "MyWallet-update.apk");
       const apkFile = await File.downloadFileAsync(downloadUrl, destination, {
         idempotent: true,
       });
 
+      setDownloadStatus("Opening installer...");
       await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
         data: apkFile.contentUri,
         type: "application/vnd.android.package-archive",
@@ -165,6 +168,7 @@ export default function AboutScreen() {
       Alert.alert("Update failed", msg);
     } finally {
       setIsDownloading(false);
+      setDownloadStatus("");
     }
   }, []);
 
@@ -309,7 +313,7 @@ export default function AboutScreen() {
                 />
               )}
               <Text style={styles.actionText}>
-                {isDownloading ? "Downloading..." : "Download & install update"}
+                {isDownloading ? downloadStatus || "Downloading..." : "Download & install update"}
               </Text>
             </Pressable>
           ) : null}
