@@ -8,6 +8,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -452,9 +453,23 @@ export default function AboutScreen() {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Made with ❤️ for personal finance management
-          </Text>
+          <Text style={styles.footerText}>Built by</Text>
+          <View style={styles.creatorsRow}>
+            <View style={styles.creatorItem}>
+              <Image
+                source={require("../../../assets/images/Mohameddn988.png")}
+                style={styles.creatorAvatar}
+              />
+              <Text style={styles.creatorName}>Mohamed</Text>
+            </View>
+            <View style={styles.creatorItem}>
+              <Image
+                source={require("../../../assets/images/Razan.png")}
+                style={styles.creatorAvatar}
+              />
+              <Text style={styles.creatorName}>Razan</Text>
+            </View>
+          </View>
           <Text style={styles.footerCopyright}>
             © 2026 MyWallet. All rights reserved.
           </Text>
@@ -768,6 +783,25 @@ function makeStyles(theme: Theme) {
       fontSize: 14,
       color: theme.foreground.gray,
       textAlign: "center",
+    },
+    creatorsRow: {
+      flexDirection: "row" as const,
+      justifyContent: "center" as const,
+      gap: 32,
+    },
+    creatorItem: {
+      alignItems: "center" as const,
+      gap: 8,
+    },
+    creatorAvatar: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+    },
+    creatorName: {
+      fontSize: 14,
+      fontWeight: "600" as const,
+      color: theme.foreground.white,
     },
     footerCopyright: {
       fontSize: 12,
