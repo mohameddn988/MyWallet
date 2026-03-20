@@ -8,7 +8,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ActivityIndicator,
   Alert,
-  BackHandler,
   Platform,
   Pressable,
   ScrollView,
@@ -161,10 +160,14 @@ export default function AboutScreen() {
     downloadedUri.current = null;
 
     try {
+      // Resolve GitHub's 302 redirect to get the direct URL
+      const head = await fetch(downloadUrl, { method: "HEAD", redirect: "follow" });
+      const resolvedUrl = head.url || downloadUrl;
+
       const fileUri = FileSystem.cacheDirectory + "MyWallet-update.apk";
 
       const downloadResumable = FileSystem.createDownloadResumable(
-        downloadUrl,
+        resolvedUrl,
         fileUri,
         {},
         (progress) => {
@@ -190,13 +193,13 @@ export default function AboutScreen() {
     if (!downloadedUri.current) return;
     try {
       const contentUri = await FileSystem.getContentUriAsync(downloadedUri.current);
-      await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
-        data: contentUri,
-        type: "application/vnd.android.package-archive",
-        flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
-      });
-      // Exit app so Android can install the update
-      BackHandler.exitApp();
+      await IntentLauncher.startActivityAsync(
+        "android.intent.action.INSTALL_PACKAGE",
+        {
+          data: contentUri,
+          flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
+        },
+      );
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Install failed";
       Alert.alert("Install failed", msg);
