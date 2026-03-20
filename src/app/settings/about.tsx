@@ -161,10 +161,14 @@ export default function AboutScreen() {
     downloadedUri.current = null;
 
     try {
+      // Resolve GitHub's 302 redirect to get the direct URL
+      const head = await fetch(downloadUrl, { method: "HEAD", redirect: "follow" });
+      const resolvedUrl = head.url || downloadUrl;
+
       const fileUri = FileSystem.cacheDirectory + "MyWallet-update.apk";
 
       const downloadResumable = FileSystem.createDownloadResumable(
-        downloadUrl,
+        resolvedUrl,
         fileUri,
         {},
         (progress) => {
