@@ -456,20 +456,25 @@ export default function AboutScreen() {
         <View style={styles.footer}>
           <Text style={styles.footerText}>Built by</Text>
           <View style={styles.creatorsRow}>
-            <View style={styles.creatorItem}>
+            <Pressable
+              style={({ pressed }) => [styles.creatorItem, pressed && styles.pressed]}
+              onPress={() => handleOpenLink("https://github.com/mohameddn988")}
+            >
               <Image
                 source={require("../../../assets/images/Mohameddn988.png")}
                 style={styles.creatorAvatar}
               />
-              <Text style={styles.creatorName}>Mohamed</Text>
-            </View>
-            <View style={styles.creatorItem}>
+            </Pressable>
+            <Text style={styles.collabX}>✕</Text>
+            <Pressable
+              style={({ pressed }) => [styles.creatorItem, pressed && styles.pressed]}
+              onPress={() => handleOpenLink("https://github.com/razankach")}
+            >
               <Image
                 source={require("../../../assets/images/Razan.png")}
                 style={styles.creatorAvatar}
               />
-              <Text style={styles.creatorName}>Razan</Text>
-            </View>
+            </Pressable>
           </View>
           <Text style={styles.footerCopyright}>
             © 2026 MyWallet. All rights reserved.
@@ -787,8 +792,9 @@ function makeStyles(theme: Theme) {
     },
     creatorsRow: {
       flexDirection: "row" as const,
+      alignItems: "center" as const,
       justifyContent: "center" as const,
-      gap: 32,
+      gap: 20,
     },
     creatorItem: {
       alignItems: "center" as const,
@@ -797,12 +803,11 @@ function makeStyles(theme: Theme) {
     creatorAvatar: {
       width: 64,
       height: 64,
-      borderRadius: 32,
     },
-    creatorName: {
-      fontSize: 14,
-      fontWeight: "600" as const,
-      color: theme.foreground.white,
+    collabX: {
+      fontSize: 22,
+      color: theme.foreground.gray,
+      marginBottom: 20,
     },
     footerCopyright: {
       fontSize: 12,
