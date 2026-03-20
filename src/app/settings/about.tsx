@@ -1,13 +1,14 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Constants from "expo-constants";
-import { File, Paths } from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as IntentLauncher from "expo-intent-launcher";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   Platform,
   Pressable,
   ScrollView,
@@ -17,6 +18,7 @@ import {
 } from "react-native";
 import { Theme } from "../../constants/themes";
 import { useTheme } from "../../contexts/ThemeContext";
+import { AppModal } from "../../components/ui/AppModal";
 
 // ─── Update manifest ────────────────────────────────────────────────────────
 
@@ -137,8 +139,12 @@ export default function AboutScreen() {
     }
   }, []);
 
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadStatus, setDownloadStatus] = useState("");
+  // ── Download modal state ─────────────────────
+  const [updateModalVisible, setUpdateModalVisible] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [downloadDone, setDownloadDone] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const downloadedUri = useRef<string | null>(null);
 
   const handleDownloadAndInstall = useCallback(async (url?: string) => {
     const downloadUrl = url ?? DEFAULT_RELEASES_URL;
@@ -148,28 +154,61 @@ export default function AboutScreen() {
       return;
     }
 
+    setUpdateModalVisible(true);
+    setDownloadProgress(0);
+    setDownloadDone(false);
+    setDownloadError(null);
+    downloadedUri.current = null;
+
     try {
-      setIsDownloading(true);
-      setDownloadStatus("Downloading APK...");
+      const fileUri = FileSystem.cacheDirectory + "MyWallet-update.apk";
 
-      const destination = new File(Paths.cache, "MyWallet-update.apk");
-      const apkFile = await File.downloadFileAsync(downloadUrl, destination, {
-        idempotent: true,
-      });
+      const downloadResumable = FileSystem.createDownloadResumable(
+        downloadUrl,
+        fileUri,
+        {},
+        (progress) => {
+          const pct = progress.totalBytesExpectedToWrite > 0
+            ? progress.totalBytesWritten / progress.totalBytesExpectedToWrite
+            : 0;
+          setDownloadProgress(Math.round(pct * 100));
+        },
+      );
 
-      setDownloadStatus("Opening installer...");
+      const result = await downloadResumable.downloadAsync();
+      if (!result?.uri) throw new Error("Download returned no file");
+
+      downloadedUri.current = result.uri;
+      setDownloadDone(true);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Download failed";
+      setDownloadError(msg);
+    }
+  }, []);
+
+  const handleInstall = useCallback(async () => {
+    if (!downloadedUri.current) return;
+    try {
+      const contentUri = await FileSystem.getContentUriAsync(downloadedUri.current);
       await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
-        data: apkFile.contentUri,
+        data: contentUri,
         type: "application/vnd.android.package-archive",
         flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
       });
+      // Exit app so Android can install the update
+      BackHandler.exitApp();
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Download failed";
-      Alert.alert("Update failed", msg);
-    } finally {
-      setIsDownloading(false);
-      setDownloadStatus("");
+      const msg = e instanceof Error ? e.message : "Install failed";
+      Alert.alert("Install failed", msg);
     }
+  }, []);
+
+  const closeUpdateModal = useCallback(() => {
+    setUpdateModalVisible(false);
+    setDownloadProgress(0);
+    setDownloadDone(false);
+    setDownloadError(null);
+    downloadedUri.current = null;
   }, []);
 
   const openUrl = useCallback(async (url?: string) => {
@@ -301,20 +340,13 @@ export default function AboutScreen() {
                 pressed && styles.pressed,
               ]}
               onPress={() => handleDownloadAndInstall(manifest?.downloadUrl)}
-              disabled={isDownloading}
             >
-              {isDownloading ? (
-                <ActivityIndicator size="small" color={theme.foreground.white} />
-              ) : (
-                <MaterialCommunityIcons
-                  name="download"
-                  size={18}
-                  color={theme.foreground.white}
-                />
-              )}
-              <Text style={styles.actionText}>
-                {isDownloading ? downloadStatus || "Downloading..." : "Download & install update"}
-              </Text>
+              <MaterialCommunityIcons
+                name="download"
+                size={18}
+                color={theme.foreground.white}
+              />
+              <Text style={styles.actionText}>Download & install update</Text>
             </Pressable>
           ) : null}
 
@@ -425,6 +457,69 @@ export default function AboutScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      {/* ── Download & Install Modal ──────────────── */}
+      <AppModal
+        visible={updateModalVisible}
+        title={
+          downloadError
+            ? "Update Failed"
+            : downloadDone
+              ? "Ready to Install"
+              : "Downloading Update"
+        }
+        icon={
+          downloadError
+            ? "alert-circle-outline"
+            : downloadDone
+              ? "check-circle-outline"
+              : "download"
+        }
+        variant={downloadError ? "destructive" : downloadDone ? "success" : "info"}
+        description={
+          downloadError
+            ? downloadError
+            : downloadDone
+              ? `v${manifest?.versionName ?? "?"} is ready. The app will close to install the update.`
+              : `Downloading v${manifest?.versionName ?? "?"}...`
+        }
+        onClose={downloadDone ? undefined : closeUpdateModal}
+        busy={!downloadDone && !downloadError}
+        actions={
+          downloadError
+            ? [
+                { label: "Close", onPress: closeUpdateModal },
+                {
+                  label: "Retry",
+                  primary: true,
+                  onPress: () => {
+                    closeUpdateModal();
+                    handleDownloadAndInstall(manifest?.downloadUrl);
+                  },
+                },
+              ]
+            : downloadDone
+              ? [
+                  { label: "Later", onPress: closeUpdateModal },
+                  { label: "Install Now", primary: true, onPress: handleInstall },
+                ]
+              : undefined
+        }
+      >
+        {!downloadDone && !downloadError ? (
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBarBg}>
+              <View
+                style={[
+                  styles.progressBarFill,
+                  { width: `${downloadProgress}%`, backgroundColor: theme.primary.main },
+                ]}
+              />
+            </View>
+            <Text style={styles.progressText}>{downloadProgress}%</Text>
+          </View>
+        ) : null}
+      </AppModal>
     </View>
   );
 }
@@ -678,6 +773,30 @@ function makeStyles(theme: Theme) {
     },
     pressed: {
       opacity: 0.7,
+    },
+
+    // ── Download progress ─────────────────────────
+    progressContainer: {
+      width: "100%",
+      alignItems: "center",
+      gap: 8,
+      marginTop: 4,
+    },
+    progressBarBg: {
+      width: "100%",
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: `${theme.foreground.gray}20`,
+      overflow: "hidden" as const,
+    },
+    progressBarFill: {
+      height: "100%",
+      borderRadius: 3,
+    },
+    progressText: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: theme.foreground.gray,
     },
   });
 }
